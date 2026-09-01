@@ -287,6 +287,7 @@
 				AA10007E2C85000100000001 /* FunctionGrapherView.swift */,
 				AA1000802C85000100000001 /* AdvancedMathView.swift */,
 				AA1000882C85000100000001 /* MathDrawCanvasView.swift */,
+				AA1000942C85000100000001 /* GeminiAIView.swift */,
 				AA10006A2C85000100000001 /* SonarWaveRingsView.swift */,
 			);
 			path = Views;
