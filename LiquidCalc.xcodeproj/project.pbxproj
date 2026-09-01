@@ -60,6 +60,7 @@
 		AA1000672C85000100000001 /* UpdateAvailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000682C85000100000001 /* UpdateAvailableView.swift */; };
 		AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10006A2C85000100000001 /* SonarWaveRingsView.swift */; };
 		AA20000D2C85000100000001 /* AppUpdateManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */; };
+		AA10006B2C85000100000001 /* SemanticVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10006C2C85000100000001 /* SemanticVersion.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -119,6 +120,7 @@
 		AA1000682C85000100000001 /* UpdateAvailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/UpdateAvailableView.swift"; sourceTree = "<group>"; };
 		AA10006A2C85000100000001 /* SonarWaveRingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/SonarWaveRingsView.swift"; sourceTree = "<group>"; };
 		AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateManagerTests.swift; sourceTree = "<group>"; };
+		AA10006C2C85000100000001 /* SemanticVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Update/SemanticVersion.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -199,6 +201,7 @@
 				AA1000422C85000100000001 /* VisionMathScanner.swift */,
 				AA1000442C85000100000001 /* CameraCaptureService.swift */,
 				AA1000622C85000100000001 /* AppUpdateManager.swift */,
+				AA10006C2C85000100000001 /* SemanticVersion.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -405,6 +408,7 @@
 				AA1000532C85000100000001 /* ReticleOverlayView.swift in Sources */,
 				AA1000552C85000100000001 /* SolvedResultCardView.swift in Sources */,
 				AA1000612C85000100000001 /* AppUpdateManager.swift in Sources */,
+				AA10006B2C85000100000001 /* SemanticVersion.swift in Sources */,
 				AA1000632C85000100000001 /* GitHubRelease.swift in Sources */,
 				AA1000652C85000100000001 /* SupportedCurrency.swift in Sources */,
 				AA1000672C85000100000001 /* UpdateAvailableView.swift in Sources */,
