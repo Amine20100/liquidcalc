@@ -139,10 +139,16 @@ public final class NumberTheoryEngine: Sendable {
     }
     
     private func modMul(_ a: Int64, _ b: Int64, _ m: Int64) -> Int64 {
-        // Safe 64-bit multiplication modulo m avoiding overflow
-        let a128 = Int128(a)
-        let b128 = Int128(b)
-        let m128 = Int128(m)
-        return Int64((a128 * b128) % m128)
+        var res: Int64 = 0
+        var tempA = (a % m + m) % m
+        var tempB = (b % m + m) % m
+        while tempB > 0 {
+            if tempB % 2 == 1 {
+                res = (res + tempA) % m
+            }
+            tempA = (tempA * 2) % m
+            tempB /= 2
+        }
+        return res
     }
 }

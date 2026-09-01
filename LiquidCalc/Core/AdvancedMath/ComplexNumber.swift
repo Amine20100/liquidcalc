@@ -7,6 +7,9 @@
 //
 
 import Foundation
+#if canImport(Darwin)
+import Darwin
+#endif
 
 public struct ComplexNumber: Equatable, Sendable, CustomStringConvertible {
     public let real: Double
@@ -18,8 +21,8 @@ public struct ComplexNumber: Equatable, Sendable, CustomStringConvertible {
     }
     
     public init(magnitude r: Double, phase theta: Double) {
-        self.real = r * cos(theta)
-        self.imag = r * sin(theta)
+        self.real = r * Foundation.cos(theta)
+        self.imag = r * Foundation.sin(theta)
     }
     
     public static let zero = ComplexNumber(real: 0, imag: 0)
@@ -103,7 +106,7 @@ public struct ComplexNumber: Equatable, Sendable, CustomStringConvertible {
     
     public func exp() -> ComplexNumber {
         let expReal = Foundation.exp(real)
-        return ComplexNumber(real: expReal * cos(imag), imag: expReal * sin(imag))
+        return ComplexNumber(real: expReal * Foundation.cos(imag), imag: expReal * Foundation.sin(imag))
     }
     
     public func log() -> ComplexNumber {
@@ -112,11 +115,11 @@ public struct ComplexNumber: Equatable, Sendable, CustomStringConvertible {
     
     public func sin() -> ComplexNumber {
         // sin(a + bi) = sin(a)cosh(b) + i*cos(a)sinh(b)
-        ComplexNumber(real: Darwin.sin(real) * Darwin.cosh(imag), imag: Darwin.cos(real) * Darwin.sinh(imag))
+        ComplexNumber(real: Foundation.sin(real) * Foundation.cosh(imag), imag: Foundation.cos(real) * Foundation.sinh(imag))
     }
     
     public func cos() -> ComplexNumber {
         // cos(a + bi) = cos(a)cosh(b) - i*sin(a)sinh(b)
-        ComplexNumber(real: Darwin.cos(real) * Darwin.cosh(imag), imag: -Darwin.sin(real) * Darwin.sinh(imag))
+        ComplexNumber(real: Foundation.cos(real) * Foundation.cosh(imag), imag: -Foundation.sin(real) * Foundation.sinh(imag))
     }
 }

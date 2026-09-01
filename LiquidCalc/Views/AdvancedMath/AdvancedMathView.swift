@@ -385,7 +385,7 @@ public struct AdvancedMathView: View {
             let expr = calcFormula
                 .replacingOccurrences(of: "x", with: "(\(val))")
                 .replacingOccurrences(of: "X", with: "(\(val))")
-            return (try? eval.evaluate(expr)) ?? 0.0
+            return (try? eval.evaluate(expression: expr)) ?? 0.0
         }
         
         let d = CalculusEngine.shared.derivative(at: x0, function: f)

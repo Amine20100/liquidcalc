@@ -264,7 +264,7 @@ public struct FunctionGrapherView: View {
             .replacingOccurrences(of: "X", with: "(\(String(format: "%.8f", x)))")
         
         do {
-            return try evaluator.evaluate(expr)
+            return try evaluator.evaluate(expression: expr)
         } catch {
             return .nan
         }
