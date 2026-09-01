@@ -1,0 +1,588 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		AA1000012C85000100000001 /* LiquidCalcApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000022C85000100000001 /* LiquidCalcApp.swift */; };
+		AA1000032C85000100000001 /* MainCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000042C85000100000001 /* MainCalculatorView.swift */; };
+		AA1000052C85000100000001 /* LiquidGlassBackground.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000062C85000100000001 /* LiquidGlassBackground.swift */; };
+		AA1000072C85000100000001 /* ModeSwitcherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000082C85000100000001 /* ModeSwitcherView.swift */; };
+		AA1000092C85000100000001 /* LiquidDisplayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000A2C85000100000001 /* LiquidDisplayView.swift */; };
+		AA10000B2C85000100000001 /* KeypadButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000C2C85000100000001 /* KeypadButtonView.swift */; };
+		AA10000D2C85000100000001 /* StandardKeypadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10000E2C85000100000001 /* StandardKeypadView.swift */; };
+		AA10000F2C85000100000001 /* ScientificKeypadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000102C85000100000001 /* ScientificKeypadView.swift */; };
+		AA1000112C85000100000001 /* ProgrammerKeypadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000122C85000100000001 /* ProgrammerKeypadView.swift */; };
+		AA1000132C85000100000001 /* BitVisualizerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000142C85000100000001 /* BitVisualizerView.swift */; };
+		AA1000152C85000100000001 /* UnitConverterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000162C85000100000001 /* UnitConverterView.swift */; };
+		AA1000172C85000100000001 /* HistorySheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000182C85000100000001 /* HistorySheetView.swift */; };
+		AA1000192C85000100000001 /* CalculatorViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10001A2C85000100000001 /* CalculatorViewModel.swift */; };
+		AA10001B2C85000100000001 /* ProgrammerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10001C2C85000100000001 /* ProgrammerViewModel.swift */; };
+		AA10001D2C85000100000001 /* ConverterViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10001E2C85000100000001 /* ConverterViewModel.swift */; };
+		AA10001F2C85000100000001 /* CalculatorMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000202C85000100000001 /* CalculatorMode.swift */; };
+		AA1000212C85000100000001 /* KeypadButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000222C85000100000001 /* KeypadButton.swift */; };
+		AA1000232C85000100000001 /* MathToken.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000242C85000100000001 /* MathToken.swift */; };
+		AA1000252C85000100000001 /* MathLexer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000262C85000100000001 /* MathLexer.swift */; };
+		AA1000272C85000100000001 /* MathParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000282C85000100000001 /* MathParser.swift */; };
+		AA1000292C85000100000001 /* MathEvaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10002A2C85000100000001 /* MathEvaluator.swift */; };
+		AA10002B2C85000100000001 /* MathError.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10002C2C85000100000001 /* MathError.swift */; };
+		AA10002D2C85000100000001 /* WordSize.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10002E2C85000100000001 /* WordSize.swift */; };
+		AA10002F2C85000100000001 /* BitwiseOperator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000302C85000100000001 /* BitwiseOperator.swift */; };
+		AA1000312C85000100000001 /* ProgrammerEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000322C85000100000001 /* ProgrammerEngine.swift */; };
+		AA1000332C85000100000001 /* UnitCategory.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000342C85000100000001 /* UnitCategory.swift */; };
+		AA1000352C85000100000001 /* UnitConverterEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000362C85000100000001 /* UnitConverterEngine.swift */; };
+		AA1000372C85000100000001 /* HistoryItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000382C85000100000001 /* HistoryItem.swift */; };
+		AA1000392C85000100000001 /* HistoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10003A2C85000100000001 /* HistoryManager.swift */; };
+		AA10003B2C85000100000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA10003C2C85000100000001 /* Assets.xcassets */; };
+		AA10003F2C85000100000001 /* SoundAndHapticManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000402C85000100000001 /* SoundAndHapticManager.swift */; };
+		AA1000412C85000100000001 /* VisionMathScanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000422C85000100000001 /* VisionMathScanner.swift */; };
+		AA1000432C85000100000001 /* CameraCaptureService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000442C85000100000001 /* CameraCaptureService.swift */; };
+		AA1000452C85000100000001 /* VisionViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000462C85000100000001 /* VisionViewModel.swift */; };
+		AA1000472C85000100000001 /* CameraPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000482C85000100000001 /* CameraPreviewView.swift */; };
+		AA1000492C85000100000001 /* SmartVisionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10004A2C85000100000001 /* SmartVisionView.swift */; };
+		AA10004B2C85000100000001 /* ReceiptSplitterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10004C2C85000100000001 /* ReceiptSplitterView.swift */; };
+		AA10004D2C85000100000001 /* SettingsSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10004E2C85000100000001 /* SettingsSheetView.swift */; };
+		AA2000012C85000100000001 /* MathEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000022C85000100000001 /* MathEngineTests.swift */; };
+		AA2000032C85000100000001 /* ProgrammerEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000042C85000100000001 /* ProgrammerEngineTests.swift */; };
+		AA2000052C85000100000001 /* UnitConverterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000062C85000100000001 /* UnitConverterTests.swift */; };
+		AA2000072C85000100000001 /* VisionMathScannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000082C85000100000001 /* VisionMathScannerTests.swift */; };
+		AA1000512C85000100000001 /* LaserSweepLineView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000522C85000100000001 /* LaserSweepLineView.swift */; };
+		AA1000532C85000100000001 /* ReticleOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000542C85000100000001 /* ReticleOverlayView.swift */; };
+		AA1000552C85000100000001 /* SolvedResultCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000562C85000100000001 /* SolvedResultCardView.swift */; };
+		AA2000092C85000100000001 /* SoundAndHapticManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */; };
+		AA20000B2C85000100000001 /* LiquidCalcE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		AA1000002C85000100000001 /* LiquidCalc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiquidCalc.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA1000022C85000100000001 /* LiquidCalcApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCalcApp.swift; sourceTree = "<group>"; };
+		AA1000042C85000100000001 /* MainCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCalculatorView.swift; sourceTree = "<group>"; };
+		AA1000062C85000100000001 /* LiquidGlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassBackground.swift; sourceTree = "<group>"; };
+		AA1000082C85000100000001 /* ModeSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeSwitcherView.swift; sourceTree = "<group>"; };
+		AA10000A2C85000100000001 /* LiquidDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidDisplayView.swift; sourceTree = "<group>"; };
+		AA10000C2C85000100000001 /* KeypadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeypadButtonView.swift; sourceTree = "<group>"; };
+		AA10000E2C85000100000001 /* StandardKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardKeypadView.swift; sourceTree = "<group>"; };
+		AA1000102C85000100000001 /* ScientificKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScientificKeypadView.swift; sourceTree = "<group>"; };
+		AA1000122C85000100000001 /* ProgrammerKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerKeypadView.swift; sourceTree = "<group>"; };
+		AA1000142C85000100000001 /* BitVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitVisualizerView.swift; sourceTree = "<group>"; };
+		AA1000162C85000100000001 /* UnitConverterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitConverterView.swift; sourceTree = "<group>"; };
+		AA1000182C85000100000001 /* HistorySheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySheetView.swift; sourceTree = "<group>"; };
+		AA10001A2C85000100000001 /* CalculatorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorViewModel.swift; sourceTree = "<group>"; };
+		AA10001C2C85000100000001 /* ProgrammerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerViewModel.swift; sourceTree = "<group>"; };
+		AA10001E2C85000100000001 /* ConverterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConverterViewModel.swift; sourceTree = "<group>"; };
+		AA1000202C85000100000001 /* CalculatorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorMode.swift; sourceTree = "<group>"; };
+		AA1000222C85000100000001 /* KeypadButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeypadButton.swift; sourceTree = "<group>"; };
+		AA1000242C85000100000001 /* MathToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathToken.swift; sourceTree = "<group>"; };
+		AA1000262C85000100000001 /* MathLexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathLexer.swift; sourceTree = "<group>"; };
+		AA1000282C85000100000001 /* MathParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathParser.swift; sourceTree = "<group>"; };
+		AA10002A2C85000100000001 /* MathEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathEvaluator.swift; sourceTree = "<group>"; };
+		AA10002C2C85000100000001 /* MathError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathError.swift; sourceTree = "<group>"; };
+		AA10002E2C85000100000001 /* WordSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordSize.swift; sourceTree = "<group>"; };
+		AA1000302C85000100000001 /* BitwiseOperator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitwiseOperator.swift; sourceTree = "<group>"; };
+		AA1000322C85000100000001 /* ProgrammerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerEngine.swift; sourceTree = "<group>"; };
+		AA1000342C85000100000001 /* UnitCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitCategory.swift; sourceTree = "<group>"; };
+		AA1000362C85000100000001 /* UnitConverterEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitConverterEngine.swift; sourceTree = "<group>"; };
+		AA1000382C85000100000001 /* HistoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItem.swift; sourceTree = "<group>"; };
+		AA10003A2C85000100000001 /* HistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManager.swift; sourceTree = "<group>"; };
+		AA10003C2C85000100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AA10003D2C85000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AA1000402C85000100000001 /* SoundAndHapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundAndHapticManager.swift; sourceTree = "<group>"; };
+		AA1000422C85000100000001 /* VisionMathScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionMathScanner.swift; sourceTree = "<group>"; };
+		AA1000442C85000100000001 /* CameraCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureService.swift; sourceTree = "<group>"; };
+		AA1000462C85000100000001 /* VisionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionViewModel.swift; sourceTree = "<group>"; };
+		AA1000482C85000100000001 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
+		AA10004A2C85000100000001 /* SmartVisionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartVisionView.swift; sourceTree = "<group>"; };
+		AA10004C2C85000100000001 /* ReceiptSplitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptSplitterView.swift; sourceTree = "<group>"; };
+		AA10004E2C85000100000001 /* SettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheetView.swift; sourceTree = "<group>"; };
+		AA2000002C85000100000001 /* LiquidCalcTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LiquidCalcTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA2000022C85000100000001 /* MathEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathEngineTests.swift; sourceTree = "<group>"; };
+		AA2000042C85000100000001 /* ProgrammerEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerEngineTests.swift; sourceTree = "<group>"; };
+		AA2000062C85000100000001 /* UnitConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitConverterTests.swift; sourceTree = "<group>"; };
+		AA2000082C85000100000001 /* VisionMathScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionMathScannerTests.swift; sourceTree = "<group>"; };
+		AA1000522C85000100000001 /* LaserSweepLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/Vision/Components/LaserSweepLineView.swift"; sourceTree = "<group>"; };
+		AA1000542C85000100000001 /* ReticleOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/Vision/Components/ReticleOverlayView.swift"; sourceTree = "<group>"; };
+		AA1000562C85000100000001 /* SolvedResultCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/Vision/Components/SolvedResultCardView.swift"; sourceTree = "<group>"; };
+		AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundAndHapticManagerTests.swift; sourceTree = "<group>"; };
+		AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCalcE2ETests.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		AA10000E2C85000100000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA20000E2C85000100000000 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		AA0000002C85000100000000 = {
+			isa = PBXGroup;
+			children = (
+				AA1000002C85000000000001 /* LiquidCalc */,
+				AA2000002C85000000000001 /* LiquidCalcTests */,
+				AA3000002C85000000000001 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		AA1000002C85000000000001 /* LiquidCalc */ = {
+			isa = PBXGroup;
+			children = (
+				AA1000102C85000000000001 /* App */,
+				AA1000202C85000000000001 /* Models */,
+				AA1000302C85000000000001 /* Core */,
+				AA1000402C85000000000001 /* ViewModels */,
+				AA1000502C85000000000001 /* Views */,
+				AA1000602C85000000000001 /* Resources */,
+			);
+			path = LiquidCalc;
+			sourceTree = "<group>";
+		};
+		AA1000102C85000000000001 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				AA1000022C85000100000001 /* LiquidCalcApp.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		AA1000202C85000000000001 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				AA1000202C85000100000001 /* CalculatorMode.swift */,
+				AA1000222C85000100000001 /* KeypadButton.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		AA1000302C85000000000001 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				AA1000242C85000100000001 /* MathToken.swift */,
+				AA1000262C85000100000001 /* MathLexer.swift */,
+				AA1000282C85000100000001 /* MathParser.swift */,
+				AA10002A2C85000100000001 /* MathEvaluator.swift */,
+				AA10002C2C85000100000001 /* MathError.swift */,
+				AA10002E2C85000100000001 /* WordSize.swift */,
+				AA1000302C85000100000001 /* BitwiseOperator.swift */,
+				AA1000322C85000100000001 /* ProgrammerEngine.swift */,
+				AA1000342C85000100000001 /* UnitCategory.swift */,
+				AA1000362C85000100000001 /* UnitConverterEngine.swift */,
+				AA1000382C85000100000001 /* HistoryItem.swift */,
+				AA10003A2C85000100000001 /* HistoryManager.swift */,
+				AA1000402C85000100000001 /* SoundAndHapticManager.swift */,
+				AA1000422C85000100000001 /* VisionMathScanner.swift */,
+				AA1000442C85000100000001 /* CameraCaptureService.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		AA1000402C85000000000001 /* ViewModels */ = {
+			isa = PBXGroup;
+			children = (
+				AA10001A2C85000100000001 /* CalculatorViewModel.swift */,
+				AA10001C2C85000100000001 /* ProgrammerViewModel.swift */,
+				AA10001E2C85000100000001 /* ConverterViewModel.swift */,
+				AA1000462C85000100000001 /* VisionViewModel.swift */,
+			);
+			path = ViewModels;
+			sourceTree = "<group>";
+		};
+		AA1000502C85000000000001 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				AA1000042C85000100000001 /* MainCalculatorView.swift */,
+				AA1000062C85000100000001 /* LiquidGlassBackground.swift */,
+				AA1000082C85000100000001 /* ModeSwitcherView.swift */,
+				AA10000A2C85000100000001 /* LiquidDisplayView.swift */,
+				AA10000C2C85000100000001 /* KeypadButtonView.swift */,
+				AA10000E2C85000100000001 /* StandardKeypadView.swift */,
+				AA1000102C85000100000001 /* ScientificKeypadView.swift */,
+				AA1000122C85000100000001 /* ProgrammerKeypadView.swift */,
+				AA1000142C85000100000001 /* BitVisualizerView.swift */,
+				AA1000162C85000100000001 /* UnitConverterView.swift */,
+				AA1000182C85000100000001 /* HistorySheetView.swift */,
+				AA1000482C85000100000001 /* CameraPreviewView.swift */,
+				AA10004A2C85000100000001 /* SmartVisionView.swift */,
+				AA10004C2C85000100000001 /* ReceiptSplitterView.swift */,
+				AA10004E2C85000100000001 /* SettingsSheetView.swift */,
+				AA1000522C85000100000001 /* LaserSweepLineView.swift */,
+				AA1000542C85000100000001 /* ReticleOverlayView.swift */,
+				AA1000562C85000100000001 /* SolvedResultCardView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		AA1000602C85000000000001 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				AA10003C2C85000100000001 /* Assets.xcassets */,
+				AA10003D2C85000100000001 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		AA2000002C85000000000001 /* LiquidCalcTests */ = {
+			isa = PBXGroup;
+			children = (
+				AA2000022C85000100000001 /* MathEngineTests.swift */,
+				AA2000042C85000100000001 /* ProgrammerEngineTests.swift */,
+				AA2000062C85000100000001 /* UnitConverterTests.swift */,
+				AA2000082C85000100000001 /* VisionMathScannerTests.swift */,
+				AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */,
+				AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */,
+			);
+			path = LiquidCalcTests;
+			sourceTree = "<group>";
+		};
+		AA3000002C85000000000001 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AA1000002C85000100000001 /* LiquidCalc.app */,
+				AA2000002C85000100000001 /* LiquidCalcTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		AA1000002C85000100000002 /* LiquidCalc */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA1000002C85000100000003 /* Build configuration list for PBXNativeTarget "LiquidCalc" */;
+			buildPhases = (
+				AA10000F2C85000100000000 /* Sources */,
+				AA10000E2C85000100000000 /* Frameworks */,
+				AA10000D2C85000100000000 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LiquidCalc;
+			productName = LiquidCalc;
+			productReference = AA1000002C85000100000001 /* LiquidCalc.app */;
+			productType = "com.apple.product-type.application";
+		};
+		AA2000002C85000100000002 /* LiquidCalcTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA2000002C85000100000003 /* Build configuration list for PBXNativeTarget "LiquidCalcTests" */;
+			buildPhases = (
+				AA20000F2C85000100000000 /* Sources */,
+				AA20000E2C85000100000000 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				AA2000002C85000100000004 /* PBXTargetDependency */,
+			);
+			name = LiquidCalcTests;
+			productName = LiquidCalcTests;
+			productReference = AA2000002C85000100000001 /* LiquidCalcTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AA0000002C85000100000001 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1600;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					AA1000002C85000100000002 = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					AA2000002C85000100000002 = {
+						CreatedOnToolsVersion = 16.0;
+						TestTargetID = AA1000002C85000100000002;
+					};
+				};
+			};
+			buildConfigurationList = AA0000002C85000100000002 /* Build configuration list for PBXProject "LiquidCalc" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = AA0000002C85000100000000;
+			productRefGroup = AA3000002C85000000000001 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AA1000002C85000100000002 /* LiquidCalc */,
+				AA2000002C85000100000002 /* LiquidCalcTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		AA10000D2C85000100000000 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA10003B2C85000100000001 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		AA10000F2C85000100000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA1000012C85000100000001 /* LiquidCalcApp.swift in Sources */,
+				AA1000032C85000100000001 /* MainCalculatorView.swift in Sources */,
+				AA1000052C85000100000001 /* LiquidGlassBackground.swift in Sources */,
+				AA1000072C85000100000001 /* ModeSwitcherView.swift in Sources */,
+				AA1000092C85000100000001 /* LiquidDisplayView.swift in Sources */,
+				AA10000B2C85000100000001 /* KeypadButtonView.swift in Sources */,
+				AA10000D2C85000100000001 /* StandardKeypadView.swift in Sources */,
+				AA10000F2C85000100000001 /* ScientificKeypadView.swift in Sources */,
+				AA1000112C85000100000001 /* ProgrammerKeypadView.swift in Sources */,
+				AA1000132C85000100000001 /* BitVisualizerView.swift in Sources */,
+				AA1000152C85000100000001 /* UnitConverterView.swift in Sources */,
+				AA1000172C85000100000001 /* HistorySheetView.swift in Sources */,
+				AA1000192C85000100000001 /* CalculatorViewModel.swift in Sources */,
+				AA10001B2C85000100000001 /* ProgrammerViewModel.swift in Sources */,
+				AA10001D2C85000100000001 /* ConverterViewModel.swift in Sources */,
+				AA10001F2C85000100000001 /* CalculatorMode.swift in Sources */,
+				AA1000212C85000100000001 /* KeypadButton.swift in Sources */,
+				AA1000232C85000100000001 /* MathToken.swift in Sources */,
+				AA1000252C85000100000001 /* MathLexer.swift in Sources */,
+				AA1000272C85000100000001 /* MathParser.swift in Sources */,
+				AA1000292C85000100000001 /* MathEvaluator.swift in Sources */,
+				AA10002B2C85000100000001 /* MathError.swift in Sources */,
+				AA10002D2C85000100000001 /* WordSize.swift in Sources */,
+				AA10002F2C85000100000001 /* BitwiseOperator.swift in Sources */,
+				AA1000312C85000100000001 /* ProgrammerEngine.swift in Sources */,
+				AA1000332C85000100000001 /* UnitCategory.swift in Sources */,
+				AA1000352C85000100000001 /* UnitConverterEngine.swift in Sources */,
+				AA1000372C85000100000001 /* HistoryItem.swift in Sources */,
+				AA1000392C85000100000001 /* HistoryManager.swift in Sources */,
+				AA10003F2C85000100000001 /* SoundAndHapticManager.swift in Sources */,
+				AA1000412C85000100000001 /* VisionMathScanner.swift in Sources */,
+				AA1000432C85000100000001 /* CameraCaptureService.swift in Sources */,
+				AA1000452C85000100000001 /* VisionViewModel.swift in Sources */,
+				AA1000472C85000100000001 /* CameraPreviewView.swift in Sources */,
+				AA1000492C85000100000001 /* SmartVisionView.swift in Sources */,
+				AA10004B2C85000100000001 /* ReceiptSplitterView.swift in Sources */,
+				AA10004D2C85000100000001 /* SettingsSheetView.swift in Sources */,
+				AA1000512C85000100000001 /* LaserSweepLineView.swift in Sources */,
+				AA1000532C85000100000001 /* ReticleOverlayView.swift in Sources */,
+				AA1000552C85000100000001 /* SolvedResultCardView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA20000F2C85000100000000 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA2000012C85000100000001 /* MathEngineTests.swift in Sources */,
+				AA2000032C85000100000001 /* ProgrammerEngineTests.swift in Sources */,
+				AA2000052C85000100000001 /* UnitConverterTests.swift in Sources */,
+				AA2000072C85000100000001 /* VisionMathScannerTests.swift in Sources */,
+				AA2000092C85000100000001 /* SoundAndHapticManagerTests.swift in Sources */,
+				AA20000B2C85000100000001 /* LiquidCalcE2ETests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AA2000002C85000100000004 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = AA1000002C85000100000002 /* LiquidCalc */;
+			targetProxy = AA2000002C85000100000005 /* PBXContainerItemProxy */;
+		};
+		AA2000002C85000100000005 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AA0000002C85000100000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA1000002C85000100000002;
+			remoteInfo = LiquidCalc;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		AA0000002C85000100000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		AA0000002C85000100000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_OPTIMIZATION_LEVEL = s;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		AA1000002C85000100000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA1000002C85000100000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		AA2000002C85000100000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LiquidCalc.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LiquidCalc";
+			};
+			name = Debug;
+		};
+		AA2000002C85000100000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LiquidCalc.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/LiquidCalc";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AA0000002C85000100000002 /* Build configuration list for PBXProject "LiquidCalc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA0000002C85000100000003 /* Debug */,
+				AA0000002C85000100000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA1000002C85000100000003 /* Build configuration list for PBXNativeTarget "LiquidCalc" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA1000002C85000100000005 /* Debug */,
+				AA1000002C85000100000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AA2000002C85000100000003 /* Build configuration list for PBXNativeTarget "LiquidCalcTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA2000002C85000100000005 /* Debug */,
+				AA2000002C85000100000006 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+
+	};
+	rootObject = AA0000002C85000100000001 /* Project object */;
+}

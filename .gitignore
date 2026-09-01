@@ -1,0 +1,15 @@
+# Xcode & iOS
+build/
+DerivedData/
+*.moved-aside
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+*.xcuserdatad
+
+# Agents & logs
+.agents/
+
+# OS artifacts
+.DS_Store
+Thumbs.db
