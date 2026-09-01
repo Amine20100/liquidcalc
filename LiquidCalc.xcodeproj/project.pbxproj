@@ -60,51 +60,51 @@
 		AA1000002C85000100000001 /* LiquidCalc.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiquidCalc.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA1000022C85000100000001 /* LiquidCalcApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCalcApp.swift; sourceTree = "<group>"; };
 		AA1000042C85000100000001 /* MainCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainCalculatorView.swift; sourceTree = "<group>"; };
-		AA1000062C85000100000001 /* LiquidGlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidGlassBackground.swift; sourceTree = "<group>"; };
-		AA1000082C85000100000001 /* ModeSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModeSwitcherView.swift; sourceTree = "<group>"; };
-		AA10000A2C85000100000001 /* LiquidDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidDisplayView.swift; sourceTree = "<group>"; };
-		AA10000C2C85000100000001 /* KeypadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeypadButtonView.swift; sourceTree = "<group>"; };
-		AA10000E2C85000100000001 /* StandardKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StandardKeypadView.swift; sourceTree = "<group>"; };
-		AA1000102C85000100000001 /* ScientificKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScientificKeypadView.swift; sourceTree = "<group>"; };
-		AA1000122C85000100000001 /* ProgrammerKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerKeypadView.swift; sourceTree = "<group>"; };
-		AA1000142C85000100000001 /* BitVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitVisualizerView.swift; sourceTree = "<group>"; };
-		AA1000162C85000100000001 /* UnitConverterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitConverterView.swift; sourceTree = "<group>"; };
-		AA1000182C85000100000001 /* HistorySheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistorySheetView.swift; sourceTree = "<group>"; };
+		AA1000062C85000100000001 /* LiquidGlassBackground.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/LiquidGlassBackground.swift"; sourceTree = "<group>"; };
+		AA1000082C85000100000001 /* ModeSwitcherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/ModeSwitcherView.swift"; sourceTree = "<group>"; };
+		AA10000A2C85000100000001 /* LiquidDisplayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Display/LiquidDisplayView.swift"; sourceTree = "<group>"; };
+		AA10000C2C85000100000001 /* KeypadButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/KeypadButtonView.swift"; sourceTree = "<group>"; };
+		AA10000E2C85000100000001 /* StandardKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/StandardKeypadView.swift"; sourceTree = "<group>"; };
+		AA1000102C85000100000001 /* ScientificKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/ScientificKeypadView.swift"; sourceTree = "<group>"; };
+		AA1000122C85000100000001 /* ProgrammerKeypadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/ProgrammerKeypadView.swift"; sourceTree = "<group>"; };
+		AA1000142C85000100000001 /* BitVisualizerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/BitVisualizerView.swift"; sourceTree = "<group>"; };
+		AA1000162C85000100000001 /* UnitConverterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Converter/UnitConverterView.swift"; sourceTree = "<group>"; };
+		AA1000182C85000100000001 /* HistorySheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "History/HistorySheetView.swift"; sourceTree = "<group>"; };
 		AA10001A2C85000100000001 /* CalculatorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorViewModel.swift; sourceTree = "<group>"; };
 		AA10001C2C85000100000001 /* ProgrammerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerViewModel.swift; sourceTree = "<group>"; };
 		AA10001E2C85000100000001 /* ConverterViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConverterViewModel.swift; sourceTree = "<group>"; };
 		AA1000202C85000100000001 /* CalculatorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorMode.swift; sourceTree = "<group>"; };
 		AA1000222C85000100000001 /* KeypadButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeypadButton.swift; sourceTree = "<group>"; };
-		AA1000242C85000100000001 /* MathToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathToken.swift; sourceTree = "<group>"; };
-		AA1000262C85000100000001 /* MathLexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathLexer.swift; sourceTree = "<group>"; };
-		AA1000282C85000100000001 /* MathParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathParser.swift; sourceTree = "<group>"; };
-		AA10002A2C85000100000001 /* MathEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathEvaluator.swift; sourceTree = "<group>"; };
-		AA10002C2C85000100000001 /* MathError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathError.swift; sourceTree = "<group>"; };
-		AA10002E2C85000100000001 /* WordSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WordSize.swift; sourceTree = "<group>"; };
-		AA1000302C85000100000001 /* BitwiseOperator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BitwiseOperator.swift; sourceTree = "<group>"; };
-		AA1000322C85000100000001 /* ProgrammerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerEngine.swift; sourceTree = "<group>"; };
-		AA1000342C85000100000001 /* UnitCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitCategory.swift; sourceTree = "<group>"; };
-		AA1000362C85000100000001 /* UnitConverterEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitConverterEngine.swift; sourceTree = "<group>"; };
-		AA1000382C85000100000001 /* HistoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryItem.swift; sourceTree = "<group>"; };
-		AA10003A2C85000100000001 /* HistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryManager.swift; sourceTree = "<group>"; };
+		AA1000242C85000100000001 /* MathToken.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MathEngine/MathToken.swift"; sourceTree = "<group>"; };
+		AA1000262C85000100000001 /* MathLexer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MathEngine/MathLexer.swift"; sourceTree = "<group>"; };
+		AA1000282C85000100000001 /* MathParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MathEngine/MathParser.swift"; sourceTree = "<group>"; };
+		AA10002A2C85000100000001 /* MathEvaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MathEngine/MathEvaluator.swift"; sourceTree = "<group>"; };
+		AA10002C2C85000100000001 /* MathError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "MathEngine/MathError.swift"; sourceTree = "<group>"; };
+		AA10002E2C85000100000001 /* WordSize.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgrammerEngine/WordSize.swift"; sourceTree = "<group>"; };
+		AA1000302C85000100000001 /* BitwiseOperator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgrammerEngine/BitwiseOperator.swift"; sourceTree = "<group>"; };
+		AA1000322C85000100000001 /* ProgrammerEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ProgrammerEngine/ProgrammerEngine.swift"; sourceTree = "<group>"; };
+		AA1000342C85000100000001 /* UnitCategory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UnitConverter/UnitCategory.swift"; sourceTree = "<group>"; };
+		AA1000362C85000100000001 /* UnitConverterEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UnitConverter/UnitConverterEngine.swift"; sourceTree = "<group>"; };
+		AA1000382C85000100000001 /* HistoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "History/HistoryItem.swift"; sourceTree = "<group>"; };
+		AA10003A2C85000100000001 /* HistoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "History/HistoryManager.swift"; sourceTree = "<group>"; };
 		AA10003C2C85000100000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA10003D2C85000100000001 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		AA1000402C85000100000001 /* SoundAndHapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundAndHapticManager.swift; sourceTree = "<group>"; };
-		AA1000422C85000100000001 /* VisionMathScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionMathScanner.swift; sourceTree = "<group>"; };
-		AA1000442C85000100000001 /* CameraCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraCaptureService.swift; sourceTree = "<group>"; };
+		AA1000402C85000100000001 /* SoundAndHapticManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Feedback/SoundAndHapticManager.swift"; sourceTree = "<group>"; };
+		AA1000422C85000100000001 /* VisionMathScanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/VisionMathScanner.swift"; sourceTree = "<group>"; };
+		AA1000442C85000100000001 /* CameraCaptureService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/CameraCaptureService.swift"; sourceTree = "<group>"; };
 		AA1000462C85000100000001 /* VisionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionViewModel.swift; sourceTree = "<group>"; };
-		AA1000482C85000100000001 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CameraPreviewView.swift; sourceTree = "<group>"; };
-		AA10004A2C85000100000001 /* SmartVisionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SmartVisionView.swift; sourceTree = "<group>"; };
-		AA10004C2C85000100000001 /* ReceiptSplitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptSplitterView.swift; sourceTree = "<group>"; };
-		AA10004E2C85000100000001 /* SettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSheetView.swift; sourceTree = "<group>"; };
+		AA1000482C85000100000001 /* CameraPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/CameraPreviewView.swift"; sourceTree = "<group>"; };
+		AA10004A2C85000100000001 /* SmartVisionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/SmartVisionView.swift"; sourceTree = "<group>"; };
+		AA10004C2C85000100000001 /* ReceiptSplitterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/ReceiptSplitterView.swift"; sourceTree = "<group>"; };
+		AA10004E2C85000100000001 /* SettingsSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/SettingsSheetView.swift"; sourceTree = "<group>"; };
 		AA2000002C85000100000001 /* LiquidCalcTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LiquidCalcTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA2000022C85000100000001 /* MathEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MathEngineTests.swift; sourceTree = "<group>"; };
 		AA2000042C85000100000001 /* ProgrammerEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgrammerEngineTests.swift; sourceTree = "<group>"; };
 		AA2000062C85000100000001 /* UnitConverterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UnitConverterTests.swift; sourceTree = "<group>"; };
 		AA2000082C85000100000001 /* VisionMathScannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionMathScannerTests.swift; sourceTree = "<group>"; };
-		AA1000522C85000100000001 /* LaserSweepLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/Vision/Components/LaserSweepLineView.swift"; sourceTree = "<group>"; };
-		AA1000542C85000100000001 /* ReticleOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/Vision/Components/ReticleOverlayView.swift"; sourceTree = "<group>"; };
-		AA1000562C85000100000001 /* SolvedResultCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Views/Vision/Components/SolvedResultCardView.swift"; sourceTree = "<group>"; };
+		AA1000522C85000100000001 /* LaserSweepLineView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/LaserSweepLineView.swift"; sourceTree = "<group>"; };
+		AA1000542C85000100000001 /* ReticleOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/ReticleOverlayView.swift"; sourceTree = "<group>"; };
+		AA1000562C85000100000001 /* SolvedResultCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/SolvedResultCardView.swift"; sourceTree = "<group>"; };
 		AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundAndHapticManagerTests.swift; sourceTree = "<group>"; };
 		AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCalcE2ETests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -438,7 +438,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -461,7 +461,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_OPTIMIZATION_LEVEL = s;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -481,7 +481,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -504,7 +504,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -524,7 +524,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -541,7 +541,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
