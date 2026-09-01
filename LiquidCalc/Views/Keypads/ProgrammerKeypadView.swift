@@ -127,7 +127,7 @@ public struct ProgrammerKeypadView: View {
                 opButton(label: "<<", op: "LSH")
                 opButton(label: ">>", op: "RSH")
                 opButton(label: "MOD", op: "MOD")
-                actionButton(label: "±", type: .plusMinus)
+                actionButton(label: "±", type: .signToggle)
                 opButton(label: "÷", op: "÷")
             }
             
@@ -182,7 +182,7 @@ public struct ProgrammerKeypadView: View {
     }
     
     @ViewBuilder
-    private func actionButton(label: String, type: ButtonType) -> some View {
+    private func actionButton(label: String, type: KeypadButtonType) -> some View {
         let btn = KeypadButton(label: label, type: type)
         KeypadButtonView(button: btn) {
             viewModel.handleButtonPress(btn)

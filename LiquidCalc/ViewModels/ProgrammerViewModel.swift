@@ -66,7 +66,7 @@ public final class ProgrammerViewModel {
             case "%", "MOD": engine.setPendingOperation(.mod)
             default: break
             }
-        case .plusMinus:
+        case .signToggle:
             engine.setPendingOperation(.negate)
         case .equals:
             engine.computeEquals()
