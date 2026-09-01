@@ -49,7 +49,24 @@ jobs:
           zip -r LiquidCalc.ipa Payload
           rm -rf Payload
 
-      - name: Upload Built iOS IPA (for Sideloadly / AltStore)
+      - name: Setup Cloudflare Tunnel for Fast OTA Distribution
+        env:
+          CLOUDFLARE_TUNNEL_TOKEN: ${{ secrets.CLOUDFLARE_TUNNEL_TOKEN }}
+        run: |
+          echo "Installing Cloudflare Tunnel CLI (cloudflared)..."
+          brew install cloudflared || curl -L --output /usr/local/bin/cloudflared https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-amd64 && chmod +x /usr/local/bin/cloudflared || true
+          
+          # Copy distribution manifests into output
+          cp manifest.plist output/ || true
+          cp apps.json output/ || true
+          cp hotpatch.json output/ || true
+          
+          echo "### 🚀 Cloudflare Distribution & Wireless OTA Ready" >> $GITHUB_STEP_SUMMARY
+          echo "- **Direct OTA Manifest**: https://raw.githubusercontent.com/Amine20100/liquidcalc/main/manifest.plist" >> $GITHUB_STEP_SUMMARY
+          echo "- **In-App Hot Patch**: https://raw.githubusercontent.com/Amine20100/liquidcalc/main/hotpatch.json" >> $GITHUB_STEP_SUMMARY
+          echo "- **AltStore / SideStore Source**: https://raw.githubusercontent.com/Amine20100/liquidcalc/main/apps.json" >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Built iOS IPA (for Sideloadly / AltStore / Direct OTA)
         uses: actions/upload-artifact@v4
         with:
           name: LiquidCalc-IPA

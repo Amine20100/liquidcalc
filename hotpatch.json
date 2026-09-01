@@ -1,0 +1,36 @@
+{
+  "patchVersion": "1.4.1-patch1",
+  "releaseDate": "2026-09-01",
+  "description": "Smart OCR heuristics update, enhanced currency conversion rates, and fluid motion calibration.",
+  "updatedCurrencyRates": {
+    "USD": 1.0,
+    "EUR": 0.92,
+    "GBP": 0.78,
+    "MAD": 9.95,
+    "JPY": 154.20,
+    "CHF": 0.89,
+    "CAD": 1.36,
+    "AUD": 1.52,
+    "INR": 83.45,
+    "BRL": 5.45
+  },
+  "customConstants": {
+    "e": 2.718281828459045,
+    "pi": 3.141592653589793,
+    "goldenRatio": 1.618033988749895,
+    "c": 299792458
+  },
+  "ocrSanitizationRules": {
+    "x": "*",
+    "X": "*",
+    "—": "-",
+    "–": "-",
+    "÷": "/",
+    "×": "*"
+  },
+  "activeThemeGradient": [
+    "#00E5FF",
+    "#0072FF",
+    "#7928CA"
+  ]
+}

@@ -11,6 +11,7 @@ public struct SettingsSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable private var feedbackManager = SoundAndHapticManager.shared
     @Bindable private var updateManager = AppUpdateManager.shared
+    @Bindable private var hotUpdateManager = HotUpdateManager.shared
     
     public init() {}
     
@@ -27,7 +28,92 @@ public struct SettingsSheetView: View {
                     }
                     .listRowBackground(Color(white: 0.15, opacity: 0.5))
                     
-                    Section("Software Updates") {
+                    Section("In-App Dynamic Updates (No Reinstall)") {
+                        HStack {
+                            Text("Active Hot Patch")
+                            Spacer()
+                            Text("v\(hotUpdateManager.currentPatchVersion)")
+                                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                                .foregroundColor(.cyan)
+                        }
+                        
+                        Button(action: {
+                            Task {
+                                await hotUpdateManager.checkForHotPatch()
+                            }
+                        }) {
+                            HStack {
+                                if hotUpdateManager.isCheckingForHotPatch {
+                                    ProgressView()
+                                        .tint(.cyan)
+                                        .padding(.trailing, 6)
+                                    Text("Checking for In-App Updates...")
+                                        .foregroundColor(.cyan)
+                                } else {
+                                    Image(systemName: "bolt.badge.automatic.fill")
+                                        .foregroundColor(.cyan)
+                                    Text("Check for In-App Hot Patch")
+                                        .foregroundColor(.white)
+                                }
+                                Spacer()
+                            }
+                        }
+                        .disabled(hotUpdateManager.isCheckingForHotPatch || hotUpdateManager.isApplyingPatch)
+                        
+                        if let patch = hotUpdateManager.availablePatch {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: "sparkles")
+                                        .foregroundColor(.cyan)
+                                    Text("Hot Patch Available: v\(patch.patchVersion)")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.cyan)
+                                }
+                                Text(patch.description)
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.white.opacity(0.85))
+                                
+                                if hotUpdateManager.isApplyingPatch {
+                                    ProgressView(value: hotUpdateManager.patchDownloadProgress)
+                                        .tint(.cyan)
+                                    Text("Applying changes live...")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(.cyan)
+                                } else {
+                                    Button(action: {
+                                        Task {
+                                            await hotUpdateManager.applyHotPatch(patch)
+                                        }
+                                    }) {
+                                        HStack {
+                                            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                                            Text("Apply Changes Inside App")
+                                        }
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundColor(.black)
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 8)
+                                        .background(Capsule().fill(Color.cyan))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        
+                        if let msg = hotUpdateManager.lastAppliedPatchMessage {
+                            HStack(alignment: .top, spacing: 6) {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundColor(.green)
+                                Text(msg)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.green)
+                            }
+                        }
+                    }
+                    .listRowBackground(Color(white: 0.15, opacity: 0.5))
+                    
+                    Section("Full App Release (OTA)") {
                         Toggle("Auto-Check on Launch", isOn: $updateManager.autoCheckOnLaunch)
                         
                         Button(action: {

@@ -75,6 +75,7 @@
 		AA1000852C85000100000001 /* DrawCalcViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000862C85000100000001 /* DrawCalcViewModel.swift */; };
 		AA1000872C85000100000001 /* MathDrawCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000882C85000100000001 /* MathDrawCanvasView.swift */; };
 		AA2000112C85000100000001 /* HandwritingMathRecognizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */; };
+		AA1000892C85000100000001 /* HotUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10008A2C85000100000001 /* HotUpdateManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -149,6 +150,7 @@
 		AA1000862C85000100000001 /* DrawCalcViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawCalcViewModel.swift; sourceTree = "<group>"; };
 		AA1000882C85000100000001 /* MathDrawCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DrawCalc/MathDrawCanvasView.swift"; sourceTree = "<group>"; };
 		AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandwritingMathRecognizerTests.swift; sourceTree = "<group>"; };
+		AA10008A2C85000100000001 /* HotUpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Update/HotUpdateManager.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -231,6 +233,7 @@
 				AA1000442C85000100000001 /* CameraCaptureService.swift */,
 				AA1000842C85000100000001 /* HandwritingMathRecognizer.swift */,
 				AA1000622C85000100000001 /* AppUpdateManager.swift */,
+				AA10008A2C85000100000001 /* HotUpdateManager.swift */,
 				AA1000722C85000100000001 /* AlgebraicSolver.swift */,
 				AA1000742C85000100000001 /* CalculusEngine.swift */,
 				AA1000762C85000100000001 /* MatrixEngine.swift */,
@@ -466,6 +469,7 @@
 				AA1000832C85000100000001 /* HandwritingMathRecognizer.swift in Sources */,
 				AA1000852C85000100000001 /* DrawCalcViewModel.swift in Sources */,
 				AA1000872C85000100000001 /* MathDrawCanvasView.swift in Sources */,
+				AA1000892C85000100000001 /* HotUpdateManager.swift in Sources */,
 				AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
