@@ -33,17 +33,28 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
-      - name: Package .app Artifact
+      - name: Package .app and .ipa Artifacts
         run: |
-          mkdir -p output
+          mkdir -p output/Payload
           if [ -d "build/Build/Products/Release-iphoneos/LiquidCalc.app" ]; then
+            cp -R build/Build/Products/Release-iphoneos/LiquidCalc.app output/Payload/
             cp -R build/Build/Products/Release-iphoneos/LiquidCalc.app output/
-            cd output && zip -r LiquidCalc.zip LiquidCalc.app
           else
             echo "Searching for built LiquidCalc.app..."
+            find build -name "LiquidCalc.app" -exec cp -R {} output/Payload/ \;
             find build -name "LiquidCalc.app" -exec cp -R {} output/ \;
-            cd output && zip -r LiquidCalc.zip LiquidCalc.app
           fi
+          cd output
+          zip -r LiquidCalc.zip LiquidCalc.app
+          zip -r LiquidCalc.ipa Payload
+          rm -rf Payload
+
+      - name: Upload Built iOS IPA (for Sideloadly / AltStore)
+        uses: actions/upload-artifact@v4
+        with:
+          name: LiquidCalc-IPA
+          path: output/LiquidCalc.ipa
+          retention-days: 14
 
       - name: Upload Built iOS App Artifact
         uses: actions/upload-artifact@v4
