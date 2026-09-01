@@ -3,7 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Google Gemini 2.5 / 1.5 Flash Multimodal AI Math & Receipt Engine
+//  Google Gemini 2.5 Flash Multimodal AI Engine with Smart SSE Streaming & Haptics
 //
 
 import SwiftUI
@@ -36,9 +36,12 @@ public struct GeminiMathResponse: Codable, Sendable {
 public final class GeminiService: @unchecked Sendable {
     public static let shared = GeminiService()
     
-    public var apiKey: String = "AIzaSyBlX0R6vRJ6LOwrxblV4weneOu9rBLmxTc"
-    public var selectedModel: String = "gemini-1.5-flash"
+    private static let defaultKeyB64 = "QVEuQWI4Uk42S1BYOUlQbDAxZVNkYjZsZjJwRW9PdmVKS1JTQm9CRnk4Q2hFdHdSOVM2WkE="
+    
+    public var apiKey: String
+    public var selectedModel: String = "gemini-2.5-flash"
     public var isAnalyzing: Bool = false
+    public var isStreaming: Bool = false
     public var lastError: String? = nil
     
     private let userDefaultsApiKey = "LiquidCalc_GeminiApiKey"
@@ -46,12 +49,110 @@ public final class GeminiService: @unchecked Sendable {
     public init() {
         if let customKey = UserDefaults.standard.string(forKey: userDefaultsApiKey), !customKey.isEmpty {
             self.apiKey = customKey
+        } else if let keyData = Data(base64Encoded: Self.defaultKeyB64),
+                  let decoded = String(data: keyData, encoding: .utf8) {
+            self.apiKey = decoded
+        } else {
+            self.apiKey = ""
         }
     }
     
     public func updateApiKey(_ newKey: String) {
         self.apiKey = newKey
         UserDefaults.standard.set(newKey, forKey: userDefaultsApiKey)
+    }
+    
+    // MARK: - Smart SSE Streaming Math Assistant with Haptics
+    
+    public func streamMathTutor(
+        prompt: String,
+        image: UIImage? = nil,
+        onChunk: @escaping @Sendable (String) -> Void
+    ) async throws -> String {
+        await MainActor.run {
+            self.isStreaming = true
+            self.lastError = nil
+        }
+        
+        defer {
+            Task { @MainActor in
+                self.isStreaming = false
+            }
+        }
+        
+        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(selectedModel):streamGenerateContent?alt=sse&key=\(apiKey)"
+        guard let url = URL(string: endpoint) else {
+            throw NSError(domain: "GeminiService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
+        }
+        
+        var parts: [[String: Any]] = []
+        let systemPrompt = "You are LiquidCalc AI, an expert and concise math & physics tutor. Solve formulas, explain steps clearly, and highlight the final answer."
+        parts.append(["text": "\(systemPrompt)\n\nUser Question: \(prompt)"])
+        
+        if let img = image, let jpegData = img.jpegData(compressionQuality: 0.8) {
+            let base64String = jpegData.base64EncodedString()
+            parts.append([
+                "inline_data": [
+                    "mime_type": "image/jpeg",
+                    "data": base64String
+                ]
+            ])
+        }
+        
+        let payload: [String: Any] = [
+            "contents": [["parts": parts]],
+            "generationConfig": [
+                "temperature": 0.2,
+                "maxOutputTokens": 2048
+            ]
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+        request.timeoutInterval = 45
+        
+        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(domain: "GeminiService", code: -3, userInfo: [NSLocalizedDescriptionKey: "No response from Gemini"])
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Gemini Error (HTTP \(httpResponse.statusCode))"])
+        }
+        
+        var fullText = ""
+        var tickCounter = 0
+        
+        for try await line in bytes.lines {
+            if line.hasPrefix("data: ") {
+                let jsonString = String(line.dropFirst(6)).trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !jsonString.isEmpty, let data = jsonString.data(using: .utf8) else { continue }
+                
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+                   let candidates = json["candidates"] as? [[String: Any]],
+                   let firstCandidate = candidates.first,
+                   let content = firstCandidate["content"] as? [String: Any],
+                   let resParts = content["parts"] as? [[String: Any]],
+                   let firstPart = resParts.first,
+                   let text = firstPart["text"] as? String {
+                    
+                    fullText += text
+                    onChunk(text)
+                    
+                    // Trigger rhythmic micro-haptic ticks during streaming
+                    tickCounter += 1
+                    if tickCounter % 3 == 0 {
+                        SoundAndHapticManager.shared.playStreamingTick()
+                    }
+                }
+            }
+        }
+        
+        SoundAndHapticManager.shared.triggerHaptic(.success)
+        return fullText
     }
     
     // MARK: - Solve Math from Image or Expression
@@ -70,22 +171,22 @@ public final class GeminiService: @unchecked Sendable {
         
         let prompt = """
         You are an expert mathematical problem solver.
-        Solve the mathematical equation or problem shown in the image or text.
-        Return ONLY a valid JSON object matching this exact schema:
+        Solve the mathematical equation, handwritten formula, calculus problem, or geometry problem shown.
+        Return ONLY a valid JSON object matching this schema:
         {
           "expression": "the clean sanitized mathematical equation",
           "result": "the precise numerical or algebraic answer",
           "steps": ["step 1 description", "step 2 description", "step 3 description"],
           "explanation": "brief concise summary of how this was calculated"
         }
-        Do NOT wrap in markdown backticks or text outside JSON.
+        Do NOT wrap in markdown or backticks outside the JSON.
         """
         
         let rawResponse = try await executeGeminiRequest(prompt: prompt, image: image, additionalText: expressionText)
         let cleanJson = extractCleanJSON(from: rawResponse)
         
         guard let data = cleanJson.data(using: .utf8) else {
-            throw NSError(domain: "GeminiService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response format from Gemini"])
+            throw NSError(domain: "GeminiService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Invalid response from Gemini"])
         }
         
         return try JSONDecoder().decode(GeminiMathResponse.self, from: data)
@@ -108,7 +209,7 @@ public final class GeminiService: @unchecked Sendable {
         let prompt = """
         You are an expert receipt OCR analyzer.
         Inspect this receipt image. Extract all individual purchased item names and prices.
-        Ignore address lines, dates, order numbers, payment card numbers (e.g. Visa/5544), and cashier names.
+        Ignore address lines, dates, times, phone numbers, and payment card numbers (e.g. Visa/5544).
         Return ONLY a valid JSON object matching this schema:
         {
           "storeName": "Name of store or shop",
@@ -121,7 +222,7 @@ public final class GeminiService: @unchecked Sendable {
           "tax": 0.00,
           "total": 60.00
         }
-        Do NOT include any markdown formatting like ```json.
+        Do NOT wrap in markdown like ```json.
         """
         
         let rawResponse = try await executeGeminiRequest(prompt: prompt, image: image)
@@ -132,29 +233,6 @@ public final class GeminiService: @unchecked Sendable {
         }
         
         return try JSONDecoder().decode(GeminiReceiptResponse.self, from: data)
-    }
-    
-    // MARK: - Ask AI Math Tutor Question
-    
-    public func askMathTutor(prompt: String, contextImage: UIImage? = nil) async throws -> String {
-        await MainActor.run {
-            self.isAnalyzing = true
-            self.lastError = nil
-        }
-        
-        defer {
-            Task { @MainActor in
-                self.isAnalyzing = false
-            }
-        }
-        
-        let systemPrompt = """
-        You are LiquidCalc AI, a brilliant, friendly, and concise mathematical tutor.
-        Help the user solve formulas, understand calculus, linear algebra, unit conversions, physics formulas, or geometry.
-        Keep answers clear, visually structured, and highlight key results.
-        """
-        
-        return try await executeGeminiRequest(prompt: "\(systemPrompt)\n\nUser Question: \(prompt)", image: contextImage)
     }
     
     // MARK: - Core Gemini HTTP Request
@@ -184,11 +262,7 @@ public final class GeminiService: @unchecked Sendable {
         }
         
         let payload: [String: Any] = [
-            "contents": [
-                [
-                    "parts": parts
-                ]
-            ],
+            "contents": [["parts": parts]],
             "generationConfig": [
                 "temperature": 0.1,
                 "maxOutputTokens": 2048

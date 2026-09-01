@@ -32,20 +32,11 @@ public final class HandwritingMathRecognizer: @unchecked Sendable {
     public init() {}
     
     #if canImport(UIKit)
-    /// Converts strokes to an optimized image and recognizes handwriting via Apple Vision
-    public func recognizeStrokes(
-        _ strokes: [DrawingStroke],
-        canvasSize: CGSize,
-        completion: @escaping @Sendable (HandwritingMathResult?) -> Void
-    ) {
-        guard !strokes.isEmpty, canvasSize.width > 10, canvasSize.height > 10 else {
-            completion(nil)
-            return
-        }
-        
+    /// Renders strokes onto a high-contrast UIImage for Vision and Gemini AI multimodal processing
+    public func renderImage(from strokes: [DrawingStroke], canvasSize: CGSize) -> UIImage? {
+        guard !strokes.isEmpty, canvasSize.width > 10, canvasSize.height > 10 else { return nil }
         let renderer = UIGraphicsImageRenderer(size: canvasSize)
-        let image = renderer.image { ctx in
-            // Clean white background, dark ink for maximum Vision OCR contrast
+        return renderer.image { ctx in
             UIColor.white.setFill()
             ctx.fill(CGRect(origin: .zero, size: canvasSize))
             
@@ -54,22 +45,27 @@ public final class HandwritingMathRecognizer: @unchecked Sendable {
             
             for stroke in strokes {
                 guard stroke.tool != .eraser, stroke.points.count > 1 else { continue }
-                
                 ctx.cgContext.setStrokeColor(UIColor.black.cgColor)
                 ctx.cgContext.setLineWidth(max(4.0, stroke.lineWidth * 1.5))
                 
-                let path = CGMutablePath()
-                path.move(to: stroke.points[0].point)
-                for p in stroke.points.dropFirst() {
-                    path.addLine(to: p.point)
+                let points = stroke.points.map { $0.point }
+                ctx.cgContext.beginPath()
+                ctx.cgContext.move(to: points[0])
+                for i in 1..<points.count {
+                    ctx.cgContext.addLine(to: points[i])
                 }
-                
-                ctx.cgContext.addPath(path)
                 ctx.cgContext.strokePath()
             }
         }
-        
-        guard let cgImage = image.cgImage else {
+    }
+    
+    /// Converts strokes to an optimized image and recognizes handwriting via Apple Vision
+    public func recognizeStrokes(
+        _ strokes: [DrawingStroke],
+        canvasSize: CGSize,
+        completion: @escaping @Sendable (HandwritingMathResult?) -> Void
+    ) {
+        guard let image = renderImage(from: strokes, canvasSize: canvasSize), let cgImage = image.cgImage else {
             completion(nil)
             return
         }

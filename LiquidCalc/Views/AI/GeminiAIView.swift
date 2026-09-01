@@ -3,7 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Gemini 2.5 Flash Multimodal Math & Science Assistant
+//  Gemini 2.5 Flash Multimodal Math & Science Assistant with Live Streaming & Haptics
 //
 
 import SwiftUI
@@ -11,14 +11,13 @@ import PhotosUI
 
 public struct GeminiAIView: View {
     @Bindable var calculatorViewModel: CalculatorViewModel
-    @State private var geminiService = GeminiService.shared
+    @Bindable private var geminiService = GeminiService.shared
     
     @State private var promptText: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var selectedImage: UIImage? = nil
     @State private var aiResponse: String = ""
     @State private var mathResult: GeminiMathResponse? = nil
-    @State private var isProcessing: Bool = false
     @State private var showCopiedAlert: Bool = false
     
     public init(calculatorViewModel: CalculatorViewModel) {
@@ -33,7 +32,7 @@ public struct GeminiAIView: View {
                     Image(systemName: "sparkles")
                         .foregroundColor(.cyan)
                         .symbolEffect(.pulse, options: .repeating)
-                    Text("Gemini 2.5 Flash Math AI")
+                    Text("Gemini 2.5 Flash AI")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
@@ -44,13 +43,22 @@ public struct GeminiAIView: View {
                         )
                 }
                 Spacer()
-                Text("Online")
-                    .font(.system(size: 10, weight: .semibold, design: .monospaced))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(Color.green.opacity(0.2))
-                    .foregroundColor(.green)
-                    .clipShape(Capsule())
+                
+                HStack(spacing: 4) {
+                    Circle()
+                        .fill(geminiService.isStreaming ? Color.cyan : Color.green)
+                        .frame(width: 6, height: 6)
+                        .scaleEffect(geminiService.isStreaming ? 1.4 : 1.0)
+                        .animation(.easeInOut(duration: 0.5).repeatForever(autoreverses: true), value: geminiService.isStreaming)
+                    
+                    Text(geminiService.isStreaming ? "Streaming..." : "Online")
+                        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                        .foregroundColor(geminiService.isStreaming ? .cyan : .green)
+                }
+                .padding(.horizontal, 8)
+                .padding(.vertical, 3)
+                .background(Color.black.opacity(0.3))
+                .clipShape(Capsule())
             }
             .padding(.horizontal, 16)
             
@@ -143,13 +151,21 @@ public struct GeminiAIView: View {
                                 )
                         )
                     } else if !aiResponse.isEmpty {
-                        // General Assistant Response
+                        // Live Streaming Assistant Response
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("GEMINI EXPLANATION")
-                                .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                .foregroundColor(.purple)
+                            HStack {
+                                Text("GEMINI 2.5 FLASH EXPLANATION")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundColor(.purple)
+                                Spacer()
+                                if geminiService.isStreaming {
+                                    ProgressView()
+                                        .tint(.purple)
+                                        .scaleEffect(0.7)
+                                }
+                            }
                             
-                            Text(aiResponse)
+                            Text(aiResponse + (geminiService.isStreaming ? " ▋" : ""))
                                 .font(.system(size: 14))
                                 .foregroundColor(.white.opacity(0.95))
                                 .lineSpacing(4)
@@ -255,7 +271,7 @@ public struct GeminiAIView: View {
                             .fill(LinearGradient(colors: [.cyan, .blue], startPoint: .topLeading, endPoint: .bottomTrailing))
                             .frame(width: 40, height: 40)
                         
-                        if isProcessing {
+                        if geminiService.isStreaming || geminiService.isAnalyzing {
                             ProgressView()
                                 .tint(.white)
                         } else {
@@ -265,7 +281,7 @@ public struct GeminiAIView: View {
                         }
                     }
                 }
-                .disabled(isProcessing || (promptText.isEmpty && selectedImage == nil))
+                .disabled(geminiService.isStreaming || geminiService.isAnalyzing || (promptText.isEmpty && selectedImage == nil))
             }
             .padding(.horizontal, 14)
             .padding(.bottom, 8)
@@ -307,12 +323,13 @@ public struct GeminiAIView: View {
     
     private func sendQuery() {
         guard !promptText.isEmpty || selectedImage != nil else { return }
-        isProcessing = true
         SoundAndHapticManager.shared.triggerHaptic(.medium)
         
         let query = promptText
         let img = selectedImage
         promptText = ""
+        aiResponse = ""
+        mathResult = nil
         
         Task {
             do {
@@ -321,24 +338,20 @@ public struct GeminiAIView: View {
                     await MainActor.run {
                         self.mathResult = result
                         self.aiResponse = ""
-                        self.isProcessing = false
                         self.selectedImage = nil
                         SoundAndHapticManager.shared.triggerHaptic(.success)
                         SoundAndHapticManager.shared.playSuccessSound()
                     }
                 } else {
-                    let response = try await geminiService.askMathTutor(prompt: query)
-                    await MainActor.run {
-                        self.aiResponse = response
-                        self.mathResult = nil
-                        self.isProcessing = false
-                        SoundAndHapticManager.shared.triggerHaptic(.success)
+                    _ = try await geminiService.streamMathTutor(prompt: query) { chunk in
+                        Task { @MainActor in
+                            self.aiResponse += chunk
+                        }
                     }
                 }
             } catch {
                 await MainActor.run {
                     self.aiResponse = "Error connecting to Gemini AI: \(error.localizedDescription)"
-                    self.isProcessing = false
                     SoundAndHapticManager.shared.triggerHaptic(.error)
                 }
             }
