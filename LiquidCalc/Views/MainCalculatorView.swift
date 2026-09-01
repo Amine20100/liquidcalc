@@ -22,9 +22,10 @@ public struct MainCalculatorView: View {
             // Liquid Frosted Background
             LiquidGlassBackground()
             
-            VStack(spacing: 12) {
-                // Top Header Toolbar
+            VStack(spacing: 10) {
+                // Top Header Toolbar with safe area spacing
                 topHeaderBar
+                    .padding(.top, 4)
                 
                 // Mode Switcher Capsule Bar
                 ModeSwitcherView(selectedMode: $calculatorViewModel.currentMode)
@@ -69,7 +70,7 @@ public struct MainCalculatorView: View {
                 
                 Spacer(minLength: 8)
             }
-            .padding(.top, 4)
+            .safeAreaPadding(.top)
             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: calculatorViewModel.currentMode)
         }
         .sheet(isPresented: $showHistorySheet) {
@@ -92,9 +93,9 @@ public struct MainCalculatorView: View {
     private var topHeaderBar: some View {
         HStack(spacing: 8) {
             // App Branding
-            HStack(spacing: 6) {
+            HStack(spacing: 5) {
                 Image(systemName: "drop.degreesign.fill")
-                    .font(.system(size: 16))
+                    .font(.system(size: 15))
                     .foregroundStyle(
                         LinearGradient(
                             colors: [.cyan, .blue],
@@ -103,7 +104,7 @@ public struct MainCalculatorView: View {
                         )
                     )
                 Text("LiquidCalc")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .font(.system(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(.white)
             }
             
@@ -113,19 +114,19 @@ public struct MainCalculatorView: View {
                     SoundAndHapticManager.shared.triggerHaptic(.medium)
                     updateManager.showUpdateSheet = true
                 }) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 3) {
                         Image(systemName: "sparkles")
-                            .font(.system(size: 10, weight: .bold))
+                            .font(.system(size: 9, weight: .bold))
                             .foregroundColor(.cyan)
                         Text(release.tagName)
-                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundColor(.white)
                         Image(systemName: "arrow.up.circle.fill")
-                            .font(.system(size: 11))
+                            .font(.system(size: 10))
                             .foregroundColor(.cyan)
                     }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 4)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
                     .background(
                         Capsule()
                             .fill(Color.cyan.opacity(0.25))
@@ -168,7 +169,7 @@ public struct MainCalculatorView: View {
                 showHistorySheet = true
             }) {
                 Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.85))
                     .frame(width: 32, height: 32)
                     .background(Color.white.opacity(0.1))
@@ -183,7 +184,7 @@ public struct MainCalculatorView: View {
                 showSettingsSheet = true
             }) {
                 Image(systemName: "gearshape")
-                    .font(.system(size: 15, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                     .foregroundColor(.white.opacity(0.85))
                     .frame(width: 32, height: 32)
                     .background(Color.white.opacity(0.1))
@@ -193,6 +194,6 @@ public struct MainCalculatorView: View {
             .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
     }
 }

@@ -3,7 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Robust Intelligent Math OCR & Receipt Parsing Engine
+//  Robust Intelligent Math OCR & Multi-Line Receipt NLP Engine
 //
 
 import Foundation
@@ -223,7 +223,7 @@ public final class VisionMathScanner: Sendable {
         return text
     }
     
-    // MARK: - Intelligent Receipt NLP Parser
+    // MARK: - Intelligent Multi-Line Receipt NLP Parser
     
     public func parseReceipt(from observations: [ScannedTextObservation]) -> ReceiptParseResult {
         var items: [ReceiptLineItem] = []
@@ -240,11 +240,15 @@ public final class VisionMathScanner: Sendable {
         }
         let detectedCurrency = currencyCounts.max(by: { $0.value < $1.value })?.key ?? .usd
         
-        // Regex for Price Amounts: matches "$14.50", "12,50 €", "150.00 MAD", "45.00"
-        let pricePattern = #"(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?\s*(\d{1,5}(?:[.,]\d{1,2})?)\s*(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?"#
+        // Strict Price Regex: must have explicit currency symbol OR exactly 2 decimals
+        // Pattern 1: $30.00, 30.00 MAD, 18,50 €
+        // Pattern 2: 30.00 (with decimal point/comma)
+        let pricePattern = #"(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)\s*(\d{1,5}(?:[.,]\d{1,2})?)|(\d{1,5}[.,]\d{2})\s*(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?"#
         guard let priceRegex = try? NSRegularExpression(pattern: pricePattern, options: [.caseInsensitive]) else {
             return ReceiptParseResult(detectedCurrency: detectedCurrency)
         }
+        
+        var pendingMultiLineDescription = ""
         
         for obs in observations {
             let text = obs.rawText.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -252,65 +256,101 @@ public final class VisionMathScanner: Sendable {
             
             let lower = text.lowercased()
             
-            // Skip non-item noise (dates, order numbers, credit cards, greetings)
-            if isHeaderOrFooterNoise(lower) {
+            // Check for Summary Lines (Subtotal, Tax, Tip, Total)
+            if isTotalLine(lower) {
+                let range = NSRange(location: 0, length: text.utf16.count)
+                if let match = priceRegex.firstMatch(in: text, options: [], range: range) {
+                    let priceStr = extractPriceString(from: text, match: match)
+                    if let amt = parseAmount(priceStr) {
+                        detectedTotal = amt
+                    }
+                }
+                pendingMultiLineDescription = ""
+                continue
+            }
+            
+            if isSubtotalLine(lower) {
+                let range = NSRange(location: 0, length: text.utf16.count)
+                if let match = priceRegex.firstMatch(in: text, options: [], range: range) {
+                    let priceStr = extractPriceString(from: text, match: match)
+                    if let amt = parseAmount(priceStr) {
+                        detectedSubtotal = amt
+                    }
+                }
+                pendingMultiLineDescription = ""
+                continue
+            }
+            
+            if isTaxLine(lower) {
+                let range = NSRange(location: 0, length: text.utf16.count)
+                if let match = priceRegex.firstMatch(in: text, options: [], range: range) {
+                    let priceStr = extractPriceString(from: text, match: match)
+                    if let amt = parseAmount(priceStr) {
+                        detectedTax = amt
+                    }
+                }
+                pendingMultiLineDescription = ""
+                continue
+            }
+            
+            if isTipLine(lower) {
+                pendingMultiLineDescription = ""
+                continue
+            }
+            
+            // Filter out non-item noise (dates, times, addresses, phone numbers, merchant info)
+            if isHeaderOrFooterNoise(text) {
+                pendingMultiLineDescription = ""
                 continue
             }
             
             let range = NSRange(location: 0, length: text.utf16.count)
             let matches = priceRegex.matches(in: text, options: [], range: range)
             
-            // Look for price in the line
-            guard let lastMatch = matches.last,
-                  let priceRange = Range(lastMatch.range(at: 1), in: text) else {
-                continue
-            }
-            
-            let priceStr = String(text[priceRange])
-            guard let amount = parseAmount(priceStr), amount > 0.05 else {
-                continue
-            }
-            
-            // Categorize Summary Lines
-            if isSubtotalLine(lower) {
-                detectedSubtotal = amount
-                continue
-            }
-            if isTaxLine(lower) {
-                detectedTax = amount
-                continue
-            }
-            if isTipLine(lower) {
-                continue
-            }
-            if isTotalLine(lower) {
-                detectedTotal = amount
-                continue
-            }
-            
-            // Extract Item Title
-            var title = text
-            if let fullRange = Range(lastMatch.range, in: text) {
-                let prefix = String(text[..<fullRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-                if !prefix.isEmpty {
-                    title = prefix
+            if let lastMatch = matches.last {
+                let priceStr = extractPriceString(from: text, match: lastMatch)
+                guard let amount = parseAmount(priceStr), amount > 0.05 else {
+                    continue
+                }
+                
+                // Extract Item Title
+                var rawTitle = text
+                if let matchRange = Range(lastMatch.range, in: text) {
+                    rawTitle.removeSubrange(matchRange)
+                }
+                
+                // Combine with pending multi-line description if available
+                var combinedTitle = rawTitle.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !pendingMultiLineDescription.isEmpty {
+                    combinedTitle = "\(pendingMultiLineDescription) \(combinedTitle)".trimmingCharacters(in: .whitespacesAndNewlines)
+                    pendingMultiLineDescription = ""
+                }
+                
+                let title = cleanTitle(combinedTitle, fallbackIndex: items.count + 1)
+                
+                // Add valid line item
+                if !title.isEmpty {
+                    items.append(ReceiptLineItem(title: title, amount: amount))
+                }
+            } else {
+                // Multi-line item description continuation (e.g. "Lorem ipsum dolor sit")
+                if text.count > 2 && !text.hasPrefix("-") && !text.hasPrefix("=") {
+                    pendingMultiLineDescription = text
                 }
             }
-            
-            title = cleanTitle(title, fallbackIndex: items.count + 1)
-            
-            // Avoid duplicates and zero items
-            if !items.contains(where: { $0.title == title && abs($0.amount - amount) < 1e-3 }) {
-                items.append(ReceiptLineItem(title: title, amount: amount))
-            }
         }
+        
+        // Reconcile Subtotal if not detected
+        let computedSubtotal = items.reduce(0.0) { $0 + $1.amount }
+        let finalSubtotal = detectedSubtotal ?? computedSubtotal
+        let finalTotal = detectedTotal ?? finalSubtotal
         
         return ReceiptParseResult(
             items: items,
             detectedCurrency: detectedCurrency,
-            detectedSubtotal: detectedSubtotal,
+            detectedSubtotal: finalSubtotal,
             detectedTax: detectedTax,
-            detectedTotal: detectedTotal
+            detectedTotal: finalTotal
         )
     }
     
@@ -320,8 +360,35 @@ public final class VisionMathScanner: Sendable {
     
     // MARK: - Private Helpers
     
+    private func extractPriceString(from text: String, match: NSTextCheckingResult) -> String {
+        // Group 1 (with currency prefix) or Group 2 (decimal without currency)
+        if match.numberOfRanges > 1 && match.range(at: 1).location != NSNotFound {
+            if let r = Range(match.range(at: 1), in: text) {
+                return String(text[r])
+            }
+        }
+        if match.numberOfRanges > 2 && match.range(at: 2).location != NSNotFound {
+            if let r = Range(match.range(at: 2), in: text) {
+                return String(text[r])
+            }
+        }
+        if let r = Range(match.range, in: text) {
+            return String(text[r])
+        }
+        return ""
+    }
+    
     private func parseAmount(_ string: String) -> Double? {
         var clean = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        clean = clean.replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: "€", with: "")
+            .replacingOccurrences(of: "£", with: "")
+            .replacingOccurrences(of: "¥", with: "")
+            .replacingOccurrences(of: "MAD", with: "", options: .caseInsensitive)
+            .replacingOccurrences(of: "DH", with: "", options: .caseInsensitive)
+            .replacingOccurrences(of: "CHF", with: "", options: .caseInsensitive)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
         if clean.contains(".") && clean.contains(",") {
             if let dot = clean.firstIndex(of: "."), let comma = clean.firstIndex(of: ",") {
                 if dot < comma {
@@ -361,16 +428,61 @@ public final class VisionMathScanner: Sendable {
         lower.contains("net payable")
     }
     
-    private func isHeaderOrFooterNoise(_ lower: String) -> Bool {
-        let noiseList = [
-            "thank you", "welcome", "merci", "receipt", "facture",
-            "invoice", "order #", "table #", "date:", "time:",
-            "guest", "server", "cashier", "terminal", "visa",
-            "mastercard", "amex", "change due", "cash", "credit card",
-            "auth code", "approval", "customer copy", "merchant id",
-            "phone", "tel:", "www.", "http", "street", "avenue", "city"
+    private func isHeaderOrFooterNoise(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        
+        // 1. Separators & Dashes: "-----", "======", "******"
+        if text.range(of: #"^[\s\-=_*#~.]{3,}$"#, options: .regularExpression) != nil {
+            return true
+        }
+        
+        // 2. Dates (e.g. 02/05/2023, 2023-05-02, 02.05.2023)
+        if text.range(of: #"\b\d{1,2}[/\-\.]\d{1,2}[/\-\.]\d{2,4}\b"#, options: .regularExpression) != nil {
+            return true
+        }
+        
+        // 3. Times (e.g. 11:58:20 AM, 23:45)
+        if lower.range(of: #"\b\d{1,2}:\d{2}(?::\d{2})?\s*(?:am|pm)?\b"#, options: .regularExpression) != nil {
+            return true
+        }
+        
+        // 4. Card Numbers & Masked PAN (e.g. xxxx 1234, Visa/5544)
+        if lower.range(of: #"x{3,}|[*]{3,}|\bvisa\b|\bmastercard\b|\bamex\b|\bdiscover\b"#, options: .regularExpression) != nil {
+            return true
+        }
+        
+        // 5. Postal codes (e.g. BC X5T5C2, 90210)
+        if text.range(of: #"\b[A-Z]\d[A-Z]\s*\d[A-Z]\d\b"#, options: .regularExpression) != nil {
+            return true
+        }
+        
+        // 6. Address & Location Keywords
+        let addressKeywords = [
+            "address", "apt", "apt.", "suite", "ste", "ste.", "floor", "fl.", "box", "p.o.",
+            "street", "st.", "avenue", "ave", "ave.", "road", "rd", "rd.", "blvd", "boulevard",
+            "drive", "dr.", "lane", "ln", "gardens", "pkwy", "highway", "hwy",
+            "city", "state", "zip", "postal", "province"
         ]
-        return noiseList.contains(where: { lower.contains($0) })
+        for kw in addressKeywords {
+            if lower.range(of: "\\b" + kw + "\\b", options: .regularExpression) != nil {
+                return true
+            }
+        }
+        
+        // 7. Metadata / Staff / Greetings
+        let metaKeywords = [
+            "receipt", "invoice", "facture", "ticket", "bill", "order", "table",
+            "manager", "server", "cashier", "waiter", "guest", "host", "pos",
+            "terminal", "merchant", "auth", "approval", "tax id", "reg #", "vat #",
+            "tel", "phone", "fax", "www.", "http", "thank you", "welcome", "merci"
+        ]
+        for kw in metaKeywords {
+            if lower.range(of: "\\b" + kw + "\\b", options: .regularExpression) != nil {
+                return true
+            }
+        }
+        
+        return false
     }
     
     private func cleanTitle(_ title: String, fallbackIndex: Int) -> String {
@@ -380,6 +492,7 @@ public final class VisionMathScanner: Sendable {
             .replacingOccurrences(of: "£", with: "")
             .replacingOccurrences(of: "¥", with: "")
             .replacingOccurrences(of: "₹", with: "")
+            .replacingOccurrences(of: "\\.{2,}", with: "", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
         if let numRegex = try? NSRegularExpression(pattern: #"^\d+[\.\)\-xX]\s*"#, options: []) {

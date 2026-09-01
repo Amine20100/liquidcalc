@@ -256,4 +256,35 @@ final class VisionMathScannerTests: XCTestCase {
         let noiseResult = scanner.parseReceipt(from: noiseObs)
         XCTAssertEqual(noiseResult.items.count, 0)
     }
+    
+    func testShopReceiptWithAddressNoiseAndMultiLineItems() {
+        let obs = [
+            ScannedTextObservation(rawText: "SHOP`S", sanitizedExpression: "", boundingBox: .zero, confidence: 0.99),
+            ScannedTextObservation(rawText: "Receipt : 12547865", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "Manager : Lor T.", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "Address: 896 Rigoberto Gardens", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "Apt. 838 Kuhnstad, BC X5T5C2", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "02/05/2023 11:58:20 AM", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "Lorem ipsum dolor sit", sanitizedExpression: "", boundingBox: .zero, confidence: 0.98),
+            ScannedTextObservation(rawText: "amet ..................$30.00", sanitizedExpression: "", boundingBox: .zero, confidence: 0.98),
+            ScannedTextObservation(rawText: "Lorem ipsum dolor sit", sanitizedExpression: "", boundingBox: .zero, confidence: 0.98),
+            ScannedTextObservation(rawText: "amet ..................$30.00", sanitizedExpression: "", boundingBox: .zero, confidence: 0.98),
+            ScannedTextObservation(rawText: "Lorem ipsum dolor sit", sanitizedExpression: "", boundingBox: .zero, confidence: 0.98),
+            ScannedTextObservation(rawText: "amet ..................$30.00", sanitizedExpression: "", boundingBox: .zero, confidence: 0.98),
+            ScannedTextObservation(rawText: "--------------------------------", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "Total.................. $60.00", sanitizedExpression: "", boundingBox: .zero, confidence: 0.99),
+            ScannedTextObservation(rawText: "xxxx xxxx xxxx 1234 Visa/5544", sanitizedExpression: "", boundingBox: .zero, confidence: 0.95),
+            ScannedTextObservation(rawText: "THANK YOU FOR SHOPPING!", sanitizedExpression: "", boundingBox: .zero, confidence: 0.9)
+        ]
+        
+        let result = scanner.parseReceipt(from: obs)
+        XCTAssertEqual(result.detectedCurrency, .usd)
+        XCTAssertEqual(result.items.count, 3, "Only the 3 actual line items should be parsed")
+        for item in result.items {
+            XCTAssertEqual(item.title, "Lorem ipsum dolor sit amet")
+            XCTAssertEqual(item.amount, 30.00)
+        }
+        XCTAssertEqual(result.detectedSubtotal, 90.00)
+        XCTAssertEqual(result.detectedTotal, 60.00)
+    }
 }
