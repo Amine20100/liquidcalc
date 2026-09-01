@@ -1,5 +1,6 @@
 # Xcode & iOS
 build/
+build_artifact/
 DerivedData/
 *.moved-aside
 *.xcuserstate
