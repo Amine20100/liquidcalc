@@ -320,4 +320,47 @@ public final class VisionViewModel {
             }
         }
     }
+    
+    // MARK: - Gemini 2.5 Flash Multimodal AI Solver
+    
+    public func analyzeCurrentPhotoWithGemini(uiImage: UIImage) async {
+        SoundAndHapticManager.shared.triggerHaptic(.medium)
+        if selectedSubMode == .receipt {
+            do {
+                let receiptRes = try await GeminiService.shared.analyzeReceipt(image: uiImage)
+                await MainActor.run {
+                    var parsedItems: [ReceiptLineItem] = []
+                    for item in receiptRes.items {
+                        parsedItems.append(ReceiptLineItem(title: item.name, amount: item.price))
+                    }
+                    if !parsedItems.isEmpty {
+                        self.receiptItems = parsedItems
+                    }
+                    if let curStr = receiptRes.currency, let cur = SupportedCurrency(rawValue: curStr.uppercased()) {
+                        self.detectedCurrency = cur
+                    }
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                    SoundAndHapticManager.shared.playSuccessSound()
+                }
+            } catch {
+                await MainActor.run {
+                    SoundAndHapticManager.shared.triggerHaptic(.error)
+                }
+            }
+        } else {
+            do {
+                let mathRes = try await GeminiService.shared.solveMath(image: uiImage)
+                await MainActor.run {
+                    self.detectedExpression = mathRes.expression
+                    self.solvedResult = mathRes.result
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                    SoundAndHapticManager.shared.playSuccessSound()
+                }
+            } catch {
+                await MainActor.run {
+                    SoundAndHapticManager.shared.triggerHaptic(.error)
+                }
+            }
+        }
+    }
 }
