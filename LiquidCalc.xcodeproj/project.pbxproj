@@ -76,6 +76,8 @@
 		AA1000872C85000100000001 /* MathDrawCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000882C85000100000001 /* MathDrawCanvasView.swift */; };
 		AA2000112C85000100000001 /* HandwritingMathRecognizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */; };
 		AA1000892C85000100000001 /* HotUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10008A2C85000100000001 /* HotUpdateManager.swift */; };
+		AA1000912C85000100000001 /* GeminiService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000922C85000100000001 /* GeminiService.swift */; };
+		AA1000932C85000100000001 /* GeminiAIView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000942C85000100000001 /* GeminiAIView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -151,6 +153,8 @@
 		AA1000882C85000100000001 /* MathDrawCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DrawCalc/MathDrawCanvasView.swift"; sourceTree = "<group>"; };
 		AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandwritingMathRecognizerTests.swift; sourceTree = "<group>"; };
 		AA10008A2C85000100000001 /* HotUpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Update/HotUpdateManager.swift"; sourceTree = "<group>"; };
+		AA1000922C85000100000001 /* GeminiService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AI/GeminiService.swift"; sourceTree = "<group>"; };
+		AA1000942C85000100000001 /* GeminiAIView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AI/GeminiAIView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -234,6 +238,7 @@
 				AA1000842C85000100000001 /* HandwritingMathRecognizer.swift */,
 				AA1000622C85000100000001 /* AppUpdateManager.swift */,
 				AA10008A2C85000100000001 /* HotUpdateManager.swift */,
+				AA1000922C85000100000001 /* GeminiService.swift */,
 				AA1000722C85000100000001 /* AlgebraicSolver.swift */,
 				AA1000742C85000100000001 /* CalculusEngine.swift */,
 				AA1000762C85000100000001 /* MatrixEngine.swift */,
@@ -470,6 +475,8 @@
 				AA1000852C85000100000001 /* DrawCalcViewModel.swift in Sources */,
 				AA1000872C85000100000001 /* MathDrawCanvasView.swift in Sources */,
 				AA1000892C85000100000001 /* HotUpdateManager.swift in Sources */,
+				AA1000912C85000100000001 /* GeminiService.swift in Sources */,
+				AA1000932C85000100000001 /* GeminiAIView.swift in Sources */,
 				AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -565,7 +572,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
@@ -574,7 +581,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -588,7 +595,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 16;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
@@ -597,7 +604,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -610,10 +617,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 16;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -627,10 +634,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 16;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
