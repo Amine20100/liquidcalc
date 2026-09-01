@@ -3,6 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
+//  Milestone M2 & M3: Synchronized Vision Scanner Motion FX & Haptics
 //
 
 import SwiftUI
@@ -76,10 +77,12 @@ public final class VisionViewModel {
     }
     
     public func stopCamera() {
+        SoundAndHapticManager.shared.stopContinuousScanningHum()
         cameraService.stopSession()
     }
     
     public func clearResults() {
+        SoundAndHapticManager.shared.stopContinuousScanningHum()
         withAnimation(.easeInOut(duration: 0.2)) {
             detectedExpression = ""
             solvedResult = nil
@@ -92,11 +95,14 @@ public final class VisionViewModel {
         withAnimation(.easeInOut(duration: 0.2)) {
             isScanning = true
         }
+        // Start continuous scanning hum and initial shutter feedback
+        SoundAndHapticManager.shared.startContinuousScanningHum()
         SoundAndHapticManager.shared.triggerHaptic(.medium)
         
         cameraService.capturePhoto { [weak self] cgImage in
             guard let self = self, let cgImage = cgImage else {
                 DispatchQueue.main.async {
+                    SoundAndHapticManager.shared.stopContinuousScanningHum()
                     withAnimation(.easeInOut(duration: 0.2)) {
                         self?.isScanning = false
                     }
@@ -107,6 +113,7 @@ public final class VisionViewModel {
             #if canImport(Vision)
             self.scanner.scanImage(cgImage) { result in
                 DispatchQueue.main.async {
+                    SoundAndHapticManager.shared.stopContinuousScanningHum()
                     withAnimation(.easeInOut(duration: 0.2)) {
                         self.isScanning = false
                     }
@@ -121,6 +128,7 @@ public final class VisionViewModel {
             }
             #else
             DispatchQueue.main.async {
+                SoundAndHapticManager.shared.stopContinuousScanningHum()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     self.isScanning = false
                 }
@@ -140,6 +148,8 @@ public final class VisionViewModel {
             
             let target = mathCandidates.first ?? observations.first
             if let best = target {
+                // Lock-on tick when math target is identified
+                SoundAndHapticManager.shared.playDigitClick()
                 withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
                     self.detectedExpression = best.sanitizedExpression
                 }
@@ -147,10 +157,22 @@ public final class VisionViewModel {
             }
         } else {
             // Parse receipt items
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                self.receiptItems = scanner.parseReceiptItems(from: observations)
+            let items = scanner.parseReceiptItems(from: observations)
+            if !items.isEmpty {
+                // Lock-on tick when receipt items are identified
+                SoundAndHapticManager.shared.playDigitClick()
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
+                    self.receiptItems = items
+                }
+                SoundAndHapticManager.shared.triggerHaptic(.success)
+            } else {
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
+                    self.receiptItems = []
+                }
+                if !observations.isEmpty {
+                    SoundAndHapticManager.shared.triggerHaptic(.error)
+                }
             }
-            SoundAndHapticManager.shared.triggerHaptic(.success)
         }
     }
     
@@ -205,10 +227,12 @@ public final class VisionViewModel {
         withAnimation(.easeInOut(duration: 0.2)) {
             isScanning = true
         }
+        SoundAndHapticManager.shared.startContinuousScanningHum()
         
         item.loadTransferable(type: Data.self) { [weak self] result in
             guard let self = self else { return }
             DispatchQueue.main.async {
+                SoundAndHapticManager.shared.stopContinuousScanningHum()
                 withAnimation(.easeInOut(duration: 0.2)) {
                     self.isScanning = false
                 }

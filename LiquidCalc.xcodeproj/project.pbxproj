@@ -54,6 +54,12 @@
 		AA1000552C85000100000001 /* SolvedResultCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000562C85000100000001 /* SolvedResultCardView.swift */; };
 		AA2000092C85000100000001 /* SoundAndHapticManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */; };
 		AA20000B2C85000100000001 /* LiquidCalcE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */; };
+		AA1000612C85000100000001 /* AppUpdateManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000622C85000100000001 /* AppUpdateManager.swift */; };
+		AA1000632C85000100000001 /* GitHubRelease.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000642C85000100000001 /* GitHubRelease.swift */; };
+		AA1000652C85000100000001 /* SupportedCurrency.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000662C85000100000001 /* SupportedCurrency.swift */; };
+		AA1000672C85000100000001 /* UpdateAvailableView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000682C85000100000001 /* UpdateAvailableView.swift */; };
+		AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10006A2C85000100000001 /* SonarWaveRingsView.swift */; };
+		AA20000D2C85000100000001 /* AppUpdateManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -107,6 +113,12 @@
 		AA1000562C85000100000001 /* SolvedResultCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/SolvedResultCardView.swift"; sourceTree = "<group>"; };
 		AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoundAndHapticManagerTests.swift; sourceTree = "<group>"; };
 		AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidCalcE2ETests.swift; sourceTree = "<group>"; };
+		AA1000622C85000100000001 /* AppUpdateManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Update/AppUpdateManager.swift"; sourceTree = "<group>"; };
+		AA1000642C85000100000001 /* GitHubRelease.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitHubRelease.swift; sourceTree = "<group>"; };
+		AA1000662C85000100000001 /* SupportedCurrency.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportedCurrency.swift; sourceTree = "<group>"; };
+		AA1000682C85000100000001 /* UpdateAvailableView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/UpdateAvailableView.swift"; sourceTree = "<group>"; };
+		AA10006A2C85000100000001 /* SonarWaveRingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/SonarWaveRingsView.swift"; sourceTree = "<group>"; };
+		AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateManagerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -162,6 +174,8 @@
 			children = (
 				AA1000202C85000100000001 /* CalculatorMode.swift */,
 				AA1000222C85000100000001 /* KeypadButton.swift */,
+				AA1000642C85000100000001 /* GitHubRelease.swift */,
+				AA1000662C85000100000001 /* SupportedCurrency.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -184,6 +198,7 @@
 				AA1000402C85000100000001 /* SoundAndHapticManager.swift */,
 				AA1000422C85000100000001 /* VisionMathScanner.swift */,
 				AA1000442C85000100000001 /* CameraCaptureService.swift */,
+				AA1000622C85000100000001 /* AppUpdateManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -220,6 +235,8 @@
 				AA1000522C85000100000001 /* LaserSweepLineView.swift */,
 				AA1000542C85000100000001 /* ReticleOverlayView.swift */,
 				AA1000562C85000100000001 /* SolvedResultCardView.swift */,
+				AA1000682C85000100000001 /* UpdateAvailableView.swift */,
+				AA10006A2C85000100000001 /* SonarWaveRingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -242,6 +259,7 @@
 				AA2000082C85000100000001 /* VisionMathScannerTests.swift */,
 				AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */,
 				AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */,
+				AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */,
 			);
 			path = LiquidCalcTests;
 			sourceTree = "<group>";
@@ -386,6 +404,11 @@
 				AA1000512C85000100000001 /* LaserSweepLineView.swift in Sources */,
 				AA1000532C85000100000001 /* ReticleOverlayView.swift in Sources */,
 				AA1000552C85000100000001 /* SolvedResultCardView.swift in Sources */,
+				AA1000612C85000100000001 /* AppUpdateManager.swift in Sources */,
+				AA1000632C85000100000001 /* GitHubRelease.swift in Sources */,
+				AA1000652C85000100000001 /* SupportedCurrency.swift in Sources */,
+				AA1000672C85000100000001 /* UpdateAvailableView.swift in Sources */,
+				AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -399,6 +422,7 @@
 				AA2000072C85000100000001 /* VisionMathScannerTests.swift in Sources */,
 				AA2000092C85000100000001 /* SoundAndHapticManagerTests.swift in Sources */,
 				AA20000B2C85000100000001 /* LiquidCalcE2ETests.swift in Sources */,
+				AA20000D2C85000100000001 /* AppUpdateManagerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

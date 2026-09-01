@@ -12,11 +12,54 @@ public final class MathLexer {
     private var index: String.Index
     
     public init(expression: String) {
-        // Clean expression: normalize spaces and Unicode operators
         var cleaned = expression
+        
+        // 1. Normalize Unicode vulgar fractions
+        let vulgarFractions: [String: String] = [
+            "½": "(1/2)", "⅓": "(1/3)", "⅔": "(2/3)", "¼": "(1/4)",
+            "¾": "(3/4)", "⅕": "(1/5)", "⅖": "(2/5)", "⅗": "(3/5)",
+            "⅘": "(4/5)", "⅙": "(1/6)", "⅚": "(5/6)", "⅛": "(1/8)",
+            "⅜": "(3/8)", "⅝": "(5/8)", "⅞": "(7/8)", "⅑": "(1/9)",
+            "⅒": "(1/10)"
+        ]
+        for (vulgar, standard) in vulgarFractions {
+            cleaned = cleaned.replacingOccurrences(of: vulgar, with: standard)
+        }
+        
+        // 2. Normalize mixed fractions e.g. "3 1/2" -> "3 + 1/2"
+        if let mixedRegex = try? NSRegularExpression(pattern: #"(\d+)\s+(\(?\d+\s*\/\s*\d+\)?)"#, options: []) {
+            let range = NSRange(location: 0, length: cleaned.utf16.count)
+            cleaned = mixedRegex.stringByReplacingMatches(in: cleaned, options: [], range: range, withTemplate: "$1 + $2")
+        }
+        
+        // 3. Normalize Unicode superscripts e.g. x², 5³, 10⁻²
+        let superscripts: [String: String] = [
+            "⁰": "^0", "¹": "^1", "²": "^2", "³": "^3", "⁴": "^4",
+            "⁵": "^5", "⁶": "^6", "⁷": "^7", "⁸": "^8", "⁹": "^9",
+            "⁺": "^+", "⁻": "^-"
+        ]
+        for (sup, standard) in superscripts {
+            cleaned = cleaned.replacingOccurrences(of: sup, with: standard)
+        }
+        
+        // Collapse consecutive power signs: e.g. ^2^3 -> ^23 for multi-digit superscripts
+        if let powerRegex = try? NSRegularExpression(pattern: #"\^(\d+)\^(\d+)"#, options: []) {
+            var prev = cleaned
+            repeat {
+                prev = cleaned
+                let range = NSRange(location: 0, length: cleaned.utf16.count)
+                cleaned = powerRegex.stringByReplacingMatches(in: cleaned, options: [], range: range, withTemplate: "^$1$2")
+            } while cleaned != prev
+        }
+        
+        // 4. Normalize arithmetic and root operators
+        cleaned = cleaned
             .replacingOccurrences(of: "×", with: "*")
             .replacingOccurrences(of: "÷", with: "/")
             .replacingOccurrences(of: "−", with: "-")
+            .replacingOccurrences(of: "—", with: "-")
+            .replacingOccurrences(of: "–", with: "-")
+            .replacingOccurrences(of: "·", with: "*")
             .replacingOccurrences(of: "π", with: "pi")
             .replacingOccurrences(of: "√", with: "sqrt")
             .replacingOccurrences(of: "∛", with: "cbrt")
@@ -47,11 +90,29 @@ public final class MathLexer {
             } else if char == "," {
                 rawTokens.append(.comma)
                 index = input.index(after: index)
-            } else if char == "+" || char == "-" || char == "*" || char == "/" || char == "^" || char == "%" {
+            } else if char == "%" {
+                index = input.index(after: index)
+                // Determine if '%' is unary postfix percentage or binary modulo
+                var isPostfix = false
+                if let last = rawTokens.last {
+                    switch last {
+                    case .number, .constant, .rightParen, .postfixOp:
+                        isPostfix = true
+                    default:
+                        isPostfix = false
+                    }
+                }
+                
+                if isPostfix {
+                    rawTokens.append(.postfixOp("%"))
+                } else {
+                    rawTokens.append(.binaryOp("%"))
+                }
+            } else if char == "+" || char == "-" || char == "*" || char == "/" || char == "^" {
                 let op = String(char)
                 index = input.index(after: index)
                 
-                // Determine if '+' or '-' is unary
+                // Determine if '+' or '-' is unary prefix
                 if (op == "-" || op == "+") {
                     let isUnary: Bool
                     if let last = rawTokens.last {
@@ -141,6 +202,8 @@ public final class MathLexer {
             return .constant("ϕ", 1.6180339887498948)
         case "tau":
             return .constant("τ", Double.pi * 2)
+        case "mod":
+            return .binaryOp("mod")
         default:
             return .function(word)
         }
@@ -164,7 +227,11 @@ public final class MathLexer {
                      (.rightParen, .leftParen),
                      (.rightParen, .number),
                      (.rightParen, .constant),
-                     (.rightParen, .function):
+                     (.rightParen, .function),
+                     (.postfixOp, .leftParen),
+                     (.postfixOp, .number),
+                     (.postfixOp, .constant),
+                     (.postfixOp, .function):
                     shouldMultiply = true
                 default:
                     shouldMultiply = false

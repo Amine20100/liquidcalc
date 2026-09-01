@@ -7,11 +7,12 @@
 
 import Foundation
 
-public enum MathToken: Equatable {
+public enum MathToken: Equatable, Sendable {
     case number(Double)
     case constant(String, Double)
     case binaryOp(String)
     case unaryOp(String)
+    case postfixOp(String)
     case function(String)
     case leftParen
     case rightParen
@@ -22,12 +23,14 @@ public enum MathToken: Equatable {
         case .binaryOp(let op):
             switch op {
             case "+", "-": return 1
-            case "*", "/", "%", "×", "÷": return 2
+            case "*", "/", "%", "mod", "×", "÷": return 2
             case "^": return 4
             default: return 0
             }
         case .unaryOp:
             return 3
+        case .postfixOp:
+            return 4
         case .function:
             return 5
         default:
@@ -41,6 +44,8 @@ public enum MathToken: Equatable {
             return op == "^"
         case .unaryOp:
             return true
+        case .postfixOp:
+            return false
         default:
             return false
         }

@@ -20,6 +20,9 @@ public final class MathParser {
             case .number, .constant:
                 outputQueue.append(token)
                 
+            case .postfixOp:
+                outputQueue.append(token)
+                
             case .function:
                 operatorStack.append(token)
                 

@@ -29,7 +29,7 @@ public final class MathEvaluator {
     public func evaluateRPN(_ tokens: [MathToken]) throws -> Double {
         var stack: [Double] = []
         
-        for token in tokens {
+        for (i, token) in tokens.enumerated() {
             switch token {
             case .number(let value):
                 stack.append(value)
@@ -47,6 +47,25 @@ public final class MathEvaluator {
                     stack.append(operand)
                 }
                 
+            case .postfixOp(let op):
+                guard let operand = stack.popLast() else {
+                    throw MathError.unexpectedToken(op)
+                }
+                if op == "%" {
+                    let nextToken = (i + 1 < tokens.count) ? tokens[i + 1] : nil
+                    if let base = stack.last, let next = nextToken, case .binaryOp(let bop) = next, (bop == "+" || bop == "-") {
+                        let percentValue = base * (operand / 100.0)
+                        stack.append(percentValue)
+                    } else {
+                        stack.append(operand / 100.0)
+                    }
+                } else if op == "!" {
+                    let factResult = try executeFunction("fact", operand: operand)
+                    stack.append(factResult)
+                } else {
+                    throw MathError.unexpectedToken(op)
+                }
+                
             case .binaryOp(let op):
                 guard let right = stack.popLast(), let left = stack.popLast() else {
                     throw MathError.unexpectedToken(op)
@@ -55,11 +74,23 @@ public final class MathEvaluator {
                 stack.append(result)
                 
             case .function(let fn):
-                guard let operand = stack.popLast() else {
-                    throw MathError.unknownFunction(fn)
+                if (fn == "root" || fn == "nthroot") && stack.count >= 2 {
+                    let n = stack.popLast()!
+                    let x = stack.popLast()!
+                    if abs(n) < 1e-15 {
+                        throw MathError.divisionByZero
+                    }
+                    if x < 0 && n.truncatingRemainder(dividingBy: 2) == 0 {
+                        throw MathError.domainError("Even root of negative number")
+                    }
+                    stack.append(pow(x, 1.0 / n))
+                } else {
+                    guard let operand = stack.popLast() else {
+                        throw MathError.unknownFunction(fn)
+                    }
+                    let result = try executeFunction(fn, operand: operand)
+                    stack.append(result)
                 }
-                let result = try executeFunction(fn, operand: operand)
-                stack.append(result)
                 
             default:
                 break
@@ -86,14 +117,14 @@ public final class MathEvaluator {
             return left + right
         case "-":
             return left - right
-        case "*":
+        case "*", "×":
             return left * right
-        case "/":
+        case "/", "÷":
             if abs(right) < 1e-15 {
                 throw MathError.divisionByZero
             }
             return left / right
-        case "%":
+        case "%", "mod":
             if abs(right) < 1e-15 {
                 throw MathError.divisionByZero
             }
@@ -175,6 +206,11 @@ public final class MathEvaluator {
             return sqrt(operand)
         case "cbrt":
             return cbrt(operand)
+        case "root", "nthroot":
+            if operand < 0 {
+                throw MathError.domainError("Cannot compute square root of negative number")
+            }
+            return sqrt(operand)
         case "abs":
             return abs(operand)
         case "exp":
@@ -197,6 +233,14 @@ public final class MathEvaluator {
                 throw MathError.divisionByZero
             }
             return 1.0 / operand
+        case "ceil":
+            return ceil(operand)
+        case "floor":
+            return floor(operand)
+        case "round":
+            return round(operand)
+        case "sign":
+            return operand > 0 ? 1.0 : (operand < 0 ? -1.0 : 0.0)
         default:
             throw MathError.unknownFunction(fn)
         }

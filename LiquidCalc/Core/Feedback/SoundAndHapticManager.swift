@@ -416,6 +416,15 @@ public final class SoundAndHapticManager: @unchecked Sendable {
         #endif
     }
     
+    /// Indicates whether continuous scanning hum is actively running.
+    public var isContinuousHumActive: Bool {
+        #if canImport(CoreHaptics) && os(iOS)
+        return continuousScanningPlayer != nil
+        #else
+        return false
+        #endif
+    }
+    
     // MARK: - Legacy / Unified Bridge (F10 & F11)
     
     public enum HapticStyle {

@@ -73,6 +73,13 @@ public struct SmartVisionView: View {
                         lineWidth: 2
                     )
                 
+                // Feature F2: Expanding Sonar/Radar Wave Pulse Rings (Underneath reticle and laser)
+                if viewModel.isScanning {
+                    SonarWaveRingsView(isScanning: viewModel.isScanning)
+                        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+                        .transition(.opacity.combined(with: .scale(scale: 0.96)))
+                }
+                
                 // Feature F6: State-Driven Pulsing & Locking Reticle Overlay
                 ReticleOverlayView(
                     isScanning: viewModel.isScanning,
