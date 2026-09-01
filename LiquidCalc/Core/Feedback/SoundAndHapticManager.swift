@@ -81,7 +81,7 @@ public final class SoundAndHapticManager: @unchecked Sendable {
         do {
             let newEngine = try CHHapticEngine()
             newEngine.playsHapticsOnly = true
-            newEngine.autoShutdownEnabled = false
+            newEngine.isAutoShutdownEnabled = false
             
             // Handle engine reset (e.g. after audio server restart)
             newEngine.resetHandler = { [weak self] in

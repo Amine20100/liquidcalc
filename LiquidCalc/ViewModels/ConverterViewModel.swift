@@ -8,6 +8,8 @@
 import Foundation
 import SwiftUI
 
+public typealias UnitConverterViewModel = ConverterViewModel
+
 @Observable
 public final class ConverterViewModel {
     private let engine = UnitConverterEngine()

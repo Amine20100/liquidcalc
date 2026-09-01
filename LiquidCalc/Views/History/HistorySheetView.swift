@@ -63,7 +63,7 @@ public struct HistorySheetView: View {
                                     Button(role: .destructive) {
                                         historyManager.removeItem(id: item.id)
                                     } label: {
-                                        Label("Delete", systemName: "trash")
+                                        Label("Delete", systemImage: "trash")
                                     }
                                 }
                         }

@@ -10,6 +10,7 @@ import SwiftUI
 public struct MainCalculatorView: View {
     @State private var calculatorViewModel = CalculatorViewModel()
     @State private var programmerViewModel = ProgrammerViewModel()
+    @State private var converterViewModel = ConverterViewModel()
     @State private var showHistorySheet = false
     @State private var showSettingsSheet = false
     
@@ -49,7 +50,7 @@ public struct MainCalculatorView: View {
                     case .programmer:
                         ProgrammerKeypadView(viewModel: programmerViewModel)
                     case .converter:
-                        UnitConverterView()
+                        UnitConverterView(viewModel: converterViewModel)
                     case .vision:
                         SmartVisionView(calculatorViewModel: calculatorViewModel)
                     }

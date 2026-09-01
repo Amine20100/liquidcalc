@@ -11,7 +11,7 @@ public struct UnitConverterView: View {
     @Bindable var viewModel: UnitConverterViewModel
     @State private var swapRotation: Double = 0
     
-    public init(viewModel: UnitConverterViewModel) {
+    public init(viewModel: UnitConverterViewModel = ConverterViewModel()) {
         self.viewModel = viewModel
     }
     

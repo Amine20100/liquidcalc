@@ -23,6 +23,8 @@ public struct UnitItem: Identifiable, Hashable {
     }
 }
 
+public typealias UnitCategory = UnitCategoryType
+
 public enum UnitCategoryType: String, CaseIterable, Identifiable {
     case length = "Length"
     case mass = "Mass & Weight"
