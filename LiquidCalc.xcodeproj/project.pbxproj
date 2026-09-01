@@ -70,6 +70,11 @@
 		AA10007D2C85000100000001 /* FunctionGrapherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10007E2C85000100000001 /* FunctionGrapherView.swift */; };
 		AA10007F2C85000100000001 /* AdvancedMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000802C85000100000001 /* AdvancedMathView.swift */; };
 		AA20000F2C85000100000001 /* AdvancedMathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000102C85000100000001 /* AdvancedMathTests.swift */; };
+		AA1000812C85000100000001 /* DrawingStroke.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000822C85000100000001 /* DrawingStroke.swift */; };
+		AA1000832C85000100000001 /* HandwritingMathRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000842C85000100000001 /* HandwritingMathRecognizer.swift */; };
+		AA1000852C85000100000001 /* DrawCalcViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000862C85000100000001 /* DrawCalcViewModel.swift */; };
+		AA1000872C85000100000001 /* MathDrawCanvasView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000882C85000100000001 /* MathDrawCanvasView.swift */; };
+		AA2000112C85000100000001 /* HandwritingMathRecognizerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -139,6 +144,11 @@
 		AA10007E2C85000100000001 /* FunctionGrapherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/FunctionGrapherView.swift"; sourceTree = "<group>"; };
 		AA1000802C85000100000001 /* AdvancedMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/AdvancedMathView.swift"; sourceTree = "<group>"; };
 		AA2000102C85000100000001 /* AdvancedMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedMathTests.swift; sourceTree = "<group>"; };
+		AA1000822C85000100000001 /* DrawingStroke.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawingStroke.swift; sourceTree = "<group>"; };
+		AA1000842C85000100000001 /* HandwritingMathRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/HandwritingMathRecognizer.swift"; sourceTree = "<group>"; };
+		AA1000862C85000100000001 /* DrawCalcViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DrawCalcViewModel.swift; sourceTree = "<group>"; };
+		AA1000882C85000100000001 /* MathDrawCanvasView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "DrawCalc/MathDrawCanvasView.swift"; sourceTree = "<group>"; };
+		AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HandwritingMathRecognizerTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -195,6 +205,7 @@
 				AA1000202C85000100000001 /* CalculatorMode.swift */,
 				AA1000222C85000100000001 /* KeypadButton.swift */,
 				AA1000642C85000100000001 /* GitHubRelease.swift */,
+				AA1000822C85000100000001 /* DrawingStroke.swift */,
 				AA1000662C85000100000001 /* SupportedCurrency.swift */,
 			);
 			path = Models;
@@ -218,6 +229,7 @@
 				AA1000402C85000100000001 /* SoundAndHapticManager.swift */,
 				AA1000422C85000100000001 /* VisionMathScanner.swift */,
 				AA1000442C85000100000001 /* CameraCaptureService.swift */,
+				AA1000842C85000100000001 /* HandwritingMathRecognizer.swift */,
 				AA1000622C85000100000001 /* AppUpdateManager.swift */,
 				AA1000722C85000100000001 /* AlgebraicSolver.swift */,
 				AA1000742C85000100000001 /* CalculusEngine.swift */,
@@ -265,6 +277,7 @@
 				AA1000682C85000100000001 /* UpdateAvailableView.swift */,
 				AA10007E2C85000100000001 /* FunctionGrapherView.swift */,
 				AA1000802C85000100000001 /* AdvancedMathView.swift */,
+				AA1000882C85000100000001 /* MathDrawCanvasView.swift */,
 				AA10006A2C85000100000001 /* SonarWaveRingsView.swift */,
 			);
 			path = Views;
@@ -290,6 +303,7 @@
 				AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */,
 				AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */,
 				AA2000102C85000100000001 /* AdvancedMathTests.swift */,
+				AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */,
 			);
 			path = LiquidCalcTests;
 			sourceTree = "<group>";
@@ -447,6 +461,10 @@
 				AA10007B2C85000100000001 /* NumberTheoryEngine.swift in Sources */,
 				AA10007D2C85000100000001 /* FunctionGrapherView.swift in Sources */,
 				AA10007F2C85000100000001 /* AdvancedMathView.swift in Sources */,
+				AA1000812C85000100000001 /* DrawingStroke.swift in Sources */,
+				AA1000832C85000100000001 /* HandwritingMathRecognizer.swift in Sources */,
+				AA1000852C85000100000001 /* DrawCalcViewModel.swift in Sources */,
+				AA1000872C85000100000001 /* MathDrawCanvasView.swift in Sources */,
 				AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -463,6 +481,7 @@
 				AA20000B2C85000100000001 /* LiquidCalcE2ETests.swift in Sources */,
 				AA20000D2C85000100000001 /* AppUpdateManagerTests.swift in Sources */,
 				AA20000F2C85000100000001 /* AdvancedMathTests.swift in Sources */,
+				AA2000112C85000100000001 /* HandwritingMathRecognizerTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -57,6 +57,8 @@ public struct MainCalculatorView: View {
                         AdvancedMathView()
                     case .graphing:
                         FunctionGrapherView()
+                    case .mathDraw:
+                        MathDrawCanvasView()
                     }
                 }
                 .transition(.asymmetric(
