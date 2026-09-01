@@ -57,6 +57,17 @@ public final class ProgrammerViewModel {
             if let op = BitwiseOperator(rawValue: opName) {
                 engine.setPendingOperation(op)
             }
+        case .operation(let op):
+            switch op {
+            case "+": engine.setPendingOperation(.add)
+            case "-": engine.setPendingOperation(.subtract)
+            case "×", "*": engine.setPendingOperation(.multiply)
+            case "÷", "/": engine.setPendingOperation(.divide)
+            case "%", "MOD": engine.setPendingOperation(.mod)
+            default: break
+            }
+        case .plusMinus:
+            engine.setPendingOperation(.negate)
         case .equals:
             engine.computeEquals()
         default:

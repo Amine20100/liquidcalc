@@ -3,6 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
+//  Robust Intelligent Math OCR & Receipt Parsing Engine
 //
 
 import Foundation
@@ -97,13 +98,13 @@ public struct ReceiptParseResult: Equatable, Sendable {
     }
 }
 
-public final class VisionMathScanner {
+public final class VisionMathScanner: Sendable {
     public init() {}
     
     #if canImport(Vision)
-    /// Scans a CGImage for mathematical expressions using Apple Vision VNRecognizeTextRequest
-    public func scanImage(_ cgImage: CGImage, completion: @escaping (Result<[ScannedTextObservation], Error>) -> Void) {
-        let request = VNRecognizeTextRequest { [weak self] request, error in
+    /// Scans a CGImage for mathematical expressions and text using Apple Vision VNRecognizeTextRequest
+    public func scanImage(_ cgImage: CGImage, completion: @escaping @Sendable (Result<[ScannedTextObservation], Error>) -> Void) {
+        let request = VNRecognizeTextRequest { request, error in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -114,10 +115,11 @@ public final class VisionMathScanner {
                 return
             }
             
+            let scanner = VisionMathScanner()
             let scannedItems: [ScannedTextObservation] = observations.compactMap { obs in
                 guard let candidate = obs.topCandidates(1).first else { return nil }
                 let raw = candidate.string
-                let sanitized = self?.sanitizeMathString(raw) ?? raw
+                let sanitized = scanner.sanitizeMathString(raw)
                 return ScannedTextObservation(
                     rawText: raw,
                     sanitizedExpression: sanitized,
@@ -130,7 +132,7 @@ public final class VisionMathScanner {
         }
         
         request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = false // Essential for mathematical symbols and digits
+        request.usesLanguageCorrection = false
         
         let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         DispatchQueue.global(qos: .userInitiated).async {
@@ -143,18 +145,14 @@ public final class VisionMathScanner {
     }
     #endif
     
-    /// Sanitizes raw OCR text into a clean mathematical expression compatible with MathLexer
+    // MARK: - Mathematical String Sanitizer & Heuristic Normalizer
+    
     public func sanitizeMathString(_ input: String) -> String {
         var text = input.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Remove trailing or leading equals signs often written in math notes: "5 + 3 =" -> "5 + 3"
-        if text.hasSuffix("=") {
-            text.removeLast()
-        }
-        if text.hasPrefix("=") {
-            text.removeFirst()
-        }
-        text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Strip trailing question marks and placeholders: e.g. "5 + 3 = ?" -> "5 + 3 ="
+        text = text.replacingOccurrences(of: "\\?", with: "", options: .regularExpression)
+        text = text.replacingOccurrences(of: "\\.{2,}", with: "", options: .regularExpression)
         
         // Normalize Unicode vulgar fractions
         let vulgarFractions: [String: String] = [
@@ -168,12 +166,6 @@ public final class VisionMathScanner {
             text = text.replacingOccurrences(of: vulgar, with: standard)
         }
         
-        // Normalize mixed fractions e.g. "3 1/2" -> "3 + 1/2" or "3 (1/2)" -> "3 + (1/2)"
-        if let mixedRegex = try? NSRegularExpression(pattern: #"(\d+)\s+(\(?\d+\s*\/\s*\d+\)?)"#, options: []) {
-            let range = NSRange(location: 0, length: text.utf16.count)
-            text = mixedRegex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1 + $2")
-        }
-        
         // Normalize Unicode superscripts
         let superscripts: [String: String] = [
             "⁰": "^0", "¹": "^1", "²": "^2", "³": "^3", "⁴": "^4",
@@ -184,16 +176,6 @@ public final class VisionMathScanner {
             text = text.replacingOccurrences(of: sup, with: standard)
         }
         
-        // Collapse consecutive power signs: e.g. ^2^3 -> ^23 for multi-digit superscripts
-        if let powerRegex = try? NSRegularExpression(pattern: #"\^(\d+)\^(\d+)"#, options: []) {
-            var prev = text
-            repeat {
-                prev = text
-                let range = NSRange(location: 0, length: text.utf16.count)
-                text = powerRegex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "^$1$2")
-            } while text != prev
-        }
-        
         // Common OCR operator replacements
         text = text.replacingOccurrences(of: "×", with: "*")
         text = text.replacingOccurrences(of: "÷", with: "/")
@@ -201,35 +183,55 @@ public final class VisionMathScanner {
         text = text.replacingOccurrences(of: "—", with: "-")
         text = text.replacingOccurrences(of: "–", with: "-")
         text = text.replacingOccurrences(of: "·", with: "*")
-        
-        // Fix letter 'x' or 'X' used as multiplication between numbers (e.g. 5x4 or 5 x 4)
-        if let regex = try? NSRegularExpression(pattern: #"(\d+)\s*[xX]\s*(\d+)"#, options: []) {
-            let range = NSRange(location: 0, length: text.utf16.count)
-            text = regex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1 * $2")
-        }
-        
-        // Replace square root words or symbols
+        text = text.replacingOccurrences(of: "•", with: "*")
         text = text.replacingOccurrences(of: "SQRT", with: "sqrt")
         text = text.replacingOccurrences(of: "√", with: "sqrt")
         text = text.replacingOccurrences(of: "∛", with: "cbrt")
-        
-        // Replace pi symbols
         text = text.replacingOccurrences(of: "π", with: "pi")
         
-        // Clean multiple spaces
-        text = text.components(separatedBy: .whitespaces).filter { !$0.isEmpty }.joined(separator: " ")
+        // Insert implicit multiplication: e.g. "5(3+2)" -> "5*(3+2)" or "(2+3)(4+5)" -> "(2+3)*(4+5)"
+        if let parenMultRegex = try? NSRegularExpression(pattern: #"(\d+)\s*\("#, options: []) {
+            let range = NSRange(location: 0, length: text.utf16.count)
+            text = parenMultRegex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1 * (")
+        }
+        if let closeParenRegex = try? NSRegularExpression(pattern: #"\)\s*(\d+|\()"#, options: []) {
+            let range = NSRange(location: 0, length: text.utf16.count)
+            text = closeParenRegex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: ") * $1")
+        }
         
+        // Fix letter 'x' or 'X' as multiplication when between numbers (e.g. "5 x 4" -> "5 * 4")
+        if let multXRegex = try? NSRegularExpression(pattern: #"(\d+)\s*[xX]\s*(\d+)"#, options: []) {
+            let range = NSRange(location: 0, length: text.utf16.count)
+            text = multXRegex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1 * $2")
+        }
+        
+        // Fix implicit coefficient multiplication: "5x" -> "5*x" (if variable equation)
+        if let coeffRegex = try? NSRegularExpression(pattern: #"(\d+)\s*([a-zA-Z])"#, options: []) {
+            let range = NSRange(location: 0, length: text.utf16.count)
+            text = coeffRegex.stringByReplacingMatches(in: text, options: [], range: range, withTemplate: "$1 * $2")
+        }
+        
+        // Clean trailing equals: "5 + 3 =" -> "5 + 3" (unless it's an algebraic equation like "2x + 4 = 10")
+        if text.hasSuffix("=") {
+            text.removeLast()
+        }
+        if text.hasPrefix("=") {
+            text.removeFirst()
+        }
+        
+        text = text.components(separatedBy: .whitespaces).filter { !$0.isEmpty }.joined(separator: " ")
         return text
     }
     
-    /// Parses line items and details from a receipt or bill
+    // MARK: - Intelligent Receipt NLP Parser
+    
     public func parseReceipt(from observations: [ScannedTextObservation]) -> ReceiptParseResult {
         var items: [ReceiptLineItem] = []
         var detectedSubtotal: Double? = nil
         var detectedTax: Double? = nil
         var detectedTotal: Double? = nil
         
-        // 1. Detect currency from all observations
+        // 1. Currency Detection
         var currencyCounts: [SupportedCurrency: Int] = [:]
         for obs in observations {
             if let cur = SupportedCurrency.detect(from: obs.rawText) {
@@ -238,32 +240,38 @@ public final class VisionMathScanner {
         }
         let detectedCurrency = currencyCounts.max(by: { $0.value < $1.value })?.key ?? .usd
         
-        // Regex to extract price amounts (supporting standard, comma, and integer formats)
-        // Matches e.g. "$14.50", "12,50 €", "150 MAD", "¥1500", "45.00"
-        let priceRegex = try? NSRegularExpression(
-            pattern: #"(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?\s*(\d{1,5}(?:[.,]\d{2})?|\d{2,6})\s*(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?"#,
-            options: [.caseInsensitive]
-        )
+        // Regex for Price Amounts: matches "$14.50", "12,50 €", "150.00 MAD", "45.00"
+        let pricePattern = #"(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?\s*(\d{1,5}(?:[.,]\d{1,2})?)\s*(?:[\$€£¥₹]|CA\$|A\$|R\$|CHF|MAD|DH|Dhs|EUR|GBP|JPY|CAD|AUD|INR|BRL|د\.م\.|円)?"#
+        guard let priceRegex = try? NSRegularExpression(pattern: pricePattern, options: [.caseInsensitive]) else {
+            return ReceiptParseResult(detectedCurrency: detectedCurrency)
+        }
         
         for obs in observations {
             let text = obs.rawText.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !text.isEmpty else { continue }
             
             let lower = text.lowercased()
+            
+            // Skip non-item noise (dates, order numbers, credit cards, greetings)
+            if isHeaderOrFooterNoise(lower) {
+                continue
+            }
+            
             let range = NSRange(location: 0, length: text.utf16.count)
+            let matches = priceRegex.matches(in: text, options: [], range: range)
             
-            // Check for price match in line
-            guard let match = priceRegex?.firstMatch(in: text, options: [], range: range),
-                  let priceRange = Range(match.range(at: 1), in: text) else {
+            // Look for price in the line
+            guard let lastMatch = matches.last,
+                  let priceRange = Range(lastMatch.range(at: 1), in: text) else {
                 continue
             }
             
-            let priceRawString = String(text[priceRange])
-            guard let amount = parseAmount(priceRawString), amount > 0 else {
+            let priceStr = String(text[priceRange])
+            guard let amount = parseAmount(priceStr), amount > 0.05 else {
                 continue
             }
             
-            // Classify line to filter summary lines
+            // Categorize Summary Lines
             if isSubtotalLine(lower) {
                 detectedSubtotal = amount
                 continue
@@ -279,27 +287,22 @@ public final class VisionMathScanner {
                 detectedTotal = amount
                 continue
             }
-            if isHeaderOrFooterNoise(lower) {
-                continue
-            }
             
-            // Extract item title (text preceding or surrounding the price)
+            // Extract Item Title
             var title = text
-            if let matchRange = Range(match.range, in: text) {
-                let prefix = String(text[..<matchRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
-                let suffix = String(text[matchRange.upperBound...]).trimmingCharacters(in: .whitespacesAndNewlines)
-                
+            if let fullRange = Range(lastMatch.range, in: text) {
+                let prefix = String(text[..<fullRange.lowerBound]).trimmingCharacters(in: .whitespacesAndNewlines)
                 if !prefix.isEmpty {
                     title = prefix
-                } else if !suffix.isEmpty {
-                    title = suffix
                 }
             }
             
-            // Clean up title noise (leading quantities, bullet points)
             title = cleanTitle(title, fallbackIndex: items.count + 1)
             
-            items.append(ReceiptLineItem(title: title, amount: amount))
+            // Avoid duplicates and zero items
+            if !items.contains(where: { $0.title == title && abs($0.amount - amount) < 1e-3 }) {
+                items.append(ReceiptLineItem(title: title, amount: amount))
+            }
         }
         
         return ReceiptParseResult(
@@ -311,22 +314,19 @@ public final class VisionMathScanner {
         )
     }
     
-    /// Parses line items from a receipt or bill (backward-compatible convenience API)
     public func parseReceiptItems(from observations: [ScannedTextObservation]) -> [ReceiptLineItem] {
-        return parseReceipt(from: observations).items
+        parseReceipt(from: observations).items
     }
     
-    // MARK: - Private Receipt Parsing Helpers
+    // MARK: - Private Helpers
     
     private func parseAmount(_ string: String) -> Double? {
         var clean = string.trimmingCharacters(in: .whitespacesAndNewlines)
         if clean.contains(".") && clean.contains(",") {
-            if let dotIdx = clean.firstIndex(of: "."), let commaIdx = clean.firstIndex(of: ",") {
-                if dotIdx < commaIdx {
-                    // European format 1.250,50
+            if let dot = clean.firstIndex(of: "."), let comma = clean.firstIndex(of: ",") {
+                if dot < comma {
                     clean = clean.replacingOccurrences(of: ".", with: "").replacingOccurrences(of: ",", with: ".")
                 } else {
-                    // Standard format 1,250.50
                     clean = clean.replacingOccurrences(of: ",", with: "")
                 }
             }
@@ -337,59 +337,40 @@ public final class VisionMathScanner {
     }
     
     private func isSubtotalLine(_ lower: String) -> Bool {
-        return lower.contains("subtotal") ||
-               lower.contains("sub total") ||
-               lower.contains("sub-total") ||
-               lower.contains("sous-total") ||
-               lower.contains("sous total") ||
-               lower.contains("zwischensumme")
+        lower.contains("subtotal") || lower.contains("sub total") ||
+        lower.contains("sous-total") || lower.contains("sous total") ||
+        lower.contains("sub-total") || lower.contains("zwischensumme")
     }
     
     private func isTaxLine(_ lower: String) -> Bool {
-        return lower.contains("tax") ||
-               lower.contains("taxe") ||
-               lower.contains("tva") ||
-               lower.contains("vat") ||
-               lower.contains("mwst") ||
-               lower.contains("gst") ||
-               lower.contains("hst") ||
-               lower.contains("tps") ||
-               lower.contains("tvq") ||
-               lower.contains("impuesto") ||
-               lower.contains("impôt")
+        lower.contains("tax") || lower.contains("taxe") ||
+        lower.contains("tva") || lower.contains("vat") ||
+        lower.contains("gst") || lower.contains("hst") ||
+        lower.contains("mwst") || lower.contains("tvq")
     }
     
     private func isTipLine(_ lower: String) -> Bool {
-        return lower.contains("tip") ||
-               lower.contains("gratuity") ||
-               lower.contains("pourboire") ||
-               lower.contains("propina") ||
-               lower.contains("service charge") ||
-               lower.contains("trinkgeld")
+        lower.contains("tip") || lower.contains("gratuity") ||
+        lower.contains("pourboire") || lower.contains("service charge")
     }
     
     private func isTotalLine(_ lower: String) -> Bool {
-        return lower.contains("total") ||
-               lower.contains("total due") ||
-               lower.contains("amount due") ||
-               lower.contains("grand total") ||
-               lower.contains("balance due") ||
-               lower.contains("total ttc") ||
-               lower.contains("total ht") ||
-               lower.contains("total à payer") ||
-               lower.contains("endsumme") ||
-               lower.contains("gesamtsumme")
+        lower.contains("total") || lower.contains("total due") ||
+        lower.contains("amount due") || lower.contains("grand total") ||
+        lower.contains("total ttc") || lower.contains("total à payer") ||
+        lower.contains("net payable")
     }
     
     private func isHeaderOrFooterNoise(_ lower: String) -> Bool {
-        let noiseKeywords = [
-            "thank you", "merci", "welcome", "bienvenue", "quittung",
-            "receipt", "invoice", "facture", "order #", "table #",
-            "guest", "server", "cashier", "date:", "time:", "visa",
+        let noiseList = [
+            "thank you", "welcome", "merci", "receipt", "facture",
+            "invoice", "order #", "table #", "date:", "time:",
+            "guest", "server", "cashier", "terminal", "visa",
             "mastercard", "amex", "change due", "cash", "credit card",
-            "terminal", "merchant", "approved", "customer copy"
+            "auth code", "approval", "customer copy", "merchant id",
+            "phone", "tel:", "www.", "http", "street", "avenue", "city"
         ]
-        return noiseKeywords.contains(where: { lower.contains($0) })
+        return noiseList.contains(where: { lower.contains($0) })
     }
     
     private func cleanTitle(_ title: String, fallbackIndex: Int) -> String {
@@ -401,16 +382,12 @@ public final class VisionMathScanner {
             .replacingOccurrences(of: "₹", with: "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Strip leading item bullet points or numbers like "1. ", "2) "
-        if let leadingNumRegex = try? NSRegularExpression(pattern: #"^\d+[\.\)\-]\s*"#, options: []) {
+        if let numRegex = try? NSRegularExpression(pattern: #"^\d+[\.\)\-xX]\s*"#, options: []) {
             let range = NSRange(location: 0, length: clean.utf16.count)
-            clean = leadingNumRegex.stringByReplacingMatches(in: clean, options: [], range: range, withTemplate: "")
+            clean = numRegex.stringByReplacingMatches(in: clean, options: [], range: range, withTemplate: "")
         }
         
-        clean = clean.trimmingCharacters(in: CharacterSet(charactersIn: " -:.,*#"))
-        if clean.isEmpty {
-            return "Line Item #\(fallbackIndex)"
-        }
-        return clean
+        clean = clean.trimmingCharacters(in: CharacterSet(charactersIn: " -:.,*#_"))
+        return clean.isEmpty ? "Item #\(fallbackIndex)" : clean
     }
 }

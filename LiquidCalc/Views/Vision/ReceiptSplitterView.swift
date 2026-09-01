@@ -219,26 +219,46 @@ public struct ReceiptSplitterView: View {
             if !viewModel.receiptItems.isEmpty {
                 ScrollView {
                     VStack(spacing: 6) {
-                        ForEach(viewModel.receiptItems) { item in
-                            HStack {
-                                Text(item.title)
-                                    .font(.system(size: 13, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.85))
-                                Spacer()
-                                Text(selectedCurrency.format(amount: item.amount))
-                                    .font(.system(size: 13, weight: .semibold, design: .monospaced))
-                                    .foregroundColor(.white)
+                        ForEach($viewModel.receiptItems) { $item in
+                            Button(action: {
+                                SoundAndHapticManager.shared.playDigitClick()
+                                withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
+                                    item.isSelected.toggle()
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: item.isSelected ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(item.isSelected ? .cyan : .white.opacity(0.3))
+                                    
+                                    Text(item.title)
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(item.isSelected ? .white.opacity(0.9) : .white.opacity(0.4))
+                                    
+                                    Spacer()
+                                    
+                                    Text(selectedCurrency.format(amount: item.amount))
+                                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                                        .foregroundColor(item.isSelected ? .white : .white.opacity(0.4))
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 7)
+                                .background(item.isSelected ? Color.white.opacity(0.08) : Color.white.opacity(0.02))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 7)
-                            .background(Color.white.opacity(0.05))
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal, 12)
                 }
                 .frame(maxHeight: 140)
             }
+        }
+        .onAppear {
+            selectedCurrency = viewModel.detectedCurrency
+        }
+        .onChange(of: viewModel.detectedCurrency) {
+            selectedCurrency = viewModel.detectedCurrency
         }
     }
 }

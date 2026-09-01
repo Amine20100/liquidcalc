@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum BitwiseOperator: String, CaseIterable, Identifiable {
+public enum BitwiseOperator: String, CaseIterable, Identifiable, Sendable {
     case and = "AND"
     case or = "OR"
     case xor = "XOR"
@@ -19,6 +19,12 @@ public enum BitwiseOperator: String, CaseIterable, Identifiable {
     case rsh = "RSH"
     case rol = "ROL"
     case ror = "ROR"
+    case add = "+"
+    case subtract = "-"
+    case multiply = "×"
+    case divide = "÷"
+    case mod = "MOD"
+    case negate = "NEG"
     
     public var id: String { rawValue }
     
@@ -35,6 +41,12 @@ public enum BitwiseOperator: String, CaseIterable, Identifiable {
         case .rsh: return ">>"
         case .rol: return "↺"
         case .ror: return "↻"
+        case .add: return "+"
+        case .subtract: return "-"
+        case .multiply: return "×"
+        case .divide: return "÷"
+        case .mod: return "%"
+        case .negate: return "±"
         }
     }
 }

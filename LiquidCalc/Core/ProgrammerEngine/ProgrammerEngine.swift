@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum RadixBase: Int, CaseIterable, Identifiable {
+public enum RadixBase: Int, CaseIterable, Identifiable, Sendable {
     case hex = 16
     case dec = 10
     case oct = 8
@@ -41,8 +41,8 @@ public final class ProgrammerEngine {
     public var activeBase: RadixBase = .dec
     public var isSigned: Bool = false
     
-    private var pendingOperation: BitwiseOperator?
-    private var storedValue: UInt64?
+    public private(set) var pendingOperation: BitwiseOperator?
+    public private(set) var storedValue: UInt64?
     
     public init() {}
     
@@ -77,11 +77,9 @@ public final class ProgrammerEngine {
     
     public var binString: String {
         let bin = String(currentValue, radix: 2)
-        // Pad to word size bit count
         let padLength = wordSize.bitCount
         let padded = String(repeating: "0", count: max(0, padLength - bin.count)) + bin
         
-        // Group in 4s
         var grouped = ""
         for (idx, char) in padded.enumerated() {
             if idx > 0 && (padded.count - idx) % 4 == 0 {
@@ -146,6 +144,9 @@ public final class ProgrammerEngine {
         switch op {
         case .not:
             currentValue = wordSize.clamp(~currentValue)
+        case .negate:
+            let (neg, _) = (~currentValue).addingReportingOverflow(1)
+            currentValue = wordSize.clamp(neg)
         default:
             storedValue = currentValue
             pendingOperation = op
@@ -182,13 +183,29 @@ public final class ProgrammerEngine {
         case .rol:
             let shift = Int(b % UInt64(wordSize.bitCount))
             let bits = wordSize.bitCount
-            result = ((a << shift) | (a >> (bits - shift)))
+            result = shift == 0 ? a : ((a << shift) | (a >> (bits - shift)))
         case .ror:
             let shift = Int(b % UInt64(wordSize.bitCount))
             let bits = wordSize.bitCount
-            result = ((a >> shift) | (a << (bits - shift)))
+            result = shift == 0 ? a : ((a >> shift) | (a << (bits - shift)))
+        case .add:
+            let (sum, _) = a.addingReportingOverflow(b)
+            result = sum
+        case .subtract:
+            let (diff, _) = a.subtractingReportingOverflow(b)
+            result = diff
+        case .multiply:
+            let (prod, _) = a.multipliedReportingOverflow(by: b)
+            result = prod
+        case .divide:
+            result = b == 0 ? 0 : a / b
+        case .mod:
+            result = b == 0 ? 0 : a % b
         case .not:
             result = ~b
+        case .negate:
+            let (neg, _) = (~b).addingReportingOverflow(1)
+            result = neg
         }
         
         currentValue = wordSize.clamp(result)

@@ -3,12 +3,11 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Milestone M2 & M3: Synchronized Vision Scanner Motion FX & Haptics
+//  Resilient Smart Vision & Receipt Processing ViewModel
 //
 
 import SwiftUI
 import PhotosUI
-
 #if canImport(Vision)
 import Vision
 #endif
@@ -42,11 +41,11 @@ public final class VisionViewModel {
     
     // Receipt Splitter State
     public var receiptItems: [ReceiptLineItem] = []
+    public var detectedCurrency: SupportedCurrency = .usd
     public var tipPercentage: Double = 18.0
     public var splitCount: Int = 2
     public var taxRate: Double = 8.875
     
-    // Target Lock Detection
     public var hasDetectedTarget: Bool {
         if selectedSubMode == .equation {
             return !detectedExpression.isEmpty
@@ -59,7 +58,6 @@ public final class VisionViewModel {
         scannedObservations.first?.boundingBox
     }
     
-    // Photo Picker
     public var selectedPhotoItem: PhotosPickerItem? = nil {
         didSet {
             loadSelectedPhoto()
@@ -95,7 +93,6 @@ public final class VisionViewModel {
         withAnimation(.easeInOut(duration: 0.2)) {
             isScanning = true
         }
-        // Start continuous scanning hum and initial shutter feedback
         SoundAndHapticManager.shared.startContinuousScanningHum()
         SoundAndHapticManager.shared.triggerHaptic(.medium)
         
@@ -139,30 +136,47 @@ public final class VisionViewModel {
     
     public func processScannedResults(_ observations: [ScannedTextObservation]) {
         if selectedSubMode == .equation {
-            // Find observation that best resembles a mathematical expression
-            let mathCandidates = observations.filter { obs in
-                let s = obs.sanitizedExpression
-                return s.contains("+") || s.contains("-") || s.contains("*") || s.contains("/") ||
-                       s.contains("^") || s.contains("sqrt") || s.contains("sin") || s.contains("cos")
+            // Find best evaluating mathematical candidate
+            var bestExpression: String = ""
+            var bestResult: String? = nil
+            
+            for obs in observations {
+                let candidate = obs.sanitizedExpression
+                if let solved = trySolveExpression(candidate) {
+                    bestExpression = candidate
+                    bestResult = solved
+                    break
+                }
             }
             
-            let target = mathCandidates.first ?? observations.first
-            if let best = target {
-                // Lock-on tick when math target is identified
+            // Fallback to first sanitized expression if solver didn't match
+            if bestExpression.isEmpty, let first = observations.first {
+                bestExpression = first.sanitizedExpression
+                bestResult = trySolveExpression(bestExpression)
+            }
+            
+            if !bestExpression.isEmpty {
                 SoundAndHapticManager.shared.playDigitClick()
                 withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                    self.detectedExpression = best.sanitizedExpression
+                    self.detectedExpression = bestExpression
+                    self.solvedResult = bestResult
                 }
-                self.solveDetectedExpression()
+                
+                if let res = bestResult, res != "Error" {
+                    historyManager.addItem(expression: bestExpression, result: res, mode: "Vision")
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                    SoundAndHapticManager.shared.playSuccessSound()
+                }
             }
         } else {
             // Parse receipt items
-            let items = scanner.parseReceiptItems(from: observations)
-            if !items.isEmpty {
-                // Lock-on tick when receipt items are identified
+            let parseResult = scanner.parseReceipt(from: observations)
+            self.detectedCurrency = parseResult.detectedCurrency
+            
+            if !parseResult.items.isEmpty {
                 SoundAndHapticManager.shared.playDigitClick()
                 withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                    self.receiptItems = items
+                    self.receiptItems = parseResult.items
                 }
                 SoundAndHapticManager.shared.triggerHaptic(.success)
             } else {
@@ -178,18 +192,13 @@ public final class VisionViewModel {
     
     public func solveDetectedExpression() {
         guard !detectedExpression.isEmpty else { return }
-        do {
-            let result = try evaluator.evaluate(expression: detectedExpression)
-            let formatted = MathEvaluator.formatResult(result)
+        if let res = trySolveExpression(detectedExpression) {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                self.solvedResult = formatted
+                self.solvedResult = res
             }
-            
-            // Save to history tape
-            historyManager.addItem(expression: detectedExpression, result: formatted, mode: "Vision")
+            historyManager.addItem(expression: detectedExpression, result: res, mode: "Vision")
             SoundAndHapticManager.shared.triggerHaptic(.success)
-            SoundAndHapticManager.shared.playSuccessSound()
-        } catch {
+        } else {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
                 self.solvedResult = "Error"
             }
@@ -197,10 +206,63 @@ public final class VisionViewModel {
         }
     }
     
+    // MARK: - Smart Multi-Strategy Math Solver
+    
+    private func trySolveExpression(_ expr: String) -> String? {
+        let clean = expr.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return nil }
+        
+        // 1. Try standard evaluation
+        if let val = try? evaluator.evaluate(expression: clean) {
+            return MathEvaluator.formatResult(val)
+        }
+        
+        // 2. Try solving as Linear Equation: "ax + b = c" or "2x + 5 = 15"
+        if clean.contains("=") && (clean.contains("x") || clean.contains("X")) {
+            if let linearRes = trySolveLinearEquation(clean) {
+                return linearRes
+            }
+        }
+        
+        // 3. Try solving expression without trailing noise
+        let cleanedMath = clean.replacingOccurrences(of: "=", with: "").trimmingCharacters(in: .whitespaces)
+        if let val = try? evaluator.evaluate(expression: cleanedMath) {
+            return MathEvaluator.formatResult(val)
+        }
+        
+        return nil
+    }
+    
+    private func trySolveLinearEquation(_ equation: String) -> String? {
+        // Simple linear equation parsing e.g. "2*x + 4 = 10" or "2x + 4 = 10"
+        let parts = equation.split(separator: "=")
+        guard parts.count == 2 else { return nil }
+        
+        let left = String(parts[0]).trimmingCharacters(in: .whitespaces)
+        let right = String(parts[1]).trimmingCharacters(in: .whitespaces)
+        
+        guard let rightVal = try? evaluator.evaluate(expression: right) else { return nil }
+        
+        // Evaluate at x = 0 and x = 1 to find slope and intercept: f(x) = ax + b
+        let evalAt0 = left.replacingOccurrences(of: "x", with: "(0)").replacingOccurrences(of: "X", with: "(0)")
+        let evalAt1 = left.replacingOccurrences(of: "x", with: "(1)").replacingOccurrences(of: "X", with: "(1)")
+        
+        guard let b = try? evaluator.evaluate(expression: evalAt0),
+              let f1 = try? evaluator.evaluate(expression: evalAt1) else {
+            return nil
+        }
+        
+        let a = f1 - b
+        guard abs(a) > 1e-12 else { return nil }
+        
+        let x = (rightVal - b) / a
+        return "x = " + MathEvaluator.formatResult(x)
+    }
+    
     // MARK: - Receipt Calculations
     
     public var receiptSubtotal: Double {
-        receiptItems.reduce(0.0) { $0 + $1.amount }
+        receiptItems.filter { $0.isSelected }.reduce(0.0) { $0 + $1.amount }
     }
     
     public var receiptTipAmount: Double {

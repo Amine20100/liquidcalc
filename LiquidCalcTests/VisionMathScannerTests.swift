@@ -10,7 +10,9 @@
 
 import XCTest
 import CoreGraphics
-#if canImport(LiquidCalcCore)
+#if canImport(LiquidCalc)
+@testable import LiquidCalc
+#elseif canImport(LiquidCalcCore)
 @testable import LiquidCalcCore
 #endif
 
