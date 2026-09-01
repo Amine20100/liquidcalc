@@ -408,9 +408,9 @@
 		AA2000002C85000100000004 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = AA1000002C85000100000002 /* LiquidCalc */;
-			targetProxy = AA2000002C85000100000005 /* PBXContainerItemProxy */;
+			targetProxy = AA2000002C85000100000007 /* PBXContainerItemProxy */;
 		};
-		AA2000002C85000100000005 /* PBXContainerItemProxy */ = {
+		AA2000002C85000100000007 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = AA0000002C85000100000001 /* Project object */;
 			proxyType = 1;
