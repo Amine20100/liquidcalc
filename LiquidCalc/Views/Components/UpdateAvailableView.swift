@@ -196,36 +196,70 @@ public struct UpdateAvailableView: View {
     
     private var actionButtonsSection: some View {
         VStack(spacing: 12) {
-            // Primary Action: Download IPA if available
+            // Primary Action 1: Direct 1-Tap Wireless Over-The-Air Update (No PC / No Resigning)
+            Button(action: {
+                openURL(AppUpdateManager.itmsOTAInstallURL)
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "sparkles.square.filled.on.square")
+                        .font(.system(size: 17, weight: .bold))
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Direct Update Now")
+                            .font(.system(size: 15, weight: .bold))
+                        Text("Install wirelessly (No PC or re-signing required)")
+                            .font(.system(size: 10, weight: .medium))
+                            .opacity(0.85)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "arrow.up.forward.app.fill")
+                        .font(.system(size: 15))
+                }
+                .foregroundColor(.black)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    LinearGradient(
+                        colors: [Color.cyan, Color(red: 0.2, green: 0.9, blue: 0.8)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: Color.cyan.opacity(0.4), radius: 10, x: 0, y: 4)
+            }
+            .buttonStyle(.plain)
+            
+            // Secondary Action: Download IPA if available
             if let ipaURL = release.ipaDownloadURL {
                 Button(action: {
                     openURL(ipaURL)
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.down.app.fill")
-                            .font(.system(size: 16, weight: .bold))
+                            .font(.system(size: 14, weight: .semibold))
                         
                         Text("Download LiquidCalc.ipa")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                         
                         if let size = release.ipaAsset?.formattedSize {
                             Text("(\(size))")
-                                .font(.system(size: 13, weight: .regular))
+                                .font(.system(size: 12, weight: .regular))
                                 .opacity(0.8)
                         }
                     }
-                    .foregroundColor(.black)
+                    .foregroundColor(.white.opacity(0.9))
                     .frame(maxWidth: .infinity)
-                    .frame(height: 50)
-                    .background(
-                        LinearGradient(
-                            colors: [Color.cyan, Color(red: 0.3, green: 0.8, blue: 1.0)],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+                    .frame(height: 44)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color.white.opacity(0.15), lineWidth: 0.8)
                     )
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .shadow(color: Color.cyan.opacity(0.35), radius: 10, x: 0, y: 4)
                 }
                 .buttonStyle(.plain)
             }

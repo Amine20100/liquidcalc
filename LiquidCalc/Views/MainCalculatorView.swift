@@ -53,6 +53,10 @@ public struct MainCalculatorView: View {
                         UnitConverterView(viewModel: converterViewModel)
                     case .vision:
                         SmartVisionView(calculatorViewModel: calculatorViewModel)
+                    case .advancedMath:
+                        AdvancedMathView()
+                    case .graphing:
+                        FunctionGrapherView()
                     }
                 }
                 .transition(.asymmetric(

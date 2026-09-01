@@ -61,6 +61,15 @@
 		AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10006A2C85000100000001 /* SonarWaveRingsView.swift */; };
 		AA20000D2C85000100000001 /* AppUpdateManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */; };
 		AA10006B2C85000100000001 /* SemanticVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10006C2C85000100000001 /* SemanticVersion.swift */; };
+		AA1000712C85000100000001 /* AlgebraicSolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000722C85000100000001 /* AlgebraicSolver.swift */; };
+		AA1000732C85000100000001 /* CalculusEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000742C85000100000001 /* CalculusEngine.swift */; };
+		AA1000752C85000100000001 /* MatrixEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000762C85000100000001 /* MatrixEngine.swift */; };
+		AA1000772C85000100000001 /* ComplexNumber.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000782C85000100000001 /* ComplexNumber.swift */; };
+		AA1000792C85000100000001 /* StatisticsEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10007A2C85000100000001 /* StatisticsEngine.swift */; };
+		AA10007B2C85000100000001 /* NumberTheoryEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10007C2C85000100000001 /* NumberTheoryEngine.swift */; };
+		AA10007D2C85000100000001 /* FunctionGrapherView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA10007E2C85000100000001 /* FunctionGrapherView.swift */; };
+		AA10007F2C85000100000001 /* AdvancedMathView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000802C85000100000001 /* AdvancedMathView.swift */; };
+		AA20000F2C85000100000001 /* AdvancedMathTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000102C85000100000001 /* AdvancedMathTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -121,6 +130,15 @@
 		AA10006A2C85000100000001 /* SonarWaveRingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/Components/SonarWaveRingsView.swift"; sourceTree = "<group>"; };
 		AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppUpdateManagerTests.swift; sourceTree = "<group>"; };
 		AA10006C2C85000100000001 /* SemanticVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Update/SemanticVersion.swift"; sourceTree = "<group>"; };
+		AA1000722C85000100000001 /* AlgebraicSolver.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/AlgebraicSolver.swift"; sourceTree = "<group>"; };
+		AA1000742C85000100000001 /* CalculusEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/CalculusEngine.swift"; sourceTree = "<group>"; };
+		AA1000762C85000100000001 /* MatrixEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/MatrixEngine.swift"; sourceTree = "<group>"; };
+		AA1000782C85000100000001 /* ComplexNumber.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/ComplexNumber.swift"; sourceTree = "<group>"; };
+		AA10007A2C85000100000001 /* StatisticsEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/StatisticsEngine.swift"; sourceTree = "<group>"; };
+		AA10007C2C85000100000001 /* NumberTheoryEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/NumberTheoryEngine.swift"; sourceTree = "<group>"; };
+		AA10007E2C85000100000001 /* FunctionGrapherView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/FunctionGrapherView.swift"; sourceTree = "<group>"; };
+		AA1000802C85000100000001 /* AdvancedMathView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AdvancedMath/AdvancedMathView.swift"; sourceTree = "<group>"; };
+		AA2000102C85000100000001 /* AdvancedMathTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedMathTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -201,6 +219,12 @@
 				AA1000422C85000100000001 /* VisionMathScanner.swift */,
 				AA1000442C85000100000001 /* CameraCaptureService.swift */,
 				AA1000622C85000100000001 /* AppUpdateManager.swift */,
+				AA1000722C85000100000001 /* AlgebraicSolver.swift */,
+				AA1000742C85000100000001 /* CalculusEngine.swift */,
+				AA1000762C85000100000001 /* MatrixEngine.swift */,
+				AA1000782C85000100000001 /* ComplexNumber.swift */,
+				AA10007A2C85000100000001 /* StatisticsEngine.swift */,
+				AA10007C2C85000100000001 /* NumberTheoryEngine.swift */,
 				AA10006C2C85000100000001 /* SemanticVersion.swift */,
 			);
 			path = Core;
@@ -239,6 +263,8 @@
 				AA1000542C85000100000001 /* ReticleOverlayView.swift */,
 				AA1000562C85000100000001 /* SolvedResultCardView.swift */,
 				AA1000682C85000100000001 /* UpdateAvailableView.swift */,
+				AA10007E2C85000100000001 /* FunctionGrapherView.swift */,
+				AA1000802C85000100000001 /* AdvancedMathView.swift */,
 				AA10006A2C85000100000001 /* SonarWaveRingsView.swift */,
 			);
 			path = Views;
@@ -263,6 +289,7 @@
 				AA20000A2C85000100000001 /* SoundAndHapticManagerTests.swift */,
 				AA20000C2C85000100000001 /* LiquidCalcE2ETests.swift */,
 				AA20000E2C85000100000001 /* AppUpdateManagerTests.swift */,
+				AA2000102C85000100000001 /* AdvancedMathTests.swift */,
 			);
 			path = LiquidCalcTests;
 			sourceTree = "<group>";
@@ -412,6 +439,14 @@
 				AA1000632C85000100000001 /* GitHubRelease.swift in Sources */,
 				AA1000652C85000100000001 /* SupportedCurrency.swift in Sources */,
 				AA1000672C85000100000001 /* UpdateAvailableView.swift in Sources */,
+				AA1000712C85000100000001 /* AlgebraicSolver.swift in Sources */,
+				AA1000732C85000100000001 /* CalculusEngine.swift in Sources */,
+				AA1000752C85000100000001 /* MatrixEngine.swift in Sources */,
+				AA1000772C85000100000001 /* ComplexNumber.swift in Sources */,
+				AA1000792C85000100000001 /* StatisticsEngine.swift in Sources */,
+				AA10007B2C85000100000001 /* NumberTheoryEngine.swift in Sources */,
+				AA10007D2C85000100000001 /* FunctionGrapherView.swift in Sources */,
+				AA10007F2C85000100000001 /* AdvancedMathView.swift in Sources */,
 				AA1000692C85000100000001 /* SonarWaveRingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -427,6 +462,7 @@
 				AA2000092C85000100000001 /* SoundAndHapticManagerTests.swift in Sources */,
 				AA20000B2C85000100000001 /* LiquidCalcE2ETests.swift in Sources */,
 				AA20000D2C85000100000001 /* AppUpdateManagerTests.swift in Sources */,
+				AA20000F2C85000100000001 /* AdvancedMathTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

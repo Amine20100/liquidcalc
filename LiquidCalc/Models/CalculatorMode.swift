@@ -13,6 +13,8 @@ public enum CalculatorMode: String, CaseIterable, Identifiable {
     case programmer = "Programmer"
     case converter = "Converter"
     case vision = "Vision"
+    case advancedMath = "Math Lab"
+    case graphing = "Grapher"
     
     public var id: String { rawValue }
     
@@ -23,6 +25,8 @@ public enum CalculatorMode: String, CaseIterable, Identifiable {
         case .programmer: return "chevron.left.forwardslash.chevron.right"
         case .converter: return "arrow.triangle.2.circlepath"
         case .vision: return "camera.viewfinder"
+        case .advancedMath: return "atom"
+        case .graphing: return "waveform.path.ecg"
         }
     }
 }

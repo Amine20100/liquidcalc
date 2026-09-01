@@ -1,0 +1,34 @@
+{
+  "name": "LiquidCalc Official Source",
+  "identifier": "com.liquidcalc.source",
+  "sourceURL": "https://raw.githubusercontent.com/Amine20100/liquidcalc/main/apps.json",
+  "apps": [
+    {
+      "name": "LiquidCalc",
+      "bundleIdentifier": "com.liquidcalc.app",
+      "developerName": "LiquidCalc Team",
+      "version": "1.2.0",
+      "versionDate": "2026-09-01",
+      "versionDescription": "Advanced iOS 18+ Calculator with Smart Vision, Calculus, Algebra, Matrices, Complex Numbers, Statistics, 2D Function Graphing, and OTA Auto-Updating.",
+      "downloadURL": "https://github.com/Amine20100/liquidcalc/releases/latest/download/LiquidCalc.ipa",
+      "localizedDescription": "LiquidCalc is a pure native Swift 6 / iOS 18+ calculator with liquid glass aesthetics, Apple Vision OCR, CoreHaptics, and comprehensive Advanced Mathematics.",
+      "iconURL": "https://raw.githubusercontent.com/Amine20100/liquidcalc/main/LiquidCalc/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png",
+      "tintColor": "#00F0FF",
+      "size": 500000,
+      "minOSVersion": "17.0",
+      "screenshots": [
+        "https://raw.githubusercontent.com/Amine20100/liquidcalc/main/LiquidCalc/Resources/Assets.xcassets/AppIcon.appiconset/AppIcon.png"
+      ]
+    }
+  ],
+  "news": [
+    {
+      "title": "LiquidCalc v1.2.0 Released!",
+      "identifier": "liquidcalc-v1.2.0",
+      "caption": "Added symbolic algebra, calculus, matrices, complex numbers, statistics, and OTA auto-updates.",
+      "date": "2026-09-01",
+      "appID": "com.liquidcalc.app",
+      "notify": true
+    }
+  ]
+}

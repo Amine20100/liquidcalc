@@ -19,6 +19,21 @@ public final class AppUpdateManager: @unchecked Sendable {
     // MARK: - Constants
     
     public static let defaultRepoAPIURL = URL(string: "https://api.github.com/repos/Amine20100/liquidcalc/releases/latest")!
+    public static let otaManifestURL = "https://raw.githubusercontent.com/Amine20100/liquidcalc/main/manifest.plist"
+    public static let appsSourceURL = "https://raw.githubusercontent.com/Amine20100/liquidcalc/main/apps.json"
+    
+    public static var itmsOTAInstallURL: URL {
+        URL(string: "itms-services://?action=download-manifest&url=\(otaManifestURL)")!
+    }
+    
+    public static var sideStoreSourceURL: URL {
+        URL(string: "sidestore://source?url=\(appsSourceURL)")!
+    }
+    
+    public static var altStoreSourceURL: URL {
+        URL(string: "altstore://source?url=\(appsSourceURL)")!
+    }
+    
     public static let autoCheckDefaultsKey = "LC_AutoCheckOnLaunch"
     public static let lastCheckDateDefaultsKey = "LC_LastUpdateCheckDate"
     
