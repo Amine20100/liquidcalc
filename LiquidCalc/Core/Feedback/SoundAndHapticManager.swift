@@ -181,6 +181,34 @@ public final class SoundAndHapticManager: @unchecked Sendable {
         #endif
     }
     
+    /// Ultra-responsive subtle micro-haptic tick played as AI tokens/words stream in.
+    public func playStreamingTick() {
+        guard isHapticsEnabled else { return }
+        
+        #if canImport(CoreHaptics) && os(iOS)
+        if supportsCoreHaptics, let engine = engine {
+            do {
+                if !isEngineRunning { try engine.start(); isEngineRunning = true }
+                let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.35)
+                let sharpnessParam = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.8)
+                let event = CHHapticEvent(eventType: .hapticTransient, parameters: [intensityParam, sharpnessParam], relativeTime: 0)
+                let pattern = try CHHapticPattern(events: [event], parameters: [])
+                let player = try engine.makePlayer(with: pattern)
+                try player.start(atTime: CHHapticTimeImmediate)
+                return
+            } catch {
+                // Fallback below
+            }
+        }
+        #endif
+        
+        #if os(iOS)
+        let generator = UIImpactFeedbackGenerator(style: .rigid)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.4)
+        #endif
+    }
+    
     /// Distinct double-tap tactile burst for operation and function keys (=, +, -, *, /, C) (F9).
     public func playOperatorBurst() {
         guard isHapticsEnabled else { return }

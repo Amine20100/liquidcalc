@@ -27,6 +27,13 @@ public final class DrawCalcViewModel {
     public var revealProgress: CGFloat = 0.0
     public var lastResultPosition: CGPoint = CGPoint(x: 200, y: 150)
     
+    // Gemini 2.5 Flash AI Assistant
+    public var isGeminiAnalyzing: Bool = false
+    public var geminiExplanation: String? = nil
+    public var geminiSteps: [String] = []
+    public var showGeminiCard: Bool = false
+    public var geminiErrorMessage: String? = nil
+    
     private let recognizer = HandwritingMathRecognizer.shared
     private var recognitionTimer: Timer? = nil
     
@@ -164,6 +171,52 @@ public final class DrawCalcViewModel {
             recognizedExpression = ""
             solvedResult = nil
             isRevealingResult = false
+            showGeminiCard = false
+            geminiExplanation = nil
+            geminiSteps.removeAll()
         }
+    }
+    
+    // MARK: - Multimodal Gemini 2.5 Flash Drawing Solver
+    
+    public func solveWithGeminiAI(canvasSize: CGSize) {
+        guard !strokes.isEmpty else { return }
+        SoundAndHapticManager.shared.triggerHaptic(.medium)
+        
+        #if canImport(UIKit)
+        guard let renderedImage = recognizer.renderImage(from: strokes, canvasSize: canvasSize) else { return }
+        
+        isGeminiAnalyzing = true
+        geminiErrorMessage = nil
+        
+        Task {
+            do {
+                let mathResponse = try await GeminiService.shared.solveMath(image: renderedImage)
+                await MainActor.run {
+                    self.isGeminiAnalyzing = false
+                    self.recognizedExpression = mathResponse.expression
+                    self.solvedResult = mathResponse.result
+                    self.geminiExplanation = mathResponse.explanation
+                    self.geminiSteps = mathResponse.steps
+                    self.showGeminiCard = true
+                    
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                    SoundAndHapticManager.shared.playSuccessSound()
+                    
+                    HistoryManager.shared.addItem(
+                        expression: mathResponse.expression,
+                        result: mathResponse.result,
+                        mode: "Gemini Draw"
+                    )
+                }
+            } catch {
+                await MainActor.run {
+                    self.isGeminiAnalyzing = false
+                    self.geminiErrorMessage = error.localizedDescription
+                    SoundAndHapticManager.shared.triggerHaptic(.error)
+                }
+            }
+        }
+        #endif
     }
 }

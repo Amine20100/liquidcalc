@@ -3,7 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Interactive Finger & Apple Pencil Math Drawing Canvas with Animated Solve Motion FX
+//  Draw Calc (Math Notes & Finger/Stylus Handwriting Math with Gemini 2.5 Flash AI)
 //
 
 import SwiftUI
@@ -17,26 +17,20 @@ public struct MathDrawCanvasView: View {
     public var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Background dark frosted slate
-                Color(red: 0.06, green: 0.07, blue: 0.10)
-                    .ignoresSafeArea()
-                
-                // Subtle graph grid lines on canvas
+                // Frosted Grid Paper Background
                 gridBackground(size: geometry.size)
                 
                 // Drawing Canvas
                 Canvas { context, size in
-                    // Render completed strokes
                     for stroke in viewModel.strokes {
                         renderStroke(stroke, context: context)
                     }
-                    // Render currently active dragging stroke
                     if let active = viewModel.currentStroke {
                         renderStroke(active, context: context)
                     }
                 }
                 .gesture(
-                    DragGesture(minimumDistance: 0)
+                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { value in
                             if viewModel.currentStroke == nil {
                                 viewModel.startStroke(at: value.location)
@@ -50,8 +44,13 @@ public struct MathDrawCanvasView: View {
                 )
                 
                 // Live Solved Motion Overlay (animates result text beside drawn equation)
-                if viewModel.isRevealingResult, let result = viewModel.solvedResult {
+                if viewModel.isRevealingResult, let result = viewModel.solvedResult, !viewModel.showGeminiCard {
                     solvedMotionBadge(result: result)
+                }
+                
+                // Gemini 2.5 Flash Floating AI Solution Card
+                if viewModel.showGeminiCard, let result = viewModel.solvedResult {
+                    geminiSolutionCard(result: result)
                 }
                 
                 // Top Live Recognition Pill & Status Bar
@@ -141,63 +140,123 @@ public struct MathDrawCanvasView: View {
         .padding(.vertical, 8)
         .background(
             Capsule()
-                .fill(Color.black.opacity(0.75))
-                .overlay(
-                    Capsule()
-                        .stroke(
-                            LinearGradient(
-                                colors: [.cyan, .blue],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            lineWidth: 2
-                        )
-                )
-                .shadow(color: .cyan.opacity(0.4), radius: 14)
+                .fill(Color(white: 0.15, opacity: 0.85))
+                .overlay(Capsule().stroke(Color.cyan.opacity(0.6), lineWidth: 1.5))
+                .shadow(color: Color.cyan.opacity(0.4), radius: 12)
         )
         .scaleEffect(viewModel.revealProgress)
+        .opacity(Double(viewModel.revealProgress))
         .position(viewModel.lastResultPosition)
+    }
+    
+    // MARK: - Gemini 2.5 Flash Floating AI Solution Card
+    
+    @ViewBuilder
+    private func geminiSolutionCard(result: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Image(systemName: "sparkles")
+                    .foregroundColor(.cyan)
+                Text("Gemini 2.5 Flash AI Solution")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .leading, endPoint: .trailing))
+                
+                Spacer()
+                
+                Button(action: {
+                    withAnimation {
+                        viewModel.showGeminiCard = false
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.white.opacity(0.6))
+                }
+            }
+            
+            Text(viewModel.recognizedExpression)
+                .font(.system(size: 14, weight: .semibold, design: .monospaced))
+                .foregroundColor(.white.opacity(0.85))
+            
+            Text(result)
+                .font(.system(size: 24, weight: .bold, design: .rounded))
+                .foregroundColor(.cyan)
+            
+            if !viewModel.geminiSteps.isEmpty {
+                Divider().background(Color.white.opacity(0.15))
+                ForEach(Array(viewModel.geminiSteps.prefix(3).enumerated()), id: \.offset) { idx, step in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("\(idx + 1).")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(.cyan)
+                        Text(step)
+                            .font(.system(size: 12))
+                            .foregroundColor(.white.opacity(0.9))
+                    }
+                }
+            }
+            
+            if let explanation = viewModel.geminiExplanation, !explanation.isEmpty {
+                Text(explanation)
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.65))
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: 320)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(Color(white: 0.1, opacity: 0.92))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(LinearGradient(colors: [.cyan.opacity(0.7), .purple.opacity(0.4)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.5)
+                )
+                .shadow(color: Color.black.opacity(0.6), radius: 20)
+        )
         .transition(.scale.combined(with: .opacity))
+        .padding(.top, 40)
     }
     
     // MARK: - Top Status Pill
     
     private var topStatusPill: some View {
         HStack(spacing: 8) {
-            if viewModel.isRecognizing {
+            if viewModel.isGeminiAnalyzing {
                 ProgressView()
+                    .tint(.purple)
                     .scaleEffect(0.8)
+                Text("Gemini 2.5 Flash analyzing...")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.purple)
+            } else if viewModel.isRecognizing {
+                ProgressView()
                     .tint(.cyan)
-                Text("Recognizing Handwriting...")
-                    .font(.system(size: 12, weight: .semibold))
+                    .scaleEffect(0.8)
+                Text("Recognizing handwriting...")
+                    .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.cyan)
             } else if !viewModel.recognizedExpression.isEmpty {
-                Image(systemName: "pencil.and.scribble")
+                Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.cyan)
                     .font(.system(size: 12))
-                
                 Text(viewModel.recognizedExpression)
-                    .font(.system(size: 13, weight: .bold, design: .monospaced))
+                    .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundColor(.white)
-                
-                if let res = viewModel.solvedResult {
-                    Text("= \(res)")
-                        .font(.system(size: 13, weight: .bold, design: .monospaced))
-                        .foregroundColor(.cyan)
-                }
             } else {
-                Image(systemName: "hand.draw.fill")
-                    .foregroundColor(.white.opacity(0.5))
+                Image(systemName: "pencil.tip")
+                    .foregroundColor(.white.opacity(0.6))
                     .font(.system(size: 12))
-                Text("Draw with fingers or Apple Pencil (e.g. 15 * 4 + 8 =)")
+                Text("Draw any math formula, proof, or diagram")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(.white.opacity(0.6))
             }
         }
         .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background(Capsule().fill(Color.black.opacity(0.6)))
-        .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
+        .padding(.vertical, 6)
+        .background(
+            Capsule()
+                .fill(Color.black.opacity(0.5))
+                .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 1))
+        )
     }
     
     // MARK: - Floating Liquid Glass Tool Palette
@@ -229,7 +288,7 @@ public struct MathDrawCanvasView: View {
             .padding(.vertical, 6)
             
             // Tools & Actions Row
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 // Pen Tools
                 ForEach(DrawingTool.allCases) { tool in
                     Button(action: {
@@ -239,9 +298,9 @@ public struct MathDrawCanvasView: View {
                         }
                     }) {
                         Image(systemName: tool.iconName)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundColor(viewModel.selectedTool == tool ? .cyan : .white.opacity(0.7))
-                            .frame(width: 38, height: 38)
+                            .frame(width: 36, height: 36)
                             .background(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                                     .fill(viewModel.selectedTool == tool ? Color.cyan.opacity(0.25) : Color.white.opacity(0.06))
@@ -255,32 +314,48 @@ public struct MathDrawCanvasView: View {
                 }
                 
                 Divider()
-                    .frame(height: 24)
+                    .frame(height: 22)
                     .background(Color.white.opacity(0.2))
                 
-                // Solve Now Action Button
+                // Gemini 2.5 Flash AI Solve Action
+                Button(action: {
+                    viewModel.solveWithGeminiAI(canvasSize: canvasSize)
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "sparkles")
+                        Text("AI")
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 8)
+                    .frame(height: 36)
+                    .background(
+                        Capsule().fill(LinearGradient(colors: [.indigo, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                    )
+                    .shadow(color: Color.purple.opacity(0.5), radius: 6)
+                }
+                .buttonStyle(.plain)
+                
+                // On-device Solve Action Button
                 Button(action: {
                     viewModel.performRecognition(canvasSize: canvasSize)
                 }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "sparkles")
-                        Text("Solve")
-                    }
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(.black)
-                    .padding(.horizontal, 12)
-                    .frame(height: 38)
-                    .background(Capsule().fill(Color.cyan))
-                    .shadow(color: Color.cyan.opacity(0.4), radius: 6)
+                    Text("Solve")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 10)
+                        .frame(height: 36)
+                        .background(Capsule().fill(Color.cyan))
+                        .shadow(color: Color.cyan.opacity(0.4), radius: 6)
                 }
                 .buttonStyle(.plain)
                 
                 // Undo Action
                 Button(action: viewModel.undo) {
                     Image(systemName: "arrow.uturn.backward")
-                        .font(.system(size: 14))
+                        .font(.system(size: 13))
                         .foregroundColor(.white.opacity(0.8))
-                        .frame(width: 36, height: 38)
+                        .frame(width: 32, height: 36)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.06)))
                 }
                 .buttonStyle(.plain)
@@ -288,25 +363,25 @@ public struct MathDrawCanvasView: View {
                 // Clear Canvas Action
                 Button(action: viewModel.clearCanvas) {
                     Image(systemName: "trash.fill")
-                        .font(.system(size: 14))
+                        .font(.system(size: 13))
                         .foregroundColor(.red.opacity(0.9))
-                        .frame(width: 36, height: 38)
+                        .frame(width: 32, height: 36)
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.red.opacity(0.12)))
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 8)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
         }
         .background(
             RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Color(white: 0.12, opacity: 0.8))
+                .fill(Color(white: 0.12, opacity: 0.85))
                 .overlay(
                     RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .stroke(Color.white.opacity(0.15), lineWidth: 1.2)
                 )
                 .shadow(color: Color.black.opacity(0.5), radius: 20, y: 8)
         )
-        .padding(.horizontal, 16)
+        .padding(.horizontal, 12)
     }
 }
