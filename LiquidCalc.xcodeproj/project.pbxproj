@@ -249,6 +249,7 @@
 				AA10001C2C85000100000001 /* ProgrammerViewModel.swift */,
 				AA10001E2C85000100000001 /* ConverterViewModel.swift */,
 				AA1000462C85000100000001 /* VisionViewModel.swift */,
+				AA1000862C85000100000001 /* DrawCalcViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
