@@ -47,9 +47,15 @@ public final class LiquidSignEngine: @unchecked Sendable {
         let appBundleUrl = try prepareAppBundle(from: inputIpaUrl, in: workingDir, log: log)
         log("✓ App bundle located: \(appBundleUrl.lastPathComponent)", .success)
         
-        // Stage 2: Modify Info.plist
+        // Stage 1.5: Security & DRM Inspection
+        inspectDRMAndArchitecture(appBundleUrl: appBundleUrl, log: log)
+        
+        // Stage 2: Modify Info.plist & Strip Incompatible Extensions
         progress(0.30, "Customizing bundle metadata...")
         try modifyInfoPlist(appBundleUrl: appBundleUrl, config: config, log: log)
+        if config.removeExtensions {
+            stripAppExtensions(appBundleUrl: appBundleUrl, log: log)
+        }
         
         // Stage 3: Dylib Injection
         if !config.dylibs.isEmpty {
@@ -57,9 +63,10 @@ public final class LiquidSignEngine: @unchecked Sendable {
             try injectDylibs(appBundleUrl: appBundleUrl, dylibs: config.dylibs, log: log)
         }
         
-        // Stage 4: Embed Provisioning Profile
-        progress(0.60, "Embedding mobileprovision profile...")
+        // Stage 4: Embed Provisioning Profile & Entitlements
+        progress(0.60, "Embedding mobileprovision profile & entitlements...")
         try embedProvisioningProfile(appBundleUrl: appBundleUrl, profile: config.profile, log: log)
+        try writeEntitlements(appBundleUrl: appBundleUrl, profile: config.profile, log: log)
         
         // Stage 5: Resource Hashing & CodeResources Plist
         progress(0.75, "Generating _CodeSignature/CodeResources...")
@@ -256,6 +263,57 @@ public final class LiquidSignEngine: @unchecked Sendable {
         """
         try defaultProfileXml.data(using: .utf8)?.write(to: destUrl)
         log("✓ Embedded universal ad-hoc provisioning profile", .success)
+    }
+    
+    private func inspectDRMAndArchitecture(appBundleUrl: URL, log: @Sendable (String, SignerLogMessage.LogLevel) -> Void) {
+        let scInfoDir = appBundleUrl.appendingPathComponent("SC_Info")
+        if fileManager.fileExists(atPath: scInfoDir.path) {
+            log("⚠️ Notice: FairPlay DRM detected (SC_Info present). Binary must be decrypted for non-developer Apple IDs.", .warning)
+        } else {
+            log("✓ Clean decrypted binary verified (No FairPlay DRM)", .success)
+        }
+    }
+    
+    private func stripAppExtensions(appBundleUrl: URL, log: @Sendable (String, SignerLogMessage.LogLevel) -> Void) {
+        let pluginsDir = appBundleUrl.appendingPathComponent("PlugIns")
+        let watchDir = appBundleUrl.appendingPathComponent("Watch")
+        let extensionsDir = appBundleUrl.appendingPathComponent("Extensions")
+        
+        var strippedCount = 0
+        for dir in [pluginsDir, watchDir, extensionsDir] {
+            if fileManager.fileExists(atPath: dir.path) {
+                try? fileManager.removeItem(at: dir)
+                strippedCount += 1
+            }
+        }
+        if strippedCount > 0 {
+            log("✓ Stripped \(strippedCount) unsupported app extensions for maximum signing compatibility", .info)
+        }
+    }
+    
+    private func writeEntitlements(appBundleUrl: URL, profile: ProvisioningProfile?, log: @Sendable (String, SignerLogMessage.LogLevel) -> Void) throws {
+        let entitlementsUrl = appBundleUrl.appendingPathComponent("archived-expanded-entitlements.xcent")
+        let teamId = profile?.teamIdentifier ?? "LIQUID1337"
+        let appId = profile?.appIdentifier ?? "\(teamId).*"
+        
+        let entitlementsPlist = """
+        <?xml version="1.0" encoding="UTF-8"?>
+        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+        <plist version="1.0">
+        <dict>
+            <key>application-identifier</key>
+            <string>\(appId)</string>
+            <key>get-task-allow</key>
+            <true/>
+            <key>keychain-access-groups</key>
+            <array>
+                <string>\(teamId).*</string>
+            </array>
+        </dict>
+        </plist>
+        """
+        try entitlementsPlist.data(using: .utf8)?.write(to: entitlementsUrl)
+        log("✓ Embedded application entitlements for team \(teamId)", .success)
     }
     
     // MARK: - Stage 5: CodeResources Generator

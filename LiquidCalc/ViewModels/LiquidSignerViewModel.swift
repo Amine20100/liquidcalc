@@ -272,6 +272,41 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
         self.showInstallAlert = true
     }
     
+    public func installWithTrollStore(_ app: SignedApp) {
+        guard let signedUrl = app.signedIpaUrl ?? app.originalIpaUrl else {
+            appendLog("Cannot install: No signed package available.", .error)
+            return
+        }
+        
+        let path = signedUrl.path
+        let escapedPath = path.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? path
+        let tsUrlString = "apple-magnifier://install?url=file://\(escapedPath)"
+        
+        #if canImport(UIKit)
+        if let url = URL(string: tsUrlString) {
+            UIApplication.shared.open(url, options: [:]) { [weak self] success in
+                if success {
+                    self?.appendLog("✓ Dispatched installation to TrollStore", .success)
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                } else {
+                    let fallbackUrlString = "trollstore://install?url=file://\(escapedPath)"
+                    if let altUrl = URL(string: fallbackUrlString) {
+                        UIApplication.shared.open(altUrl, options: [:]) { altSuccess in
+                            if altSuccess {
+                                self?.appendLog("✓ Dispatched to TrollStore fallback scheme", .success)
+                                SoundAndHapticManager.shared.triggerHaptic(.success)
+                            } else {
+                                self?.appendLog("TrollStore scheme not found. Try 1-Tap Wireless OTA or Share Sheet.", .warning)
+                                SoundAndHapticManager.shared.triggerHaptic(.warning)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        #endif
+    }
+    
     public func shareApp(_ app: SignedApp) {
         guard let url = app.signedIpaUrl ?? app.originalIpaUrl else { return }
         self.shareUrl = url
