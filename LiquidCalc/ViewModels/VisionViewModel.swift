@@ -11,6 +11,9 @@ import PhotosUI
 #if canImport(Vision)
 import Vision
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 public enum VisionSubMode: String, CaseIterable, Identifiable {
     case equation = "Math Equation"
@@ -37,6 +40,8 @@ public final class VisionViewModel {
     public var isScanning: Bool = false
     public var detectedExpression: String = ""
     public var solvedResult: String? = nil
+    public var detectedSteps: [String] = []
+    public var detectedExplanation: String? = nil
     public var scannedObservations: [ScannedTextObservation] = []
     
     // Receipt Splitter State
@@ -84,6 +89,8 @@ public final class VisionViewModel {
         withAnimation(.easeInOut(duration: 0.2)) {
             detectedExpression = ""
             solvedResult = nil
+            detectedSteps = []
+            detectedExplanation = nil
             scannedObservations = []
             receiptItems = []
         }
@@ -107,6 +114,33 @@ public final class VisionViewModel {
                 return
             }
             
+            #if canImport(UIKit)
+            let uiImage = UIImage(cgImage: cgImage)
+            Task {
+                await self.analyzeCurrentPhotoWithGemini(uiImage: uiImage)
+                
+                #if canImport(Vision)
+                self.scanner.scanImage(cgImage) { result in
+                    DispatchQueue.main.async {
+                        SoundAndHapticManager.shared.stopContinuousScanningHum()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isScanning = false
+                        }
+                        if case .success(let obs) = result {
+                            self.scannedObservations = obs
+                        }
+                    }
+                }
+                #else
+                DispatchQueue.main.async {
+                    SoundAndHapticManager.shared.stopContinuousScanningHum()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isScanning = false
+                    }
+                }
+                #endif
+            }
+            #else
             #if canImport(Vision)
             self.scanner.scanImage(cgImage) { result in
                 DispatchQueue.main.async {
@@ -123,13 +157,7 @@ public final class VisionViewModel {
                     }
                 }
             }
-            #else
-            DispatchQueue.main.async {
-                SoundAndHapticManager.shared.stopContinuousScanningHum()
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    self.isScanning = false
-                }
-            }
+            #endif
             #endif
         }
     }
@@ -293,36 +321,68 @@ public final class VisionViewModel {
         
         item.loadTransferable(type: Data.self) { [weak self] result in
             guard let self = self else { return }
-            DispatchQueue.main.async {
-                SoundAndHapticManager.shared.stopContinuousScanningHum()
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    self.isScanning = false
-                }
-                switch result {
-                case .success(let data):
-                    #if canImport(UIKit)
-                    if let data = data, let uiImage = UIImage(data: data), let cgImage = uiImage.cgImage {
-                        #if canImport(Vision)
-                        self.scanner.scanImage(cgImage) { scanRes in
+            switch result {
+            case .success(let data):
+                #if canImport(UIKit)
+                if let data = data, let uiImage = UIImage(data: data) {
+                    Task {
+                        await self.analyzeCurrentPhotoWithGemini(uiImage: uiImage)
+                        
+                        if let cgImage = uiImage.cgImage {
+                            #if canImport(Vision)
+                            self.scanner.scanImage(cgImage) { scanRes in
+                                DispatchQueue.main.async {
+                                    SoundAndHapticManager.shared.stopContinuousScanningHum()
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        self.isScanning = false
+                                    }
+                                    if case .success(let obs) = scanRes {
+                                        self.scannedObservations = obs
+                                    }
+                                }
+                            }
+                            #else
                             DispatchQueue.main.async {
-                                if case .success(let obs) = scanRes {
-                                    self.scannedObservations = obs
-                                    self.processScannedResults(obs)
+                                SoundAndHapticManager.shared.stopContinuousScanningHum()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    self.isScanning = false
+                                }
+                            }
+                            #endif
+                        } else {
+                            DispatchQueue.main.async {
+                                SoundAndHapticManager.shared.stopContinuousScanningHum()
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    self.isScanning = false
                                 }
                             }
                         }
-                        #endif
                     }
-                    #endif
-                case .failure:
+                } else {
+                    DispatchQueue.main.async {
+                        SoundAndHapticManager.shared.stopContinuousScanningHum()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isScanning = false
+                        }
+                    }
+                }
+                #endif
+            case .failure:
+                DispatchQueue.main.async {
+                    SoundAndHapticManager.shared.stopContinuousScanningHum()
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        self.isScanning = false
+                    }
                     SoundAndHapticManager.shared.triggerHaptic(.error)
                 }
             }
         }
     }
+
     
     // MARK: - Gemini 2.5 Flash Multimodal AI Solver
     
+    #if canImport(UIKit)
     public func analyzeCurrentPhotoWithGemini(uiImage: UIImage) async {
         SoundAndHapticManager.shared.triggerHaptic(.medium)
         if selectedSubMode == .receipt {
@@ -353,6 +413,9 @@ public final class VisionViewModel {
                 await MainActor.run {
                     self.detectedExpression = mathRes.expression
                     self.solvedResult = mathRes.result
+                    self.detectedSteps = mathRes.steps
+                    self.detectedExplanation = mathRes.explanation
+                    self.historyManager.addItem(expression: mathRes.expression, result: mathRes.result, mode: "Vision AI")
                     SoundAndHapticManager.shared.triggerHaptic(.success)
                     SoundAndHapticManager.shared.playSuccessSound()
                 }
@@ -363,4 +426,5 @@ public final class VisionViewModel {
             }
         }
     }
+    #endif
 }

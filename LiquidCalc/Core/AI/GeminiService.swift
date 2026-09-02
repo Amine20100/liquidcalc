@@ -12,6 +12,25 @@ import Foundation
 import UIKit
 #endif
 
+public enum ChatRole: String, Codable, Sendable {
+    case user = "user"
+    case model = "model"
+}
+
+public struct ChatMessage: Identifiable, Sendable, Equatable {
+    public let id: UUID
+    public let role: ChatRole
+    public var text: String
+    public var image: UIImage? = nil
+    
+    public init(id: UUID = UUID(), role: ChatRole, text: String, image: UIImage? = nil) {
+        self.id = id
+        self.role = role
+        self.text = text
+        self.image = image
+    }
+}
+
 public struct GeminiReceiptResponse: Codable, Sendable {
     public struct Item: Codable, Sendable {
         public let name: String
@@ -44,6 +63,8 @@ public final class GeminiService: @unchecked Sendable {
     public var isStreaming: Bool = false
     public var lastError: String? = nil
     
+    public var chatHistory: [ChatMessage] = []
+    
     private let userDefaultsApiKey = "LiquidCalc_GeminiApiKey"
     
     public init() {
@@ -62,16 +83,26 @@ public final class GeminiService: @unchecked Sendable {
         UserDefaults.standard.set(newKey, forKey: userDefaultsApiKey)
     }
     
+    public func clearChat() {
+        chatHistory.removeAll()
+    }
+    
     // MARK: - Smart SSE Streaming Math Assistant with Haptics
     
     public func streamMathTutor(
         prompt: String,
         image: UIImage? = nil,
         onChunk: @escaping @Sendable (String) -> Void
-    ) async throws -> String {
+    ) async throws {
         await MainActor.run {
             self.isStreaming = true
             self.lastError = nil
+            // Add user message
+            let userMsg = ChatMessage(role: .user, text: prompt, image: image)
+            self.chatHistory.append(userMsg)
+            // Add empty AI placeholder
+            let aiMsg = ChatMessage(role: .model, text: "")
+            self.chatHistory.append(aiMsg)
         }
         
         defer {
@@ -85,22 +116,31 @@ public final class GeminiService: @unchecked Sendable {
             throw NSError(domain: "GeminiService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
         }
         
-        var parts: [[String: Any]] = []
-        let systemPrompt = "You are LiquidCalc AI, an expert and concise math & physics tutor. Solve formulas, explain steps clearly, and highlight the final answer."
-        parts.append(["text": "\(systemPrompt)\n\nUser Question: \(prompt)"])
-        
-        if let img = image, let jpegData = img.jpegData(compressionQuality: 0.8) {
-            let base64String = jpegData.base64EncodedString()
-            parts.append([
-                "inline_data": [
-                    "mime_type": "image/jpeg",
-                    "data": base64String
-                ]
+        var contents: [[String: Any]] = []
+        for msg in chatHistory.dropLast() { // drop the empty placeholder
+            var parts: [[String: Any]] = []
+            parts.append(["text": msg.text])
+            if let img = msg.image, let jpegData = img.jpegData(compressionQuality: 0.8) {
+                parts.append([
+                    "inline_data": [
+                        "mime_type": "image/jpeg",
+                        "data": jpegData.base64EncodedString()
+                    ]
+                ])
+            }
+            contents.append([
+                "role": msg.role.rawValue,
+                "parts": parts
             ])
         }
         
+        let systemPrompt = "You are LiquidCalc AI, an expert and concise math & physics tutor. Solve formulas, explain steps clearly, highlight the final answer, and support robust markdown rendering. If the user asks for a diagram, flowchart, or graph, output ONLY valid mermaid code inside a ```mermaid codeblock. Make it concise and extremely readable."
+        
         let payload: [String: Any] = [
-            "contents": [["parts": parts]],
+            "system_instruction": [
+                "parts": [["text": systemPrompt]]
+            ],
+            "contents": contents,
             "generationConfig": [
                 "temperature": 0.2,
                 "maxOutputTokens": 2048
@@ -123,7 +163,6 @@ public final class GeminiService: @unchecked Sendable {
             throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Gemini Error (HTTP \(httpResponse.statusCode))"])
         }
         
-        var fullText = ""
         var tickCounter = 0
         
         for try await line in bytes.lines {
@@ -139,7 +178,12 @@ public final class GeminiService: @unchecked Sendable {
                    let firstPart = resParts.first,
                    let text = firstPart["text"] as? String {
                     
-                    fullText += text
+                    await MainActor.run {
+                        if !self.chatHistory.isEmpty {
+                            let lastIndex = self.chatHistory.count - 1
+                            self.chatHistory[lastIndex].text += text
+                        }
+                    }
                     onChunk(text)
                     
                     // Trigger rhythmic micro-haptic ticks during streaming
@@ -152,7 +196,6 @@ public final class GeminiService: @unchecked Sendable {
         }
         
         SoundAndHapticManager.shared.triggerHaptic(.success)
-        return fullText
     }
     
     // MARK: - Solve Math from Image or Expression

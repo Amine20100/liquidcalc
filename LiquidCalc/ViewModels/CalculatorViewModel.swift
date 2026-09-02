@@ -32,6 +32,18 @@ public final class CalculatorViewModel {
     public var errorMessage: String? = nil
     public var shouldShakeDisplay: Bool = false
     
+    // Hidden Liquid Signer Stealth Vault State
+    public var isUnlockingSigner: Bool = false
+    public var showLiquidSigner: Bool = false
+    public var secretPIN: String {
+        get {
+            UserDefaults.standard.string(forKey: "LiquidCalc_SignerSecretPIN") ?? "1337"
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "LiquidCalc_SignerSecretPIN")
+        }
+    }
+    
     private let evaluator = MathEvaluator(angleUnit: .degrees)
     private let historyManager = HistoryManager.shared
     
@@ -205,6 +217,29 @@ public final class CalculatorViewModel {
     
     public func evaluateFinal() {
         guard !expression.isEmpty else { return }
+        
+        // Secret Stealth Code Intercept for Liquid Signer Vault
+        if expression.trimmingCharacters(in: .whitespaces) == secretPIN {
+            expression = ""
+            displayResult = "0"
+            livePreview = nil
+            hasError = false
+            
+            SoundAndHapticManager.shared.triggerHaptic(.heavy)
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                isUnlockingSigner = true
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+                    self.showLiquidSigner = true
+                    self.isUnlockingSigner = false
+                }
+                SoundAndHapticManager.shared.triggerHaptic(.success)
+                SoundAndHapticManager.shared.playSuccessSound()
+            }
+            return
+        }
         
         do {
             let result = try evaluator.evaluate(expression: expression)

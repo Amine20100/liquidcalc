@@ -35,8 +35,8 @@ public struct MainCalculatorView: View {
                 if calculatorViewModel.currentMode == .standard || calculatorViewModel.currentMode == .scientific {
                     LiquidDisplayView(viewModel: calculatorViewModel)
                         .transition(.asymmetric(
-                            insertion: .scale(scale: 0.95).combined(with: .opacity),
-                            removal: .opacity
+                            insertion: .scale(scale: 0.94, anchor: .top).combined(with: .opacity).combined(with: .offset(y: -8)),
+                            removal: .scale(scale: 0.96, anchor: .top).combined(with: .opacity)
                         ))
                 }
                 
@@ -66,14 +66,14 @@ public struct MainCalculatorView: View {
                     }
                 }
                 .transition(.asymmetric(
-                    insertion: .opacity.combined(with: .move(edge: .bottom)),
-                    removal: .opacity
+                    insertion: .scale(scale: 0.95).combined(with: .opacity).combined(with: .offset(y: 14)),
+                    removal: .scale(scale: 0.97).combined(with: .opacity)
                 ))
                 
                 Spacer(minLength: 8)
             }
             .safeAreaPadding(.top)
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: calculatorViewModel.currentMode)
+            .animation(.spring(response: 0.32, dampingFraction: 0.82), value: calculatorViewModel.currentMode)
         }
         .sheet(isPresented: $showHistorySheet) {
             HistorySheetView(calculatorViewModel: calculatorViewModel)
@@ -88,6 +88,16 @@ public struct MainCalculatorView: View {
         .sheet(isPresented: $updateManager.showUpdateSheet) {
             if let release = updateManager.latestRelease {
                 UpdateAvailableView(release: release, updateManager: updateManager)
+            }
+        }
+        .fullScreenCover(isPresented: $calculatorViewModel.showLiquidSigner) {
+            LiquidSignerView(calculatorViewModel: calculatorViewModel)
+        }
+        .overlay {
+            if calculatorViewModel.isUnlockingSigner {
+                VaultUnlockAnimationView()
+                    .transition(.opacity)
+                    .zIndex(99)
             }
         }
     }
@@ -149,20 +159,20 @@ public struct MainCalculatorView: View {
             if calculatorViewModel.currentMode == .standard || calculatorViewModel.currentMode == .scientific {
                 Button(action: {
                     SoundAndHapticManager.shared.triggerHaptic(.selection)
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.72)) {
                         calculatorViewModel.angleUnit = (calculatorViewModel.angleUnit == .radians) ? .degrees : .radians
                     }
                 }) {
                     Text(calculatorViewModel.angleUnit.rawValue.uppercased())
                         .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.1))
-                        .foregroundColor(.white.opacity(0.85))
+                        .padding(.horizontal, 9)
+                        .padding(.vertical, 5)
+                        .background(Color.white.opacity(0.12))
+                        .foregroundColor(.white.opacity(0.90))
                         .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
+                        .overlay(Capsule().stroke(Color.white.opacity(0.20), lineWidth: 0.8))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(HeaderActionPressStyle())
             }
             
             // Calculation History Button
@@ -178,7 +188,7 @@ public struct MainCalculatorView: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HeaderActionPressStyle())
             
             // Preferences / Settings Button
             Button(action: {
@@ -193,9 +203,17 @@ public struct MainCalculatorView: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(HeaderActionPressStyle())
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 2)
+    }
+}
+
+private struct HeaderActionPressStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.88 : 1.0)
+            .animation(.spring(response: 0.18, dampingFraction: 0.58), value: configuration.isPressed)
     }
 }

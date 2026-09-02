@@ -23,6 +23,8 @@ import UIKit
 public struct SolvedResultCardView: View {
     public let expression: String
     public let result: String?
+    public let steps: [String]?
+    public let explanation: String?
     public let onOpenInCalc: () -> Void
     public let onCopy: (() -> Void)?
     
@@ -34,23 +36,15 @@ public struct SolvedResultCardView: View {
     public init(
         expression: String,
         result: String? = nil,
+        steps: [String]? = nil,
+        explanation: String? = nil,
         onOpenInCalc: @escaping () -> Void,
         onCopy: (() -> Void)? = nil
     ) {
         self.expression = expression
         self.result = result
-        self.onOpenInCalc = onOpenInCalc
-        self.onCopy = onCopy
-    }
-    
-    public init(
-        result: String,
-        expression: String,
-        onOpenInCalc: @escaping () -> Void,
-        onCopy: @escaping () -> Void = {}
-    ) {
-        self.expression = expression
-        self.result = result
+        self.steps = steps
+        self.explanation = explanation
         self.onOpenInCalc = onOpenInCalc
         self.onCopy = onCopy
     }
@@ -161,6 +155,40 @@ public struct SolvedResultCardView: View {
                 }
                 .scaleEffect(cardScalePop)
                 .transition(.scale(scale: 0.9).combined(with: .opacity))
+            }
+            
+            // Steps and Explanation (if available)
+            if let explanation = explanation, !explanation.isEmpty {
+                Divider().background(Color.white.opacity(0.2)).padding(.vertical, 4)
+                
+                VStack(alignment: .leading, spacing: 6) {
+                    if let steps = steps, !steps.isEmpty {
+                        ForEach(Array(steps.enumerated()), id: \.offset) { index, step in
+                            HStack(alignment: .top, spacing: 6) {
+                                Text("\(index + 1).")
+                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                                    .foregroundColor(neonCyan.opacity(0.8))
+                                Text(step)
+                                    .font(.system(size: 12, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.9))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    
+                    HStack(alignment: .top, spacing: 6) {
+                        Image(systemName: "lightbulb.fill")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundColor(.yellow.opacity(0.9))
+                            .padding(.top, 2)
+                        Text(explanation)
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(.white)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(14)
