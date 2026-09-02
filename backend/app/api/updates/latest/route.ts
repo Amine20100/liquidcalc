@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
   const baseUrl = `${protocol}://${host}`;
 
   const payload = {
-    id: 240001,
-    tag_name: "v2.4.0",
-    name: "LiquidCalc v2.4.0 - Liquid Signer & Cloud Serverless Suite",
-    body: "LiquidCalc v2.4.0 production release with on-device Liquid Signer IPA signing suite, secret '1337=' vault unlock, cybernetic animations, and full Next.js serverless backend on Vercel.",
-    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.4.0",
-    published_at: "2026-09-02T10:30:00Z",
+    id: 250001,
+    tag_name: "v2.5.0",
+    name: "LiquidCalc v2.5.0 - Full In-App Updating Flow & Sideloading Hub",
+    body: "LiquidCalc v2.5.0 production release featuring a comprehensive multi-tier in-app updating flow, live background IPA download progress, 1-tap wireless OTA installation, Liquid Signer on-device re-signing handoff, TrollStore deep linking, and floating launch banner.",
+    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.5.0",
+    published_at: "2026-09-02T23:30:00Z",
     prerelease: false,
     draft: false,
     assets: [

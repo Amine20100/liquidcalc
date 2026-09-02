@@ -4,10 +4,10 @@ import { buildItmsServicesUrl, DEFAULT_BUNDLE_ID, DEFAULT_IPA_URL } from "@/lib/
 
 export const dynamic = "force-dynamic";
 
-const LATEST_VERSION = "2.4.0";
-const LATEST_BUILD = "24";
+const LATEST_VERSION = "2.5.0";
+const LATEST_BUILD = "25";
 const RELEASE_DATE = "2026-09-02";
-const RELEASE_TITLE = "LiquidCalc v2.4.0 - Liquid Signer & Cloud Serverless Suite";
+const RELEASE_TITLE = "LiquidCalc v2.5.0 - Full In-App Updating Flow & Sideloading Hub";
 
 const CHANGELOG = [
   "Built Liquid Signer on-device IPA signing suite with secret '1337=' stealth vault unlock",
