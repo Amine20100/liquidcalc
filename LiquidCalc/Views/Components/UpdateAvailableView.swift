@@ -405,7 +405,9 @@ public struct UpdateAvailableView: View {
             switch updateManager.downloadState {
             case .idle:
                 Button(action: {
-                    updateManager.startDownload(for: release)
+                    Task { @MainActor in
+                        updateManager.startDownload(for: release)
+                    }
                 }) {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.down.app.fill")
@@ -447,7 +449,9 @@ public struct UpdateAvailableView: View {
                             .foregroundColor(.secondary)
                         
                         Button(action: {
-                            updateManager.cancelDownload()
+                            Task { @MainActor in
+                                updateManager.cancelDownload()
+                            }
                         }) {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.white.opacity(0.5))
@@ -558,7 +562,9 @@ public struct UpdateAvailableView: View {
                         .foregroundColor(.secondary)
                     
                     Button("Retry Download") {
-                        updateManager.startDownload(for: release)
+                        Task { @MainActor in
+                            updateManager.startDownload(for: release)
+                        }
                     }
                     .font(.system(size: 11, weight: .bold))
                     .foregroundColor(.cyan)
