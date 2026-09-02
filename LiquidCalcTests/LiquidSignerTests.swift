@@ -144,4 +144,72 @@ final class LiquidSignerTests: XCTestCase {
         }
         wait(for: [exp], timeout: 1.0)
     }
+    
+    // MARK: - Test 5: Advanced Signing Configuration & Cloning
+    
+    func testSigningConfigCloningAndOptions() {
+        let cert = SigningCertificate(
+            name: "Test Dev Cert",
+            commonName: "Apple Development: Dev (TEST)",
+            expirationDate: Date().addingTimeInterval(3600 * 24 * 30),
+            p12FileName: "test.p12"
+        )
+        
+        let config = SigningConfig(
+            customName: "MyClonedApp",
+            customBundleId: "com.example.app.cloned",
+            customVersion: "3.0.1",
+            certificate: cert,
+            profile: nil,
+            dylibs: [],
+            removeExtensions: true
+        )
+        
+        XCTAssertEqual(config.customName, "MyClonedApp")
+        XCTAssertEqual(config.customBundleId, "com.example.app.cloned")
+        XCTAssertEqual(config.customVersion, "3.0.1")
+        XCTAssertTrue(config.removeExtensions)
+        XCTAssertEqual(config.certificate?.name, "Test Dev Cert")
+    }
+    
+    // MARK: - Test 6: Pure Swift LiquidSignEngine Pipeline
+    
+    func testLiquidSignEnginePipelineExecution() async throws {
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let dummyIpa = tempDir.appendingPathComponent("Sample.ipa")
+        // Minimal PK header
+        let pkData = Data([0x50, 0x4B, 0x03, 0x04, 0x00, 0x00, 0x00, 0x00])
+        try pkData.write(to: dummyIpa)
+        
+        let config = SigningConfig(
+            customName: "SignedSample",
+            customBundleId: "com.liquidsigner.sample",
+            customVersion: "1.2.0",
+            certificate: nil,
+            profile: nil,
+            dylibs: [],
+            removeExtensions: true
+        )
+        
+        var recordedStages: [String] = []
+        var maxProgress: Double = 0.0
+        
+        let signedUrl = try await LiquidSignEngine.shared.signIPA(
+            inputIpaUrl: dummyIpa,
+            config: config,
+            progress: { pct, stage in
+                maxProgress = max(maxProgress, pct)
+                recordedStages.append(stage)
+            },
+            log: { _, _ in }
+        )
+        
+        XCTAssertTrue(FileManager.default.fileExists(atPath: signedUrl.path), "Signed IPA must exist on disk")
+        XCTAssertEqual(maxProgress, 1.0, "Signing pipeline must reach 100% progress")
+        XCTAssertTrue(recordedStages.contains(where: { $0.contains("Packaging") || $0.contains("complete") }))
+    }
 }
+

@@ -3,7 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Liquid Signer Live Progress & 1-Tap Installation Overlay
+//  Liquid Signer Live Progress, Real-Time Terminal & Multi-Channel Installation Hub
 //
 
 import SwiftUI
@@ -14,6 +14,7 @@ public struct SigningProgressOverlay: View {
     
     @State private var ringRotation: Double = 0
     @State private var pulseScale: CGFloat = 1.0
+    @State private var showTerminalLogs: Bool = false
     
     public init(signerViewModel: LiquidSignerViewModel, onDismiss: @escaping () -> Void) {
         self.signerViewModel = signerViewModel
@@ -27,54 +28,15 @@ public struct SigningProgressOverlay: View {
     public var body: some View {
         ZStack {
             // Dark Frosted Glass Backdrop
-            Color.black.opacity(0.82)
+            Color.black.opacity(0.85)
                 .ignoresSafeArea()
             
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 // Circular Progress Ring / Celebration Icon
-                ZStack {
-                    Circle()
-                        .stroke(Color.white.opacity(0.12), lineWidth: 8)
-                        .frame(width: 140, height: 140)
-                    
-                    Circle()
-                        .trim(from: 0, to: CGFloat(min(1.0, max(0.05, signerViewModel.signingProgress))))
-                        .stroke(
-                            LinearGradient(
-                                colors: isDone
-                                    ? [Color(red: 0.0, green: 1.0, blue: 0.64), Color.cyan]
-                                    : [Color.cyan, Color.purple, Color.indigo],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            ),
-                            style: StrokeStyle(lineWidth: 8, lineCap: .round)
-                        )
-                        .frame(width: 140, height: 140)
-                        .rotationEffect(.degrees(-90))
-                        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: signerViewModel.signingProgress)
-                    
-                    if isDone {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 48, weight: .bold))
-                            .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
-                            .scaleEffect(pulseScale)
-                            .transition(.scale.combined(with: .opacity))
-                    } else {
-                        VStack(spacing: 2) {
-                            Text("\(Int(signerViewModel.signingProgress * 100))%")
-                                .font(.system(size: 32, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
-                            
-                            Image(systemName: "signature")
-                                .font(.system(size: 14))
-                                .foregroundColor(.cyan.opacity(0.8))
-                        }
-                    }
-                }
-                .shadow(color: (isDone ? Color(red: 0.0, green: 1.0, blue: 0.64) : Color.cyan).opacity(0.4), radius: 18)
+                progressRingSection
                 
                 // Status Texts
-                VStack(spacing: 8) {
+                VStack(spacing: 6) {
                     Text(isDone ? "Signing Completed!" : "Signing IPA Binary...")
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
@@ -83,7 +45,7 @@ public struct SigningProgressOverlay: View {
                         .font(.system(size: 13, weight: .medium, design: .monospaced))
                         .foregroundColor(.cyan)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                        .padding(.horizontal, 20)
                     
                     if let app = signerViewModel.activeSigningApp {
                         Text(app.name)
@@ -92,77 +54,25 @@ public struct SigningProgressOverlay: View {
                     }
                 }
                 
+                // Real-Time Terminal Log Drawer (Collapsible)
+                terminalLogDrawer
+                
                 // Completed Action Buttons (Install / Share)
                 if isDone, let app = signerViewModel.activeSigningApp {
-                    VStack(spacing: 12) {
-                        // 1-Tap Direct On-Device Install
-                        Button(action: {
-                            signerViewModel.installApp(app)
-                        }) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "arrow.down.app.fill")
-                                    .font(.system(size: 16, weight: .bold))
-                                Text("Install on this iPhone")
-                                    .font(.system(size: 15, weight: .bold, design: .rounded))
-                            }
-                            .foregroundColor(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color(red: 0.0, green: 1.0, blue: 0.64),
-                                        Color(red: 0.0, green: 0.90, blue: 1.0)
-                                    ],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-                            .shadow(color: Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.45), radius: 12, x: 0, y: 3)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        // Share / Export Signed IPA
-                        Button(action: {
-                            signerViewModel.shareApp(app)
-                        }) {
-                            HStack(spacing: 6) {
-                                Image(systemName: "square.and.arrow.up")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text("Export to Files / AirDrop")
-                                    .font(.system(size: 14, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 16).fill(Color.white.opacity(0.12)))
-                            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.2), lineWidth: 0.8))
-                        }
-                        .buttonStyle(.plain)
-                        
-                        // Dismiss Done Button
-                        Button(action: onDismiss) {
-                            Text("Done")
-                                .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(.white.opacity(0.6))
-                                .padding(.top, 4)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                    .padding(.horizontal, 32)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    completedActionsSection(app: app)
                 }
             }
-            .padding(24)
+            .padding(22)
             .background(
                 RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(Color(white: 0.10, opacity: 0.85))
+                    .fill(Color(white: 0.10, opacity: 0.88))
                     .overlay(
                         RoundedRectangle(cornerRadius: 28, style: .continuous)
                             .stroke(
                                 LinearGradient(
-                                    colors: [Color.cyan.opacity(0.6), Color.purple.opacity(0.4)],
+                                    colors: isDone
+                                        ? [Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.8), Color.cyan.opacity(0.6)]
+                                        : [Color.cyan.opacity(0.6), Color.purple.opacity(0.4)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 ),
@@ -170,12 +80,209 @@ public struct SigningProgressOverlay: View {
                             )
                     )
             )
-            .padding(.horizontal, 24)
+            .padding(.horizontal, 20)
         }
         .onAppear {
             withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {
                 pulseScale = 1.0
             }
+        }
+    }
+    
+    // MARK: - Progress Ring Section
+    
+    private var progressRingSection: some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.12), lineWidth: 8)
+                .frame(width: 120, height: 120)
+            
+            Circle()
+                .trim(from: 0, to: CGFloat(min(1.0, max(0.05, signerViewModel.signingProgress))))
+                .stroke(
+                    LinearGradient(
+                        colors: isDone
+                            ? [Color(red: 0.0, green: 1.0, blue: 0.64), Color.cyan]
+                            : [Color.cyan, Color.purple, Color.indigo],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                )
+                .frame(width: 120, height: 120)
+                .rotationEffect(.degrees(-90))
+                .animation(.spring(response: 0.35, dampingFraction: 0.8), value: signerViewModel.signingProgress)
+            
+            if isDone {
+                Image(systemName: "checkmark")
+                    .font(.system(size: 42, weight: .bold))
+                    .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                    .scaleEffect(pulseScale)
+                    .transition(.scale.combined(with: .opacity))
+            } else {
+                VStack(spacing: 2) {
+                    Text("\(Int(signerViewModel.signingProgress * 100))%")
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    
+                    Image(systemName: "signature")
+                        .font(.system(size: 13))
+                        .foregroundColor(.cyan.opacity(0.8))
+                }
+            }
+        }
+        .shadow(color: (isDone ? Color(red: 0.0, green: 1.0, blue: 0.64) : Color.cyan).opacity(0.4), radius: 18)
+    }
+    
+    // MARK: - Terminal Log Drawer
+    
+    private var terminalLogDrawer: some View {
+        VStack(spacing: 6) {
+            Button(action: {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    showTerminalLogs.toggle()
+                }
+                SoundAndHapticManager.shared.triggerHaptic(.light)
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "terminal.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(.cyan)
+                    Text(showTerminalLogs ? "Hide Terminal Output" : "Show Signing Terminal")
+                        .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                        .foregroundColor(.cyan)
+                    Spacer()
+                    Image(systemName: showTerminalLogs ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10))
+                        .foregroundColor(.white.opacity(0.4))
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.white.opacity(0.06))
+                .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            
+            if showTerminalLogs {
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 4) {
+                            ForEach(signerViewModel.logs.suffix(15)) { log in
+                                Text(log.text)
+                                    .font(.system(size: 10, weight: .regular, design: .monospaced))
+                                    .foregroundColor(colorForLogLevel(log.level))
+                                    .lineLimit(2)
+                                    .id(log.id)
+                            }
+                        }
+                        .padding(8)
+                    }
+                    .frame(height: 100)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(8)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.cyan.opacity(0.3), lineWidth: 0.8))
+                    .onAppear {
+                        if let lastLog = signerViewModel.logs.last {
+                            proxy.scrollTo(lastLog.id, anchor: .bottom)
+                        }
+                    }
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+    }
+    
+    // MARK: - Completed Actions Section
+    
+    private func completedActionsSection(app: SignedApp) -> some View {
+        VStack(spacing: 10) {
+            // Option 1: 1-Tap Wireless OTA Install
+            Button(action: {
+                signerViewModel.installApp(app)
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.app.fill")
+                        .font(.system(size: 15, weight: .bold))
+                    Text("1-Tap Install on this iPhone (OTA)")
+                        .font(.system(size: 14, weight: .bold, design: .rounded))
+                }
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(
+                    LinearGradient(
+                        colors: [
+                            Color(red: 0.0, green: 1.0, blue: 0.64),
+                            Color(red: 0.0, green: 0.90, blue: 1.0)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .shadow(color: Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.4), radius: 8, x: 0, y: 2)
+            }
+            .buttonStyle(.plain)
+            
+            HStack(spacing: 8) {
+                // Option 2: TrollStore Install
+                Button(action: {
+                    signerViewModel.installWithTrollStore(app)
+                }) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 12))
+                            .foregroundColor(.cyan)
+                        Text("TrollStore")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.10)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.cyan.opacity(0.3), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+                
+                // Option 3: Share / AirDrop
+                Button(action: {
+                    signerViewModel.shareApp(app)
+                }) {
+                    HStack(spacing: 5) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 12))
+                            .foregroundColor(.purple)
+                        Text("Share IPA")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.10)))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.purple.opacity(0.3), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // Dismiss Done Button
+            Button(action: onDismiss) {
+                Text("Return to Vault")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(.white.opacity(0.6))
+                    .padding(.top, 4)
+            }
+            .buttonStyle(.plain)
+        }
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+    
+    private func colorForLogLevel(_ level: SignerLogMessage.LogLevel) -> Color {
+        switch level {
+        case .info: return .white.opacity(0.7)
+        case .success: return Color(red: 0.0, green: 1.0, blue: 0.64)
+        case .warning: return .orange
+        case .error: return .red
+        case .terminal: return .cyan
         }
     }
 }
