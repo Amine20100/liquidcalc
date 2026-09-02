@@ -401,7 +401,7 @@ public final class SoundAndHapticManager: @unchecked Sendable {
     
     // MARK: - Continuous Feedback (F9)
     
-    /// Continuous subtle rumble/hum player during active camera scanning (F9).
+    /// Subtle pulse during camera scanning initiation (zero motor lock, zero lag).
     public func startContinuousScanningHum() {
         guard isHapticsEnabled else { return }
         
@@ -412,25 +412,22 @@ public final class SoundAndHapticManager: @unchecked Sendable {
         
         do {
             if !isEngineRunning { try engine.start(); isEngineRunning = true }
-            if continuousScanningPlayer != nil { return }
-            
-            let continuousEvent = CHHapticEvent(
-                eventType: .hapticContinuous,
+            let scanPulse = CHHapticEvent(
+                eventType: .hapticTransient,
                 parameters: [
-                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.35),
-                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
+                    CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.4),
+                    CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
                 ],
-                relativeTime: 0.0,
-                duration: 60.0
+                relativeTime: 0.0
             )
-            let pattern = try CHHapticPattern(events: [continuousEvent], parameters: [])
-            let player = try engine.makeAdvancedPlayer(with: pattern)
-            player.loopEnabled = true
+            let pattern = try CHHapticPattern(events: [scanPulse], parameters: [])
+            let player = try engine.makePlayer(with: pattern)
             try player.start(atTime: CHHapticTimeImmediate)
-            self.continuousScanningPlayer = player
-        } catch {
-            self.continuousScanningPlayer = nil
-        }
+        } catch {}
+        #elseif os(iOS)
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.5)
         #endif
     }
     
