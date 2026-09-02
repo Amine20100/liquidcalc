@@ -138,6 +138,7 @@ public struct ChatMessageBubble: View {
                 )
                 .shadow(color: isStreaming ? Color.purple.opacity(0.4) : Color.clear, radius: 10)
         )
+    }
     
     struct MessagePart {
         let content: String

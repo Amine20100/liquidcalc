@@ -80,6 +80,13 @@ jobs:
           path: output/LiquidCalc.zip
           retention-days: 14
 
+      - name: Attach IPA & App to GitHub Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Attaching LiquidCalc.ipa and LiquidCalc.zip to release..."
+          gh release upload v2.5.0 output/LiquidCalc.ipa output/LiquidCalc.zip --clobber || echo "Release upload skipped or completed"
+
       - name: Run Test Suite
         if: always()
         run: |

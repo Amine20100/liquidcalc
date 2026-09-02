@@ -212,13 +212,15 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
                     inputIpaUrl: ipaUrl,
                     config: config,
                     progress: { [weak self] pct, stage in
-                        DispatchQueue.main.async {
+                        Task { @MainActor [weak self] in
                             self?.signingProgress = pct
                             self?.signingStage = stage
                         }
                     },
                     log: { [weak self] text, level in
-                        self?.appendLog(text, level)
+                        Task { @MainActor [weak self] in
+                            self?.appendLog(text, level)
+                        }
                     }
                 )
                 

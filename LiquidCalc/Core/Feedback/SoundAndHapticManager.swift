@@ -458,6 +458,7 @@ public final class SoundAndHapticManager: @unchecked Sendable {
         case heavy
         case selection
         case success
+        case warning
         case error
     }
     
@@ -481,6 +482,14 @@ public final class SoundAndHapticManager: @unchecked Sendable {
             #endif
         case .success:
             playCelebratorySuccess()
+        case .warning:
+            #if os(iOS)
+            let generator = UINotificationFeedbackGenerator()
+            generator.prepare()
+            generator.notificationOccurred(.warning)
+            #else
+            playOperatorBurst()
+            #endif
         case .error:
             playErrorThud()
         }
