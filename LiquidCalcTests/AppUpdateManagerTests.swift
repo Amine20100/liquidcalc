@@ -522,4 +522,94 @@ final class AppUpdateManagerTests: XCTestCase {
         manager.dismissNoUpdateAlert()
         XCTAssertFalse(manager.showNoUpdateAlert)
     }
+    
+    // MARK: - SECTION 8: New Multi-Tier Updating Flow Tests
+    
+    func testOtaInstallURLGeneration() {
+        let manager = AppUpdateManager(
+            urlSession: mockSession,
+            userDefaults: testDefaults,
+            customCurrentVersion: "2.3.0"
+        )
+        
+        let release = GitHubRelease(
+            tagName: "v2.4.0",
+            name: "Release v2.4.0",
+            htmlURL: URL(string: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.4.0")!,
+            assets: [
+                GitHubReleaseAsset(
+                    name: "LiquidCalc.ipa",
+                    size: 15_000_000,
+                    browserDownloadURL: URL(string: "https://example.com/LiquidCalc.ipa")!
+                )
+            ]
+        )
+        
+        let otaURL = manager.getOtaInstallURL(for: release)
+        XCTAssertEqual(otaURL.scheme, "itms-services")
+        XCTAssertTrue(otaURL.absoluteString.contains("download-manifest"))
+        XCTAssertTrue(otaURL.absoluteString.contains("com.liquidcalc.app"))
+        XCTAssertTrue(otaURL.absoluteString.contains("2.4.0"))
+    }
+    
+    func testTrollStoreInstallURLGeneration() {
+        let manager = AppUpdateManager(
+            urlSession: mockSession,
+            userDefaults: testDefaults,
+            customCurrentVersion: "2.3.0"
+        )
+        
+        let release = GitHubRelease(
+            tagName: "v2.4.0",
+            name: "Release v2.4.0",
+            htmlURL: URL(string: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.4.0")!,
+            assets: [
+                GitHubReleaseAsset(
+                    name: "LiquidCalc.ipa",
+                    size: 15_000_000,
+                    browserDownloadURL: URL(string: "https://example.com/LiquidCalc.ipa")!
+                )
+            ]
+        )
+        
+        let tsURL = manager.getTrollStoreInstallURL(for: release)
+        XCTAssertNotNil(tsURL)
+        XCTAssertTrue(tsURL?.scheme == "apple-magnifier" || tsURL?.scheme == "trollstore")
+        XCTAssertTrue(tsURL?.absoluteString.contains("example.com") == true)
+    }
+    
+    func testBannerDismissalAndSuppression() {
+        let manager = AppUpdateManager(
+            urlSession: mockSession,
+            userDefaults: testDefaults,
+            customCurrentVersion: "2.3.0"
+        )
+        
+        manager.hasPendingUpdateBanner = true
+        manager.isBannerDismissed = false
+        
+        manager.dismissBanner()
+        
+        XCTAssertFalse(manager.hasPendingUpdateBanner)
+        XCTAssertTrue(manager.isBannerDismissed)
+    }
+    
+    func testUpdateDownloadStateEnum() {
+        let idle = UpdateDownloadState.idle
+        XCTAssertFalse(idle.isDownloading)
+        XCTAssertFalse(idle.isCompleted)
+        XCTAssertEqual(idle.progressValue, 0.0)
+        
+        let downloading = UpdateDownloadState.downloading(progress: 0.65, bytesWritten: 6500, totalBytes: 10000, speedString: "2.5 MB/s")
+        XCTAssertTrue(downloading.isDownloading)
+        XCTAssertFalse(downloading.isCompleted)
+        XCTAssertEqual(downloading.progressValue, 0.65, accuracy: 1e-4)
+        
+        let tempURL = URL(fileURLWithPath: "/tmp/LiquidCalc.ipa")
+        let completed = UpdateDownloadState.completed(fileURL: tempURL)
+        XCTAssertFalse(completed.isDownloading)
+        XCTAssertTrue(completed.isCompleted)
+        XCTAssertEqual(completed.progressValue, 1.0)
+    }
 }
+

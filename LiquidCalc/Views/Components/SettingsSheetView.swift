@@ -113,8 +113,9 @@ public struct SettingsSheetView: View {
                     }
                     .listRowBackground(Color(white: 0.15, opacity: 0.5))
                     
-                    Section("Full App Release (OTA)") {
+                    Section("App Updates & OTA Sideloading") {
                         Toggle("Auto-Check on Launch", isOn: $updateManager.autoCheckOnLaunch)
+                        Toggle("Include Beta / Pre-releases", isOn: $updateManager.includePreReleases)
                         
                         Button(action: {
                             Task {
@@ -126,18 +127,26 @@ public struct SettingsSheetView: View {
                                     ProgressView()
                                         .tint(.cyan)
                                         .padding(.trailing, 6)
-                                    Text("Checking for updates...")
+                                    Text("Connecting to update servers...")
                                         .foregroundColor(.cyan)
                                 } else {
                                     Image(systemName: "arrow.triangle.2.circlepath")
                                         .foregroundColor(.cyan)
-                                    Text("Check for Updates")
+                                    Text("Check for Updates Now")
                                         .foregroundColor(.white)
                                 }
                                 Spacer()
                             }
                         }
                         .disabled(updateManager.isChecking)
+                        
+                        HStack {
+                            Text("Update Server")
+                            Spacer()
+                            Text("Liquid Cloud (Vercel) + GitHub")
+                                .font(.system(size: 13))
+                                .foregroundColor(.secondary)
+                        }
                         
                         HStack {
                             Text("Last Checked")

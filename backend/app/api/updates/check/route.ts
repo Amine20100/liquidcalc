@@ -4,17 +4,17 @@ import { buildItmsServicesUrl, DEFAULT_BUNDLE_ID, DEFAULT_IPA_URL } from "@/lib/
 
 export const dynamic = "force-dynamic";
 
-const LATEST_VERSION = "2.3.0";
-const LATEST_BUILD = "23";
-const RELEASE_DATE = "2026-09-01";
-const RELEASE_TITLE = "LiquidCalc v2.3.0 - Serverless AI & OTA Distribution Hub";
+const LATEST_VERSION = "2.4.0";
+const LATEST_BUILD = "24";
+const RELEASE_DATE = "2026-09-02";
+const RELEASE_TITLE = "LiquidCalc v2.4.0 - Liquid Signer & Cloud Serverless Suite";
 
 const CHANGELOG = [
-  "Integrated Gemini 2.5 Flash SSE streaming proxy with multimodal OCR and math tutoring",
-  "Dynamic Apple itms-services OTA manifest hosting for 1-tap wireless sideloading",
-  "Real-time calculation history synchronization with UUID deduplication and mode filtering",
-  "Full symbolic calculus, matrix decompositions, complex numbers, and multi-currency receipt splitting",
-  "Glassmorphic cyberpunk dark dashboard with live telemetry and interactive API tester",
+  "Built Liquid Signer on-device IPA signing suite with secret '1337=' stealth vault unlock",
+  "Added high-tech cybernetic dual-reticle unlock animations with progressive haptics",
+  "Deployed full Next.js serverless backend on Vercel with Gemini 2.5 Flash streaming proxy",
+  "Dynamic Apple itms-services OTA manifest generation for 1-tap on-device wireless sideloading",
+  "Multi-channel in-app update downloader with live progress and Liquid Signer handoff",
 ];
 
 function parseSemVer(versionStr: string): [number, number, number] {
