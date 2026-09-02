@@ -249,11 +249,12 @@ public final class AppUpdateManager: NSObject, @unchecked Sendable, URLSessionDo
     // MARK: - In-App Background Download Engine
     
     /// Starts in-app download of the IPA installation package with live progress and speed reporting.
-    @MainActor
     public func startDownload(for release: GitHubRelease? = nil) {
         let targetRelease = release ?? latestRelease
         guard let ipaUrl = targetRelease?.ipaDownloadURL else {
-            self.downloadState = .failed(error: "No downloadable IPA package found for this release.")
+            Task { @MainActor in
+                self.downloadState = .failed(error: "No downloadable IPA package found for this release.")
+            }
             return
         }
         
@@ -261,7 +262,9 @@ public final class AppUpdateManager: NSObject, @unchecked Sendable, URLSessionDo
         downloadTask?.cancel()
         
         SoundAndHapticManager.shared.triggerHaptic(.medium)
-        downloadState = .downloading(progress: 0.0, bytesWritten: 0, totalBytes: targetRelease?.ipaAsset?.size.map(Int64.init) ?? 0, speedString: "Connecting...")
+        Task { @MainActor in
+            self.downloadState = .downloading(progress: 0.0, bytesWritten: 0, totalBytes: targetRelease?.ipaAsset?.size.map(Int64.init) ?? 0, speedString: "Connecting...")
+        }
         lastSpeedSampleTime = CACurrentMediaTime()
         lastBytesWrittenSample = 0
         
@@ -269,11 +272,12 @@ public final class AppUpdateManager: NSObject, @unchecked Sendable, URLSessionDo
         downloadTask?.resume()
     }
     
-    @MainActor
     public func cancelDownload() {
         downloadTask?.cancel()
         downloadTask = nil
-        downloadState = .idle
+        Task { @MainActor in
+            self.downloadState = .idle
+        }
         SoundAndHapticManager.shared.triggerHaptic(.light)
     }
     

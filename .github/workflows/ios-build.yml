@@ -92,7 +92,7 @@ jobs:
         run: |
           xcodebuild test \
             -project LiquidCalc.xcodeproj \
-            -scheme LiquidCalcTests \
+            -scheme LiquidCalc \
             -destination 'platform=iOS Simulator,name=iPhone 15,OS=latest' \
             -resultBundlePath TestResults.xcresult \
             CODE_SIGNING_ALLOWED=NO \
