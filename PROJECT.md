@@ -1,120 +1,130 @@
-# Project: LiquidCalc
+# Project: LiquidCalc Next.js Serverless Backend Suite
 
 ## Architecture
-LiquidCalc is a modern iOS 18 calculator and smart math assistant built with SwiftUI, Swift 6 Observation (`@Observable`), CoreHaptics, and Vision.
+- **Framework**: Next.js 14/15 App Router (`TypeScript`, `Tailwind CSS`, `Lucide React`)
+- **Execution Target**: Vercel Serverless / Edge Functions (`iad1`)
+- **Live Production URL**: `https://liquidcalc-backend.vercel.app`
+- **Styling**: Cyberpunk dark glassmorphism theme (`#07090e`, neon cyan `#00F0FF`, purple `#7928CA`, emerald `#00FFA3`)
+- **Key Modules**:
+  - `app/api/health`: System health & liveness probe
+  - `app/api/ai/stream`: Gemini 2.5 Flash Server-Sent Events (SSE) streaming proxy
+  - `app/api/ai/solve`: Structured JSON math & receipt solver with OCR support
+  - `app/api/ota/manifest`: Dynamic Apple `itms-services` software-package XML plist generator
+  - `app/api/ota/app`: IPA binary download & redirect handler
+  - `app/api/updates/check`: App version 2.3.0 & update check distribution
+  - `app/api/updates/latest`: GitHub & AltStore compatible release metadata
+  - `app/api/history/sync`: Calculation history & math notes batch synchronization
+  - `app/api/history/list`: Paginated calculation history retrieval
+  - `app/page.tsx`: Cyberpunk Dark Status Dashboard, live service telemetry & interactive API explorer
+  - `lib/gemini.ts`: Google Generative Language API client with env & header authentication
+  - `lib/ota.ts`: Apple XML property list generator
+  - `lib/storage.ts`: In-memory calculation history sync engine
+  - `lib/cors.ts`: Universal permissive CORS & preflight options handler
 
+## Code Layout
 ```
-┌────────────────────────────────────────────────────────────────────────┐
-│                              LiquidCalcApp                             │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │
-                                    ▼
-                        MainCalculatorView (SwiftUI)
-   ┌────────────────────────────────┼────────────────────────────────┐
-   │                                │                                │
-   ▼                                ▼                                ▼
-LiquidGlassBackground        LiquidDisplayView               KeypadButtonView
-(Multi-layer drifting        (Numeric text transition,       (Spring scale 0.90/0.92,
- radial gradients, blur)     cursor glow, error shake)       specular sheen, halos)
-                                    │
-                                    ▼
-                        ModeSwitcherView (MatchedGeometry Pill)
-   ┌────────────────────────────────┼────────────────────────────────┐
-   │                                │                                │
-   ▼                                ▼                                ▼
-CalculatorKeypadView        MathDrawCanvasView              CameraScannerView
-(Standard/Scientific/       (Stroke drawing dynamics,       (Vision OCR bounding box,
- Programmer keypads)         micro-vibrations, solve fanfare) lock-on snap ticks)
-                                    │
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        SoundAndHapticManager                           │
-│  - CHHapticEngine lifecycle (auto-start, backgrounding, reset recover) │
-│  - Multi-tier patterns (Digit, Operator, Equals, Hum, Fanfare, Thud)   │
-│  - Graceful UIKit fallbacks (UIImpact/UINotificationFeedbackGenerator) │
-│  - Dynamic user intensity multiplier (0.1 ... 1.0) & settings sync     │
-└────────────────────────────────────────────────────────────────────────┘
+backend/
+├── app/
+│   ├── api/
+│   │   ├── health/
+│   │   │   └── route.ts
+│   │   ├── ai/
+│   │   │   ├── stream/
+│   │   │   │   └── route.ts
+│   │   │   └── solve/
+│   │   │       └── route.ts
+│   │   ├── ota/
+│   │   │   ├── manifest/
+│   │   │   │   └── route.ts
+│   │   │   └── app/
+│   │   │       └── route.ts
+│   │   ├── updates/
+│   │   │   ├── check/
+│   │   │   │   └── route.ts
+│   │   │   └── latest/
+│   │   │       └── route.ts
+│   │   └── history/
+│   │       ├── sync/
+│   │       │   └── route.ts
+│   │       └── list/
+│   │           └── route.ts
+│   ├── globals.css
+│   ├── layout.tsx
+│   └── page.tsx
+├── lib/
+│   ├── gemini.ts
+│   ├── ota.ts
+│   ├── storage.ts
+│   └── cors.ts
+├── public/
+│   └── favicon.ico
+├── tests/
+│   ├── e2e_runner.mjs
+│   ├── test_utils.mjs
+│   ├── tier1_features.mjs
+│   ├── tier2_boundaries.mjs
+│   ├── tier3_cross_feature.mjs
+│   ├── tier4_real_world.mjs
+│   └── tier5_live_adversarial.mjs
+├── vercel.json
+├── package.json
+├── tsconfig.json
+├── tailwind.config.ts
+├── postcss.config.mjs
+├── next.config.mjs
+└── verify_live_backend.mjs
 ```
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Specular Sheen & Spring Scale | Interactive specular highlights and spring compression (0.90/0.92) on button press | M1 | ORIGINAL_REQUEST §R1 |
-| 2 | Contact Glow & Halo | Radial/linear cyan glowing contact halos on keypad buttons and dock pills | M1 | ORIGINAL_REQUEST §R1 |
-| 3 | Numeric Text Transition | Smooth morphing `.contentTransition(.numericText())` in primary display | M1 | ORIGINAL_REQUEST §R1 |
-| 4 | Expression Cursor Breathing | Pulsing cyan glow on active expression insertion cursor | M1 | ORIGINAL_REQUEST §R1 |
-| 5 | Natural Spring Error Shake | Sinusoidal spring shake animation on evaluation error / division by zero | M1 | ORIGINAL_REQUEST §R1 |
-| 6 | Drifting Ambient Glass Mesh | 3-layer radial gradient mesh with ultra-thin material blur | M1 | ORIGINAL_REQUEST §R1 |
-| 7 | Matched Geometry Mode Dock | Smoothly interpolating pill indicator across Standard, Scientific, Programmer, Draw, Vision modes | M1 | ORIGINAL_REQUEST §R1 |
-| 8 | CHHapticEngine Lifecycle Manager | Auto-start, backgrounding shutdown, reset recovery on audio server restart | M2 | ORIGINAL_REQUEST §R2 |
-| 9 | Digit & Character Taps | Crisp, subtle transient clicks with minimal latency | M2 | ORIGINAL_REQUEST §R2 |
-| 10 | Operator & Function Keys | Distinct dual-pulse tactile transients for +, -, ×, ÷, AND, OR, XOR | M2 | ORIGINAL_REQUEST §R2 |
-| 11 | Equals & Evaluation Resolve | Heavy tactile resolve burst on calculation completion | M2 | ORIGINAL_REQUEST §R2 |
-| 12 | Continuous Active Hums | Rhythmic subtle vibration during camera scanning or drawing | M2 | ORIGINAL_REQUEST §R2 |
-| 13 | Lock-On & Solve Celebration | Multi-stage harmonic fanfare upon successful math equation OCR or drawing solve | M2 | ORIGINAL_REQUEST §R2 |
-| 14 | Error & Domain Faults Thud | Heavy double-thud vibration on syntax error or domain failure | M2 | ORIGINAL_REQUEST §R2 |
-| 15 | Graceful Fallback Engine | Fallback to UIImpactFeedbackGenerator and UINotificationFeedbackGenerator | M2 | ORIGINAL_REQUEST §R2 |
-| 16 | Settings Real-Time Controls | User settings for haptic intensity (0.1-1.0), audio toggle, and live preview | M2 | ORIGINAL_REQUEST §R2 |
-| 17 | Draw Calc Stroke Dynamics | Velocity/pressure-based micro-vibration ticks during active canvas drawing | M3 | ORIGINAL_REQUEST §R3 |
-| 18 | Viewfinder Lock-On Snap | Crisp tactile lock-on tick when camera viewfinder snaps to equation / box | M3 | ORIGINAL_REQUEST §R3 |
-| 19 | Comprehensive Unit & E2E Tests | Automated unit test suite verifying haptic engine, fallbacks, intensity, and UI dynamics | M4 | ORIGINAL_REQUEST Acceptance |
+| 1 | Health Check (`/api/health`) | System health, uptime, timestamp, subservice status | M1 | ORIGINAL_REQUEST §R1 |
+| 2 | Gemini AI Stream Proxy (`/api/ai/stream`) | Real-time SSE streaming for Gemini 2.5 Flash, multi-turn memory, multimodal OCR | M2 | ORIGINAL_REQUEST §R1 |
+| 3 | Gemini AI Structured Solver (`/api/ai/solve`) | Structured math equation solving and receipt OCR parsing | M2 | ORIGINAL_REQUEST §R1 |
+| 4 | Gemini Key Header Fallback | Environment key with `x-gemini-api-key` & `Authorization` fallback | M2 | ORIGINAL_REQUEST §R1 |
+| 5 | Dynamic iOS OTA Manifest (`/api/ota/manifest`) | Apple `itms-services` software-package XML plist generator | M3 | ORIGINAL_REQUEST §R1 |
+| 6 | iOS App Download Handler (`/api/ota/app`) | IPA binary download & redirect handler | M3 | ORIGINAL_REQUEST §R1 |
+| 7 | Version Update Checker (`/api/updates/check`) | Version 2.3.0 release metadata, build number, changelog | M4 | ORIGINAL_REQUEST §R1 |
+| 8 | Latest Release Metadata (`/api/updates/latest`) | GitHub & AltStore release payload with asset URLs | M4 | ORIGINAL_REQUEST §R1 |
+| 9 | History Sync (`/api/history/sync`) | Batch sync and backup of calculation records & notes | M5 | ORIGINAL_REQUEST §R1 |
+| 10 | History Retrieval (`/api/history/list`) | Paginated retrieval and mode filtering for calculation history | M5 | ORIGINAL_REQUEST §R1 |
+| 11 | Dark Cyberpunk Dashboard (`/`) | Modern glassmorphism status dashboard with telemetry & API explorer | M6 | ORIGINAL_REQUEST §R1 |
+| 12 | Vercel Serverless Config | `vercel.json` and Next.js serverless route configuration | M7 | ORIGINAL_REQUEST §R2 |
+| 13 | Vercel CLI Production Deploy | Production deployment using Vercel token via CLI | M7 | ORIGINAL_REQUEST §R2 |
+| 14 | 4-Tier Automated E2E Test Suite | Comprehensive opaque-box test runner validating all endpoints | M8 | ORIGINAL_REQUEST §R3 |
+| 15 | Live Production Verification | Automated verification against live `https://liquidcalc-backend.vercel.app` URL with 100% pass | M9 | ORIGINAL_REQUEST §Acceptance |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Next-Gen Liquid Glass Visual Design & Fluid Spring Physics | Specular sheen, glowing contact halos, spring scale compression, numeric morphing, cursor breathing glow, spring error shake, ambient glass drifting mesh | None | DONE |
-| M2 | Comprehensive Multi-Tiered CoreHaptics Tactile Engine | Centralized CHHapticEngine manager, 6 distinct pattern tiers + equals resolve, dynamic intensity multiplier, lifecycle recovery, UIKit fallback, Settings intensity slider & preview | None | IN_PROGRESS |
-| M3 | Feature & Input Haptic Synchronization | Draw Calc canvas stroke drawing micro-vibrations, camera viewfinder lock-on snap ticks | M2 | PLANNED |
-| M4 | Comprehensive Test Suite & Verification | Automated test suite expansion, 100% pass verification on all engine and UI capabilities | M1, M2, M3 | PLANNED |
+| M1 | Project Scaffolding & Health API | Next.js setup, TypeScript, Tailwind, Lucide, `/api/health`, CORS lib | none | DONE |
+| M2 | Gemini 2.5 Flash Gateway & Solver | `/api/ai/stream` (SSE), `/api/ai/solve`, multimodal OCR, auth fallback | M1 | DONE |
+| M3 | iOS OTA Manifest & Sideloading Hub | `/api/ota/manifest` (Apple plist XML), `/api/ota/app` | M1 | DONE |
+| M4 | App Update & Distribution Engine | `/api/updates/check`, `/api/updates/latest` (v2.3.0, changelog) | M1 | DONE |
+| M5 | History Sync & Retrieval Engine | `/api/history/sync`, `/api/history/list`, `lib/storage.ts` | M1 | DONE |
+| M6 | Cyberpunk Dark Status Dashboard | Root page `/` UI, glassmorphism CSS, live telemetry & interactive sandbox | M1-M5 | DONE |
+| M7 | E2E Testing Suite (Tiers 1-4) | Requirements-driven test runner, `TEST_INFRA.md`, `TEST_READY.md` | none | DONE |
+| M8 | Local Verification & Quality Gate | Local build, test execution, Reviewer, Challenger & Forensic Audit gate | M1-M7 | DONE |
+| M9 | Vercel Production Deployment | CLI deployment with token, link, production release URL generation | M8 | DONE |
+| M10 | Live Verification & Tier 5 Hardening | Automated live E2E test run on Vercel URL, Tier 5 adversarial hardening | M9 | DONE |
 
 ## Interface Contracts
+### AI Gateway (`/api/ai/stream`, `/api/ai/solve`)
+- `POST /api/ai/stream`: Body `{ prompt: string, history?: Array<{role: string, text: string}>, image?: string, temperature?: number }` -> `text/event-stream` chunks `data: {"text": string, "done": boolean}\n\n`
+- `POST /api/ai/solve`: Body `{ mode: "math" | "receipt", expression?: string, image?: string }` -> `application/json` `{ success: boolean, expression: string, result: string, steps: string[], explanation: string }`
+- Fallback Auth: `process.env.GEMINI_API_KEY` -> `req.headers['x-gemini-api-key']` -> `req.headers['authorization']`
 
-### `SoundAndHapticManager` Public Interface
-```swift
-@MainActor
-public final class SoundAndHapticManager: ObservableObject {
-    public static let shared: SoundAndHapticManager
-    
-    @Published public var isHapticsEnabled: Bool
-    @Published public var isSoundEnabled: Bool
-    @Published public var hapticIntensity: Double // 0.1 ... 1.0
-    
-    public func playDigitClick()
-    public func playOperatorBurst()
-    public func playFunctionClick()
-    public func playEqualsResolve()
-    public func playErrorThud()
-    public func playCelebratorySuccess()
-    public func playLockOnTick()
-    public func playDrawingStrokeTick()
-    public func startContinuousScanningHum()
-    public func stopContinuousScanningHum()
-    public func triggerHapticPreview()
-}
-```
+### Dynamic iOS OTA (`/api/ota/manifest`, `/api/ota/app`)
+- `GET /api/ota/manifest?bundleId=...&name=...&version=...`: Query params optional with defaults -> `text/xml; charset=utf-8` conforming to Apple DTD `software-package` plist.
+- `GET /api/ota/app`: -> `302 Redirect` to latest GitHub release IPA.
 
-### `KeypadButtonView` Key Action Routing
-- Digits / numbers / decimal / parenthesis -> `playDigitClick()`
-- Operators (+, -, ×, ÷, %, AND, OR, XOR, NOT, shift) -> `playOperatorBurst()`
-- Functions (sin, cos, tan, ln, log, sqrt, etc.) -> `playFunctionClick()`
-- Equals (=, evaluate) -> `playEqualsResolve()`
-- Clear / Delete -> `playDigitClick()` / `playFunctionClick()`
+### Updates Distribution (`/api/updates/check`, `/api/updates/latest`)
+- `GET /api/updates/check?currentVersion=...`: -> `{ updateAvailable: boolean, currentVersion: string, latestVersion: "2.3.0", buildNumber: "23", downloadURL: string, otaManifestURL: string, otaInstallURL: string, changelog: string[] }`
+- `GET /api/updates/latest`: -> GitHub release & AltStore asset object.
 
-### `SettingsSheetView` Bindings
-- Section "Feedback & Interactions":
-  - `Toggle("Haptic Feedback", isOn: $feedbackManager.isHapticsEnabled)`
-  - `Toggle("Key Sounds", isOn: $feedbackManager.isSoundEnabled)`
-  - `Slider(value: $feedbackManager.hapticIntensity, in: 0.1...1.0, step: 0.05)`
-  - `Button("Test Haptic Intensity") { feedbackManager.triggerHapticPreview() }`
+### History Sync (`/api/history/sync`, `/api/history/list`)
+- `POST /api/history/sync`: Body `{ deviceId?: string, items: Array<{ id: string, timestamp: string, expression: string, result: string, mode: string, notes?: string }> }` -> `{ success: true, syncedCount: number, totalRecords: number, lastSyncTimestamp: string }`
+- `GET /api/history/list?mode=...&limit=...&offset=...`: -> `{ success: true, count: number, total: number, items: Array<HistoryItem> }`
 
-## Code Layout
-- `LiquidCalc/Core/Feedback/SoundAndHapticManager.swift` - CoreHaptics engine, pattern creation, fallback mechanics, intensity scaling
-- `LiquidCalc/Views/Keypads/KeypadButtonView.swift` - Button spring style, specular highlights, contact halos, tactile routing
-- `LiquidCalc/Views/Display/LiquidDisplayView.swift` - Numeric text transition, dynamic font sizing, cursor glow, error shake
-- `LiquidCalc/Views/Components/LiquidGlassBackground.swift` - Ambient drifting radial gradient mesh & ultra-thin material
-- `LiquidCalc/Views/Components/ModeSwitcherView.swift` - Matched geometry mode pill selector
-- `LiquidCalc/Views/Components/SettingsSheetView.swift` - Settings toggles, intensity slider, real-time preview
-- `LiquidCalc/Views/DrawCalc/MathDrawCanvasView.swift` & `LiquidCalc/ViewModels/DrawCalcViewModel.swift` - Canvas drawing gesture, stroke micro-vibration synchronization
-- `LiquidCalc/Views/Vision/Components/ReticleOverlayView.swift` & `LiquidCalc/ViewModels/VisionViewModel.swift` - Viewfinder target lock-on snap ticks
-- `LiquidCalcTests/SoundAndHapticManagerTests.swift` - Haptic engine unit tests
-- `LiquidCalcTests/LiquidCalcE2ETests.swift` - End-to-end integration and UI tests
+### System Health (`/api/health`)
+- `GET /api/health`: -> `{ status: "operational", healthy: true, timestamp: string, uptime: number, version: "2.3.0", services: { gemini_gateway: {...}, ota_signer: {...}, updates_dist: {...}, history_sync: {...} } }`
