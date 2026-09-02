@@ -14,3 +14,9 @@ xcuserdata/
 # OS artifacts
 .DS_Store
 Thumbs.db
+
+# Build packages
+*.ipa
+*.zip
+output/
+
