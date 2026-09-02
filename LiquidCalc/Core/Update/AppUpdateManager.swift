@@ -89,8 +89,8 @@ public final class AppUpdateManager: @unchecked Sendable {
         
         let version = customCurrentVersion
             ?? (bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
-            ?? "1.0.0"
-        let build = (bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "1"
+            ?? "2.3.0"
+        let build = (bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "23"
         
         self.currentVersionString = version
         self.currentBuildString = build

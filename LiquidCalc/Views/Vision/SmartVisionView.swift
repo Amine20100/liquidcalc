@@ -102,6 +102,8 @@ public struct SmartVisionView: View {
                         SolvedResultCardView(
                             expression: viewModel.detectedExpression,
                             result: viewModel.solvedResult,
+                            steps: viewModel.detectedSteps,
+                            explanation: viewModel.detectedExplanation,
                             onOpenInCalc: {
                                 calculatorViewModel.expression = viewModel.detectedExpression
                                 calculatorViewModel.evaluateFinal()

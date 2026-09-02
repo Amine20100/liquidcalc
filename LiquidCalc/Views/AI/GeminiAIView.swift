@@ -16,9 +16,6 @@ public struct GeminiAIView: View {
     @State private var promptText: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var selectedImage: UIImage? = nil
-    @State private var aiResponse: String = ""
-    @State private var mathResult: GeminiMathResponse? = nil
-    @State private var showCopiedAlert: Bool = false
     
     public init(calculatorViewModel: CalculatorViewModel) {
         self.calculatorViewModel = calculatorViewModel
@@ -44,6 +41,21 @@ public struct GeminiAIView: View {
                 }
                 Spacer()
                 
+                if !geminiService.chatHistory.isEmpty {
+                    Button(action: {
+                        withAnimation {
+                            geminiService.clearChat()
+                        }
+                    }) {
+                        Image(systemName: "trash.fill")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.6))
+                            .padding(6)
+                            .background(Circle().fill(Color.white.opacity(0.1)))
+                    }
+                    .buttonStyle(.plain)
+                }
+                
                 HStack(spacing: 4) {
                     Circle()
                         .fill(geminiService.isStreaming ? Color.cyan : Color.green)
@@ -62,154 +74,60 @@ public struct GeminiAIView: View {
             }
             .padding(.horizontal, 16)
             
-            // Conversation / Solution Display Area
-            ScrollView {
-                VStack(spacing: 14) {
-                    if let result = mathResult {
-                        // Formatted Math Solution Card
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("SOLVED EQUATION")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.cyan)
-                                Spacer()
-                                Button(action: {
-                                    UIPasteboard.general.string = result.result
-                                    SoundAndHapticManager.shared.triggerHaptic(.light)
-                                    withAnimation { showCopiedAlert = true }
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                                        withAnimation { showCopiedAlert = false }
-                                    }
-                                }) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "doc.on.doc")
-                                        Text(showCopiedAlert ? "Copied!" : "Copy")
-                                    }
-                                    .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.cyan)
-                                }
-                            }
-                            
-                            Text(result.expression)
-                                .font(.system(size: 16, weight: .semibold, design: .monospaced))
-                                .foregroundColor(.white.opacity(0.85))
-                            
-                            Text(result.result)
-                                .font(.system(size: 26, weight: .bold, design: .rounded))
-                                .foregroundColor(.cyan)
-                            
-                            if !result.steps.isEmpty {
-                                Divider().background(Color.white.opacity(0.15))
-                                Text("Step-by-Step Breakdown:")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.7))
+            // Conversation Display Area
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 16) {
+                        if geminiService.chatHistory.isEmpty {
+                            // Empty State / Starter Suggestions
+                            VStack(spacing: 12) {
+                                Image(systemName: "brain.head.profile")
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
+                                    .padding(.top, 40)
                                 
-                                ForEach(Array(result.steps.enumerated()), id: \.offset) { index, step in
-                                    HStack(alignment: .top, spacing: 8) {
-                                        Text("\(index + 1).")
-                                            .font(.system(size: 12, weight: .bold, design: .monospaced))
-                                            .foregroundColor(.cyan)
-                                        Text(step)
-                                            .font(.system(size: 13))
-                                            .foregroundColor(.white.opacity(0.9))
-                                    }
-                                }
-                            }
-                            
-                            if !result.explanation.isEmpty {
-                                Text(result.explanation)
-                                    .font(.system(size: 12))
+                                Text("Ask Gemini 2.5 Flash Anything")
+                                    .font(.system(size: 18, weight: .bold))
+                                    .foregroundColor(.white)
+                                
+                                Text("Snap a photo of a math problem or ask for a diagram, calculus proof, or physics explanation.")
+                                    .font(.system(size: 14))
                                     .foregroundColor(.white.opacity(0.6))
-                                    .padding(.top, 4)
-                            }
-                            
-                            Button(action: {
-                                calculatorViewModel.expression = result.result
-                                calculatorViewModel.currentMode = .standard
-                                SoundAndHapticManager.shared.triggerHaptic(.success)
-                            }) {
-                                HStack {
-                                    Image(systemName: "arrow.uturn.backward.circle.fill")
-                                    Text("Send to Standard Calculator")
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 24)
+                                
+                                // Quick Suggestion Chips
+                                VStack(spacing: 10) {
+                                    suggestionChip("Solve derivative of sin(x)*e^(2x)")
+                                    suggestionChip("Draw a flowchart of cellular respiration")
+                                    suggestionChip("Calculate moon gravitational escape velocity")
                                 }
-                                .font(.system(size: 12, weight: .bold))
-                                .foregroundColor(.black)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .background(Capsule().fill(Color.cyan))
+                                .padding(.top, 16)
                             }
-                            .buttonStyle(.plain)
-                            .padding(.top, 6)
-                        }
-                        .padding(14)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color(white: 0.12, opacity: 0.7))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .stroke(LinearGradient(colors: [.cyan.opacity(0.6), .purple.opacity(0.3)], startPoint: .topLeading, endPoint: .bottomTrailing), lineWidth: 1.5)
+                        } else {
+                            ForEach(geminiService.chatHistory) { msg in
+                                ChatMessageBubble(
+                                    message: msg,
+                                    isStreaming: geminiService.isStreaming && msg.id == geminiService.chatHistory.last?.id
                                 )
-                        )
-                    } else if !aiResponse.isEmpty {
-                        // Live Streaming Assistant Response
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("GEMINI 2.5 FLASH EXPLANATION")
-                                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                                    .foregroundColor(.purple)
-                                Spacer()
-                                if geminiService.isStreaming {
-                                    ProgressView()
-                                        .tint(.purple)
-                                        .scaleEffect(0.7)
-                                }
+                                .id(msg.id)
                             }
-                            
-                            Text(aiResponse + (geminiService.isStreaming ? " ▋" : ""))
-                                .font(.system(size: 14))
-                                .foregroundColor(.white.opacity(0.95))
-                                .lineSpacing(4)
                         }
-                        .padding(14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(
-                            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                .fill(Color(white: 0.12, opacity: 0.7))
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .stroke(Color.purple.opacity(0.4), lineWidth: 1)
-                                )
-                        )
-                    } else {
-                        // Empty State / Starter Suggestions
-                        VStack(spacing: 12) {
-                            Image(systemName: "brain.head.profile")
-                                .font(.system(size: 40))
-                                .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
-                                .padding(.top, 20)
-                            
-                            Text("Ask Gemini 2.5 Flash Anything")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                            
-                            Text("Snap a photo of a math problem or type any equation, word problem, calculus proof, or physics question.")
-                                .font(.system(size: 13))
-                                .foregroundColor(.white.opacity(0.6))
-                                .multilineTextAlignment(.center)
-                                .padding(.horizontal, 20)
-                            
-                            // Quick Suggestion Chips
-                            VStack(spacing: 8) {
-                                suggestionChip("Solve derivative of sin(x)*e^(2x)")
-                                suggestionChip("Integrate x^2 / (1 + x^3) dx")
-                                suggestionChip("Find roots of 3x^2 - 12x + 9 = 0")
-                                suggestionChip("Calculate moon gravitational escape velocity")
-                            }
-                            .padding(.top, 8)
+                    }
+                    .padding(.vertical, 16)
+                }
+                .onChange(of: geminiService.chatHistory.last?.text) { _, _ in
+                    if let lastId = geminiService.chatHistory.last?.id {
+                        proxy.scrollTo(lastId, anchor: .bottom)
+                    }
+                }
+                .onChange(of: geminiService.chatHistory.count) { _, _ in
+                    if let lastId = geminiService.chatHistory.last?.id {
+                        withAnimation {
+                            proxy.scrollTo(lastId, anchor: .bottom)
                         }
                     }
                 }
-                .padding(.horizontal, 14)
             }
             
             // Image Attachment Preview
@@ -254,9 +172,10 @@ public struct GeminiAIView: View {
                 }
                 
                 // Text Input Field
-                TextField("Ask math question or formula...", text: $promptText)
+                TextField("Ask math question or formula...", text: $promptText, axis: .vertical)
                     .font(.system(size: 14))
                     .foregroundColor(.white)
+                    .lineLimit(1...5)
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
                     .background(Color.white.opacity(0.08))
@@ -328,30 +247,16 @@ public struct GeminiAIView: View {
         let query = promptText
         let img = selectedImage
         promptText = ""
-        aiResponse = ""
-        mathResult = nil
+        selectedImage = nil
+        selectedPhotoItem = nil
         
         Task {
             do {
-                if img != nil {
-                    let result = try await geminiService.solveMath(image: img, expressionText: query)
-                    await MainActor.run {
-                        self.mathResult = result
-                        self.aiResponse = ""
-                        self.selectedImage = nil
-                        SoundAndHapticManager.shared.triggerHaptic(.success)
-                        SoundAndHapticManager.shared.playSuccessSound()
-                    }
-                } else {
-                    _ = try await geminiService.streamMathTutor(prompt: query) { chunk in
-                        Task { @MainActor in
-                            self.aiResponse += chunk
-                        }
-                    }
+                try await geminiService.streamMathTutor(prompt: query, image: img) { _ in
+                    // text chunks are appended inside streamMathTutor to chatHistory natively
                 }
             } catch {
                 await MainActor.run {
-                    self.aiResponse = "Error connecting to Gemini AI: \(error.localizedDescription)"
                     SoundAndHapticManager.shared.triggerHaptic(.error)
                 }
             }
