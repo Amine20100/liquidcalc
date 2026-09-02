@@ -100,6 +100,22 @@ public struct MainCalculatorView: View {
                     .zIndex(99)
             }
         }
+        .overlay(alignment: .top) {
+            if updateManager.hasPendingUpdateBanner, let release = updateManager.latestRelease {
+                UpdateNotificationBannerView(release: release, updateManager: updateManager)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .zIndex(50)
+            }
+        }
+        .task {
+            if updateManager.autoCheckOnLaunch {
+                // Background check with slight delay so initial render is instantaneous
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                await updateManager.checkForUpdates(manual: false)
+            }
+        }
     }
     
     private var topHeaderBar: some View {

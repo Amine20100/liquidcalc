@@ -34,6 +34,8 @@ public enum SignerTab: String, CaseIterable, Identifiable {
 
 @Observable
 public final class LiquidSignerViewModel: @unchecked Sendable {
+    public static let shared = LiquidSignerViewModel()
+    
     public var apps: [SignedApp] = []
     public var tweaks: [DylibTweak] = []
     public var logs: [SignerLogMessage] = []

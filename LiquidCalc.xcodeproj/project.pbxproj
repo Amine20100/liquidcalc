@@ -90,6 +90,7 @@
 		AA30000F2C85000100000001 /* LiquidSignerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000102C85000100000001 /* LiquidSignerView.swift */; };
 		AA3000212C85000100000001 /* LiquidSignerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000222C85000100000001 /* LiquidSignerTests.swift */; };
 		AA3000232C85000100000001 /* VaultUnlockAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */; };
+		AA3000252C85000100000001 /* UpdateNotificationBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -179,6 +180,7 @@
 		AA3000102C85000100000001 /* LiquidSignerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/LiquidSignerView.swift"; sourceTree = "<group>"; };
 		AA3000222C85000100000001 /* LiquidSignerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiquidSignerTests.swift; sourceTree = "<group>"; };
 		AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/VaultUnlockAnimationView.swift"; sourceTree = "<group>"; };
+		AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/UpdateNotificationBannerView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -324,6 +326,7 @@
 				AA30000E2C85000100000001 /* SigningProgressOverlay.swift */,
 				AA3000102C85000100000001 /* LiquidSignerView.swift */,
 				AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */,
+				AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -526,6 +529,7 @@
 				AA30000D2C85000100000001 /* SigningProgressOverlay.swift in Sources */,
 				AA30000F2C85000100000001 /* LiquidSignerView.swift in Sources */,
 				AA3000232C85000100000001 /* VaultUnlockAnimationView.swift in Sources */,
+				AA3000252C85000100000001 /* UpdateNotificationBannerView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
