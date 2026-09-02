@@ -104,38 +104,38 @@ public final class VisionMathScanner: Sendable {
     #if canImport(Vision)
     /// Scans a CGImage for mathematical expressions and text using Apple Vision VNRecognizeTextRequest
     public func scanImage(_ cgImage: CGImage, completion: @escaping @Sendable (Result<[ScannedTextObservation], Error>) -> Void) {
-        let request = VNRecognizeTextRequest { request, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            
-            guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                completion(.success([]))
-                return
-            }
-            
-            let scanner = VisionMathScanner()
-            let scannedItems: [ScannedTextObservation] = observations.compactMap { obs in
-                guard let candidate = obs.topCandidates(1).first else { return nil }
-                let raw = candidate.string
-                let sanitized = scanner.sanitizeMathString(raw)
-                return ScannedTextObservation(
-                    rawText: raw,
-                    sanitizedExpression: sanitized,
-                    boundingBox: obs.boundingBox,
-                    confidence: candidate.confidence
-                )
-            }
-            
-            completion(.success(scannedItems))
-        }
-        
-        request.recognitionLevel = .accurate
-        request.usesLanguageCorrection = false
-        
-        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
         DispatchQueue.global(qos: .userInitiated).async {
+            let request = VNRecognizeTextRequest { request, error in
+                if let error = error {
+                    completion(.failure(error))
+                    return
+                }
+                
+                guard let observations = request.results as? [VNRecognizedTextObservation] else {
+                    completion(.success([]))
+                    return
+                }
+                
+                let scanner = VisionMathScanner()
+                let scannedItems: [ScannedTextObservation] = observations.compactMap { obs in
+                    guard let candidate = obs.topCandidates(1).first else { return nil }
+                    let raw = candidate.string
+                    let sanitized = scanner.sanitizeMathString(raw)
+                    return ScannedTextObservation(
+                        rawText: raw,
+                        sanitizedExpression: sanitized,
+                        boundingBox: obs.boundingBox,
+                        confidence: candidate.confidence
+                    )
+                }
+                
+                completion(.success(scannedItems))
+            }
+            
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = false
+            
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             do {
                 try handler.perform([request])
             } catch {

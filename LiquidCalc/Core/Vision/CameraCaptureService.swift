@@ -3,6 +3,7 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
+//  High-Performance Low-Latency Camera Capture Pipeline
 //
 
 import Foundation
@@ -21,9 +22,9 @@ public protocol CameraCaptureDelegate: AnyObject {
 public final class CameraCaptureService: NSObject {
     #if canImport(AVFoundation)
     public let session = AVCaptureSession()
-    private let videoOutput = AVCaptureVideoDataOutput()
     private let photoOutput = AVCapturePhotoOutput()
     private var videoDevice: AVCaptureDevice?
+    private let cameraQueue = DispatchQueue(label: "com.liquidcalc.cameraQueue", qos: .userInitiated)
     #endif
     
     public weak var delegate: CameraCaptureDelegate?
@@ -60,13 +61,32 @@ public final class CameraCaptureService: NSObject {
         #if canImport(AVFoundation)
         guard !session.isRunning else { return }
         
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        cameraQueue.async { [weak self] in
             guard let self = self else { return }
             self.session.beginConfiguration()
-            self.session.sessionPreset = .high
+            
+            // Use optimal 1080p for crisp OCR without massive memory or thermal overhead
+            if self.session.canSetSessionPreset(.hd1920x1080) {
+                self.session.sessionPreset = .hd1920x1080
+            } else {
+                self.session.sessionPreset = .high
+            }
             
             if let device = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back) {
                 self.videoDevice = device
+                
+                // Optimize autofocus
+                do {
+                    try device.lockForConfiguration()
+                    if device.isFocusModeSupported(.continuousAutoFocus) {
+                        device.focusMode = .continuousAutoFocus
+                    }
+                    if device.isExposureModeSupported(.continuousAutoExposure) {
+                        device.exposureMode = .continuousAutoExposure
+                    }
+                    device.unlockForConfiguration()
+                } catch {}
+                
                 if let input = try? AVCaptureDeviceInput(device: device), self.session.canAddInput(input) {
                     self.session.addInput(input)
                 }
@@ -74,6 +94,7 @@ public final class CameraCaptureService: NSObject {
             
             if self.session.canAddOutput(self.photoOutput) {
                 self.session.addOutput(self.photoOutput)
+                self.photoOutput.isHighResolutionCaptureEnabled = false // Prevent 48MP stalls
             }
             
             self.session.commitConfiguration()
@@ -85,7 +106,7 @@ public final class CameraCaptureService: NSObject {
     public func stopSession() {
         #if canImport(AVFoundation)
         guard session.isRunning else { return }
-        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+        cameraQueue.async { [weak self] in
             self?.session.stopRunning()
         }
         #endif
@@ -100,7 +121,7 @@ public final class CameraCaptureService: NSObject {
                 device.torchMode = .off
                 isTorchOn = false
             } else {
-                try device.setTorchModeOn(level: 1.0)
+                try device.setTorchModeOn(level: 0.7)
                 isTorchOn = true
             }
             device.unlockForConfiguration()
@@ -110,12 +131,18 @@ public final class CameraCaptureService: NSObject {
     
     public func capturePhoto(completion: @escaping (CGImage?) -> Void) {
         #if canImport(AVFoundation)
-        let settings = AVCapturePhotoSettings()
-        let photoDelegate = PhotoCaptureDelegate { cgImage in
-            completion(cgImage)
+        cameraQueue.async { [weak self] in
+            guard let self = self else {
+                DispatchQueue.main.async { completion(nil) }
+                return
+            }
+            let settings = AVCapturePhotoSettings()
+            let photoDelegate = PhotoCaptureDelegate { cgImage in
+                completion(cgImage)
+            }
+            self.activePhotoDelegate = photoDelegate
+            self.photoOutput.capturePhoto(with: settings, delegate: photoDelegate)
         }
-        self.activePhotoDelegate = photoDelegate
-        self.photoOutput.capturePhoto(with: settings, delegate: photoDelegate)
         #else
         completion(nil)
         #endif
@@ -136,10 +163,40 @@ private final class PhotoCaptureDelegate: NSObject, AVCapturePhotoCaptureDelegat
     
     func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
         guard error == nil, let cgImage = photo.cgImageRepresentation() else {
-            completion(nil)
+            DispatchQueue.main.async { self.completion(nil) }
             return
         }
-        completion(cgImage)
+        
+        // Downscale in background if larger than 1920 to ensure 60fps responsiveness
+        let width = cgImage.width
+        let height = cgImage.height
+        let maxDim = max(width, height)
+        
+        if maxDim > 1920 {
+            let scale = 1920.0 / Double(maxDim)
+            let newWidth = Int(Double(width) * scale)
+            let newHeight = Int(Double(height) * scale)
+            
+            if let colorSpace = cgImage.colorSpace,
+               let context = CGContext(
+                data: nil,
+                width: newWidth,
+                height: newHeight,
+                bitsPerComponent: cgImage.bitsPerComponent,
+                bytesPerRow: 0,
+                space: colorSpace,
+                bitmapInfo: cgImage.bitmapInfo.rawValue
+               ) {
+                context.interpolationQuality = .medium
+                context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
+                if let resized = context.makeImage() {
+                    self.completion(resized)
+                    return
+                }
+            }
+        }
+        
+        self.completion(cgImage)
     }
 }
 #endif
