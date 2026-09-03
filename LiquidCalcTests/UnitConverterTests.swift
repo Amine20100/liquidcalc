@@ -6,7 +6,9 @@
 //
 
 import XCTest
-#if canImport(LiquidCalcCore)
+#if canImport(LiquidCalc)
+@testable import LiquidCalc
+#elseif canImport(LiquidCalcCore)
 @testable import LiquidCalcCore
 #endif
 

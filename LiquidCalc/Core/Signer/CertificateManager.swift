@@ -226,8 +226,8 @@ public final class CertificateManager: @unchecked Sendable {
         try fileManager.createDirectory(at: tempExtractDir, withIntermediateDirectories: true)
         defer { try? fileManager.removeItem(at: tempExtractDir) }
         
-        #if os(macOS) || os(iOS)
-        // If unzip binary is available (e.g. jailbroken / mac)
+        #if os(macOS)
+        // If unzip binary is available on macOS host
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
         process.arguments = ["-q", zipUrl.path, "-d", tempExtractDir.path]
@@ -259,8 +259,8 @@ public final class CertificateManager: @unchecked Sendable {
     // MARK: - ESign Certificate Revocation & Health Check
     
     public func checkRevocationStatus(for certificate: SigningCertificate) async -> Bool {
-        guard let p12Url = getP12Url(for: certificate),
-              let p12Data = try? Data(contentsOf: p12Url) else {
+        let p12Url = urlForCertificate(certificate)
+        guard let p12Data = try? Data(contentsOf: p12Url) else {
             return false
         }
         
