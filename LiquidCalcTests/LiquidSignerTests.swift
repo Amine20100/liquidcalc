@@ -263,5 +263,28 @@ final class LiquidSignerTests: XCTestCase {
         XCTAssertTrue(config.enableFileSharing)
         XCTAssertTrue(config.installAfterSigned)
     }
+    
+    // MARK: - Test 8: Tweak Catalog & Mach-O Inspection (v2.6.0)
+    
+    func testTweakCatalogInitialItems() {
+        let manager = TweakCatalogManager.shared
+        XCTAssertFalse(manager.catalogItems.isEmpty, "Tweak catalog should have built-in items")
+        XCTAssertTrue(manager.catalogItems.contains(where: { $0.filename.contains("FLEXing") }))
+        XCTAssertTrue(manager.catalogItems.contains(where: { $0.filename.contains("FileBrowser") }))
+    }
+    
+    func testMachOInspectionReportDefaults() {
+        let report = MachOInspectionReport(
+            appName: "SampleApp",
+            bundleId: "com.sample.app",
+            executableName: "SampleApp"
+        )
+        
+        XCTAssertEqual(report.appName, "SampleApp")
+        XCTAssertEqual(report.bundleId, "com.sample.app")
+        XCTAssertFalse(report.isFairPlayEncrypted)
+        XCTAssertTrue(report.architectures.contains("arm64"))
+        XCTAssertGreaterThan(report.linkedLibraries.count, 0)
+    }
 }
 

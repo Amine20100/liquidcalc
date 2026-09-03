@@ -132,12 +132,12 @@ public final class AppUpdateManager: NSObject, @unchecked Sendable, URLSessionDo
         
         let version = customCurrentVersion
             ?? (bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
-            ?? "2.5.0"
-        let build = (bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "25"
+            ?? "2.6.0"
+        let build = (bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "26"
         
         self.currentVersionString = version
         self.currentBuildString = build
-        self.currentSemanticVersion = SemanticVersion(version) ?? SemanticVersion(major: 2, minor: 5, patch: 0)
+        self.currentSemanticVersion = SemanticVersion(version) ?? SemanticVersion(major: 2, minor: 6, patch: 0)
         
         self.autoCheckOnLaunch = userDefaults.object(forKey: Self.autoCheckDefaultsKey) == nil ? true : userDefaults.bool(forKey: Self.autoCheckDefaultsKey)
         self.includePreReleases = userDefaults.bool(forKey: Self.updateChannelDefaultsKey)

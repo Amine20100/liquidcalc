@@ -235,3 +235,92 @@ public struct SigningConfig: Sendable {
         self.installAfterSigned = installAfterSigned
     }
 }
+
+// MARK: - Tweak Catalog & Repository Models
+
+public struct TweakCatalogItem: Identifiable, Codable, Sendable, Equatable {
+    public let id: UUID
+    public var name: String
+    public var filename: String
+    public var summary: String
+    public var category: String
+    public var version: String
+    public var author: String
+    public var downloadUrl: String?
+    public var isBuiltIn: Bool
+    public var isEnabled: Bool
+    
+    public init(
+        id: UUID = UUID(),
+        name: String,
+        filename: String,
+        summary: String,
+        category: String,
+        version: String = "1.0.0",
+        author: String = "Community",
+        downloadUrl: String? = nil,
+        isBuiltIn: Bool = true,
+        isEnabled: Bool = false
+    ) {
+        self.id = id
+        self.name = name
+        self.filename = filename
+        self.summary = summary
+        self.category = category
+        self.version = version
+        self.author = author
+        self.downloadUrl = downloadUrl
+        self.isBuiltIn = isBuiltIn
+        self.isEnabled = isEnabled
+    }
+}
+
+// MARK: - Mach-O Binary Inspection Report
+
+public struct MachOInspectionReport: Identifiable, Sendable {
+    public let id: UUID = UUID()
+    public var appName: String
+    public var bundleId: String
+    public var executableName: String
+    public var architectures: [String]
+    public var minOSVersion: String
+    public var sdkVersion: String
+    public var isFairPlayEncrypted: Bool
+    public var loadCommandsCount: Int
+    public var linkedLibraries: [String]
+    public var entitlementsSummary: [String: String]
+    
+    public init(
+        appName: String,
+        bundleId: String,
+        executableName: String,
+        architectures: [String] = ["arm64"],
+        minOSVersion: String = "15.0",
+        sdkVersion: String = "17.5",
+        isFairPlayEncrypted: Bool = false,
+        loadCommandsCount: Int = 42,
+        linkedLibraries: [String] = [
+            "/System/Library/Frameworks/UIKit.framework/UIKit",
+            "/System/Library/Frameworks/Foundation.framework/Foundation",
+            "/System/Library/Frameworks/CoreGraphics.framework/CoreGraphics",
+            "/usr/lib/libobjc.A.dylib",
+            "/usr/lib/libSystem.B.dylib"
+        ],
+        entitlementsSummary: [String: String] = [
+            "get-task-allow": "false",
+            "application-identifier": "TEAMID.*",
+            "keychain-access-groups": "TEAMID.*"
+        ]
+    ) {
+        self.appName = appName
+        self.bundleId = bundleId
+        self.executableName = executableName
+        self.architectures = architectures
+        self.minOSVersion = minOSVersion
+        self.sdkVersion = sdkVersion
+        self.isFairPlayEncrypted = isFairPlayEncrypted
+        self.loadCommandsCount = loadCommandsCount
+        self.linkedLibraries = linkedLibraries
+        self.entitlementsSummary = entitlementsSummary
+    }
+}
