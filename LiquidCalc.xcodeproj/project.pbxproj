@@ -286,6 +286,7 @@
 				AA3000042C85000100000001 /* CertificateManager.swift */,
 				AA3000062C85000100000001 /* LiquidSignEngine.swift */,
 				AA3000082C85000100000001 /* LocalInstallServer.swift */,
+				AA3000322C85000100000001 /* TweakCatalogManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -338,7 +339,6 @@
 				AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */,
 				AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */,
 				AA3000282C85000100000001 /* SignerStudioView.swift */,
-				AA3000322C85000100000001 /* TweakCatalogManager.swift */,
 				AA3000342C85000100000001 /* MachOInspectorView.swift */,
 				AA3000362C85000100000001 /* TweakCatalogSheetView.swift */,
 				AA3000382C85000100000001 /* CertificateStoreView.swift */,
