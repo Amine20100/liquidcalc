@@ -13,6 +13,7 @@ import UIKit
 #endif
 
 public enum SignerTab: String, CaseIterable, Identifiable {
+    case signer = "Signer"
     case apps = "Apps"
     case certificates = "Certificates"
     case tweaks = "Tweaks"
@@ -23,6 +24,7 @@ public enum SignerTab: String, CaseIterable, Identifiable {
     
     public var iconName: String {
         switch self {
+        case .signer: return "bolt.shield.fill"
         case .apps: return "app.badge.checkmark"
         case .certificates: return "lock.shield.fill"
         case .tweaks: return "puzzlepiece.extension.fill"
@@ -32,6 +34,13 @@ public enum SignerTab: String, CaseIterable, Identifiable {
     }
 }
 
+public enum SigningEngineMode: String, CaseIterable, Identifiable, Sendable {
+    case onDevice = "On-Device Swift"
+    case cloudServer = "Cloud Signer Server"
+    
+    public var id: String { rawValue }
+}
+
 @Observable
 public final class LiquidSignerViewModel: @unchecked Sendable {
     public static let shared = LiquidSignerViewModel()
@@ -39,7 +48,8 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
     public var apps: [SignedApp] = []
     public var tweaks: [DylibTweak] = []
     public var logs: [SignerLogMessage] = []
-    public var selectedTab: SignerTab = .apps
+    public var selectedTab: SignerTab = .signer
+    public var selectedEngineMode: SigningEngineMode = .onDevice
     
     public var isSigning: Bool = false
     public var signingProgress: Double = 0.0
@@ -249,6 +259,91 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
                     if let idx = self.apps.firstIndex(where: { $0.id == app.id }) {
                         self.apps[idx].status = .failed
                     }
+                    SoundAndHapticManager.shared.triggerHaptic(.error)
+                }
+            }
+        }
+    }
+    
+    // MARK: - Engine Routing
+    
+    public func signAppWithSelectedEngine(app: SignedApp, config: SigningConfig) {
+        if selectedEngineMode == .cloudServer {
+            signIPAWithCloud(app: app, config: config)
+        } else {
+            startSigning(app: app, config: config)
+        }
+    }
+    
+    public func signIPAWithCloud(app: SignedApp, config: SigningConfig) {
+        DispatchQueue.main.async {
+            self.isSigning = true
+            self.signingProgress = 0.15
+            self.signingStage = "Connecting to Cloud Signer..."
+            self.activeSigningApp = app
+        }
+        
+        appendLog("Connecting to Liquid Cloud Signer (https://liquidcalc-backend.vercel.app)...", .info)
+        SoundAndHapticManager.shared.triggerHaptic(.medium)
+        
+        Task {
+            guard let url = URL(string: "https://liquidcalc-backend.vercel.app/api/signer/sign") else { return }
+            var request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.timeoutInterval = 30.0
+            
+            let payload: [String: Any] = [
+                "appName": config.customName.isEmpty ? app.name : config.customName,
+                "bundleId": config.customBundleId.isEmpty ? app.bundleIdentifier : config.customBundleId,
+                "version": config.customVersion.isEmpty ? app.version : config.customVersion,
+                "removeExtensions": config.removeExtensions,
+                "dylibs": config.dylibs.filter { $0.isEnabled }.map { $0.filename }
+            ]
+            
+            do {
+                request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+                
+                await MainActor.run {
+                    self.signingProgress = 0.50
+                    self.signingStage = "Processing Remote Entitlements & Signatures..."
+                }
+                
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResp = response as? HTTPURLResponse, (200...299).contains(httpResp.statusCode) else {
+                    throw NSError(domain: "CloudSignerError", code: 500, userInfo: [NSLocalizedDescriptionKey: "Remote signer returned invalid status"])
+                }
+                
+                if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    if let logs = json["auditLogs"] as? [String] {
+                        for log in logs {
+                            self.appendLog(log, .terminal)
+                        }
+                    }
+                }
+                
+                await MainActor.run {
+                    if let idx = self.apps.firstIndex(where: { $0.id == app.id }) {
+                        self.apps[idx].name = config.customName.isEmpty ? self.apps[idx].name : config.customName
+                        self.apps[idx].bundleIdentifier = config.customBundleId.isEmpty ? self.apps[idx].bundleIdentifier : config.customBundleId
+                        self.apps[idx].version = config.customVersion.isEmpty ? self.apps[idx].version : config.customVersion
+                        self.apps[idx].dateSigned = Date()
+                        self.apps[idx].status = .signed
+                        self.apps[idx].injectedDylibs = config.dylibs.filter { $0.isEnabled }.map { $0.filename }
+                        self.saveData()
+                    }
+                    
+                    self.isSigning = false
+                    self.signingProgress = 1.0
+                    self.activeSigningApp = self.apps.first(where: { $0.id == app.id })
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                    SoundAndHapticManager.shared.playSuccessSound()
+                    self.appendLog("✓ Cloud Signing finished with status: SIGNED", .success)
+                }
+            } catch {
+                await MainActor.run {
+                    self.isSigning = false
+                    self.appendLog("Cloud Signer failed: \(error.localizedDescription)", .error)
                     SoundAndHapticManager.shared.triggerHaptic(.error)
                 }
             }
