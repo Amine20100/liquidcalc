@@ -880,32 +880,111 @@ public struct LiquidSignerView: View {
                         .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).stroke(Color.white.opacity(0.08), lineWidth: 0.8))
                 )
                 
-                // Local OTA Server Card
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("LOCAL OTA INSTALL SERVER")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.green)
-                    
+                // Signer Server Suite Card (Local + Cloud)
+                VStack(alignment: .leading, spacing: 14) {
                     HStack {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Micro HTTP Server")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.white)
-                            Text("Binds to 127.0.0.1:8080 for itms-services installation")
-                                .font(.system(size: 11))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        Spacer()
-                        
-                        Toggle("", isOn: Binding(
-                            get: { localServer.isRunning },
-                            set: { running in
-                                if running { localServer.start() } else { localServer.stop() }
-                            }
-                        ))
-                        .labelsHidden()
-                        .tint(.green)
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.cyan)
+                        Text("SIGNER SERVERS & DISTRIBUTION")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(.cyan)
                     }
+                    
+                    // 1. Local OTA Micro HTTP Server
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(localServer.isRunning ? Color(red: 0.0, green: 1.0, blue: 0.64) : Color.gray)
+                                        .frame(width: 8, height: 8)
+                                    Text("Local OTA Server")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
+                                }
+                                Text("Streams signed IPAs over Wi-Fi for 1-tap installation")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            Spacer()
+                            
+                            Toggle("", isOn: Binding(
+                                get: { localServer.isRunning },
+                                set: { running in
+                                    if running {
+                                        localServer.start()
+                                        SoundAndHapticManager.shared.triggerHaptic(.success)
+                                    } else {
+                                        localServer.stop()
+                                        SoundAndHapticManager.shared.triggerHaptic(.light)
+                                    }
+                                }
+                            ))
+                            .labelsHidden()
+                            .tint(Color(red: 0.0, green: 1.0, blue: 0.64))
+                        }
+                        
+                        if localServer.isRunning {
+                            HStack(spacing: 12) {
+                                Label("IP: \(localServer.localIPAddress):8080", systemImage: "network")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(.cyan)
+                                
+                                Label("Clients: \(localServer.activeClients)", systemImage: "person.2.fill")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.6))
+                                
+                                Label(ByteCountFormatter.string(fromByteCount: localServer.totalBytesServed, countStyle: .file), systemImage: "arrow.up.arrow.down")
+                                    .font(.system(size: 10, design: .monospaced))
+                                    .foregroundColor(.white.opacity(0.6))
+                            }
+                            .padding(.top, 2)
+                        }
+                    }
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
+                    
+                    // 2. Liquid Cloud Signer Server (Vercel)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 6) {
+                                    Circle()
+                                        .fill(Color.purple)
+                                        .frame(width: 8, height: 8)
+                                    Text("Liquid Cloud Signer Server")
+                                        .font(.system(size: 14, weight: .semibold))
+                                        .foregroundColor(.white)
+                                }
+                                Text("Remote signing gateway, certificate inspection & Apple manifest hub")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.white.opacity(0.5))
+                            }
+                            Spacer()
+                            
+                            Link(destination: URL(string: "https://liquidcalc-backend.vercel.app")!) {
+                                HStack(spacing: 4) {
+                                    Text("Online")
+                                        .font(.system(size: 11, weight: .bold))
+                                    Image(systemName: "arrow.up.right")
+                                        .font(.system(size: 9))
+                                }
+                                .foregroundColor(.purple)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(Color.purple.opacity(0.18))
+                                .clipShape(Capsule())
+                            }
+                        }
+                        
+                        Text("Endpoints: /api/signer/sign • /api/signer/certificate • /api/signer/manifest • /api/signer/status")
+                            .font(.system(size: 9, design: .monospaced))
+                            .foregroundColor(.white.opacity(0.4))
+                            .padding(.top, 2)
+                    }
+                    .padding(12)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(Color.white.opacity(0.04)))
                 }
                 .padding(16)
                 .background(
