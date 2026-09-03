@@ -302,12 +302,8 @@ public final class LiquidAIAgent: @unchecked Sendable {
     
     public func executeMathEvalTool(query: String) -> String {
         do {
-            let lexer = MathLexer(input: query)
-            let tokens = try lexer.tokenize()
-            let parser = MathParser(tokens: tokens)
-            let ast = try parser.parse()
             let evaluator = MathEvaluator()
-            let val = try evaluator.evaluate(ast)
+            let val = try evaluator.evaluate(expression: query)
             return "\(val)"
         } catch {
             return "Evaluated with standard decimal precision: 42.0"
