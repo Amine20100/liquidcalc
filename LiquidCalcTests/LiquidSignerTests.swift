@@ -211,5 +211,33 @@ final class LiquidSignerTests: XCTestCase {
         XCTAssertEqual(maxProgress, 1.0, "Signing pipeline must reach 100% progress")
         XCTAssertTrue(recordedStages.contains(where: { $0.contains("Packaging") || $0.contains("complete") }))
     }
+    
+    // MARK: - Test 5: Signer Studio & Engine Modes
+    
+    func testSignerStudioTabAndModes() {
+        let viewModel = LiquidSignerViewModel()
+        
+        XCTAssertEqual(viewModel.selectedTab, .signer, "Default landing tab in vault must be the Signer Studio")
+        XCTAssertEqual(viewModel.selectedEngineMode, .onDevice)
+        
+        // Test tab icon
+        XCTAssertEqual(SignerTab.signer.iconName, "bolt.shield.fill")
+        XCTAssertEqual(SignerTab.signer.rawValue, "Signer")
+        
+        // Switch engine mode
+        viewModel.selectedEngineMode = .cloudServer
+        XCTAssertEqual(viewModel.selectedEngineMode, .cloudServer)
+    }
+    
+    // MARK: - Test 6: Local Install Server & Cloud Assisted Manifest
+    
+    func testLocalInstallServerNetworkInstallURL() {
+        let server = LocalInstallServer.shared
+        let urlString = server.networkInstallURL(for: "LiquidTest", bundleId: "com.test.app")
+        
+        XCTAssertTrue(urlString.hasPrefix("itms-services://?action=download-manifest&url="))
+        XCTAssertTrue(urlString.contains("liquidcalc-backend.vercel.app"))
+        XCTAssertTrue(urlString.contains("com.test.app"))
+    }
 }
 

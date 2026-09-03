@@ -58,6 +58,13 @@ public struct LiquidSignerView: View {
                 
                 // Active Tab Content
                 TabView(selection: $signerViewModel.selectedTab) {
+                    SignerStudioView(
+                        signerViewModel: signerViewModel,
+                        certManager: certManager,
+                        localServer: localServer
+                    )
+                    .tag(SignerTab.signer)
+                    
                     appsTab
                         .tag(SignerTab.apps)
                     
