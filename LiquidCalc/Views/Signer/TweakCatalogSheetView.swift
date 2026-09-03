@@ -9,8 +9,8 @@
 import SwiftUI
 
 public struct TweakCatalogSheetView: View {
-    @ObservedObject var catalogManager: TweakCatalogManager
-    @ObservedObject var signerViewModel: LiquidSignerViewModel
+    @Bindable var catalogManager: TweakCatalogManager
+    @Bindable var signerViewModel: LiquidSignerViewModel
     @Environment(\.dismiss) private var dismiss
     
     @State private var customUrlString: String = ""
@@ -228,10 +228,14 @@ public struct TweakCatalogSheetView: View {
     }
     
     private func syncTweaksWithSigner() {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? FileManager.default.temporaryDirectory
+        let tweaksDir = appSupport.appendingPathComponent("LiquidSigner/Tweaks", isDirectory: true)
+        
         for item in catalogManager.catalogItems where item.isEnabled {
             if !signerViewModel.tweaks.contains(where: { $0.filename == item.filename }) {
+                let fileUrl = tweaksDir.appendingPathComponent(item.filename)
                 signerViewModel.tweaks.append(
-                    DylibTweak(name: item.name, filename: item.filename, isEnabled: true)
+                    DylibTweak(filename: item.filename, fileUrl: fileUrl, isEnabled: true)
                 )
             }
         }
