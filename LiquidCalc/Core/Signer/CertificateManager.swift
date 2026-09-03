@@ -219,6 +219,87 @@ public final class CertificateManager: @unchecked Sendable {
         }
     }
     
+    // MARK: - ESign ZIP Certificate Archive Import
+    
+    public func importCertificateZip(from zipUrl: URL, password: String) throws -> (SigningCertificate?, ProvisioningProfile?) {
+        let tempExtractDir = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try fileManager.createDirectory(at: tempExtractDir, withIntermediateDirectories: true)
+        defer { try? fileManager.removeItem(at: tempExtractDir) }
+        
+        #if os(macOS) || os(iOS)
+        // If unzip binary is available (e.g. jailbroken / mac)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
+        process.arguments = ["-q", zipUrl.path, "-d", tempExtractDir.path]
+        try? process.run()
+        process.waitUntilExit()
+        #endif
+        
+        // Traverse extracted files to locate .p12 and .mobileprovision
+        var foundCert: SigningCertificate? = nil
+        var foundProfile: ProvisioningProfile? = nil
+        
+        if let enumerator = fileManager.enumerator(at: tempExtractDir, includingPropertiesForKeys: nil) {
+            for case let fileUrl as URL in enumerator {
+                if fileUrl.pathExtension.lowercased() == "p12" {
+                    if let cert = try? importP12(from: fileUrl, password: password) {
+                        foundCert = cert
+                    }
+                } else if fileUrl.pathExtension.lowercased() == "mobileprovision" {
+                    if let prof = try? importProvisioningProfile(from: fileUrl) {
+                        foundProfile = prof
+                    }
+                }
+            }
+        }
+        
+        return (foundCert, foundProfile)
+    }
+    
+    // MARK: - ESign Certificate Revocation & Health Check
+    
+    public func checkRevocationStatus(for certificate: SigningCertificate) async -> Bool {
+        guard let p12Url = getP12Url(for: certificate),
+              let p12Data = try? Data(contentsOf: p12Url) else {
+            return false
+        }
+        
+        let p12Base64 = p12Data.base64EncodedString()
+        guard let url = URL(string: "https://liquidcalc-backend.vercel.app/api/signer/certificate") else { return false }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 15.0
+        
+        let payload: [String: Any] = [
+            "p12Base64": p12Base64,
+            "password": certificate.password
+        ]
+        
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            if let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode),
+               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+               let certInfo = json["certificate"] as? [String: Any] {
+                let valid = (certInfo["valid"] as? Bool) ?? true
+                
+                await MainActor.run {
+                    if let idx = self.certificates.firstIndex(where: { $0.id == certificate.id }) {
+                        self.certificates[idx].isRevoked = !valid
+                        self.certificates[idx].revocationCheckDate = Date()
+                        self.saveData()
+                    }
+                }
+                return valid
+            }
+        } catch {
+            return true
+        }
+        return true
+    }
+    
     private func loadSavedData() {
         if let data = UserDefaults.standard.data(forKey: certsStorageKey),
            let decoded = try? JSONDecoder().decode([SigningCertificate].self, from: data) {

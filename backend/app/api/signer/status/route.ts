@@ -6,10 +6,10 @@ export async function GET() {
   const uptime = process.uptime();
   
   return NextResponse.json({
-    service: "Liquid Signer Cloud Server",
+    service: "ZSign Cloud Server (zhlynn/zsign Integration)",
     status: "operational",
     version: "2.5.0",
-    engine: "Pure-TypeScript / Node Cryptographic SuperBlob & Mach-O Pipeline",
+    engine: "zsign C++ + TypeScript Cryptographic SuperBlob & Mach-O Pipeline",
     supportedArchitectures: ["arm64", "arm64e", "universal2"],
     signingAlgorithms: [
       "sha256WithRSAEncryption",

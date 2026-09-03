@@ -72,6 +72,8 @@ public struct SigningCertificate: Identifiable, Codable, Sendable, Equatable {
     public var p12FileName: String
     public var password: String
     public var isDefault: Bool
+    public var isRevoked: Bool
+    public var revocationCheckDate: Date?
     
     public init(
         id: UUID = UUID(),
@@ -82,7 +84,9 @@ public struct SigningCertificate: Identifiable, Codable, Sendable, Equatable {
         expirationDate: Date,
         p12FileName: String,
         password: String = "",
-        isDefault: Bool = false
+        isDefault: Bool = false,
+        isRevoked: Bool = false,
+        revocationCheckDate: Date? = nil
     ) {
         self.id = id
         self.name = name
@@ -93,10 +97,16 @@ public struct SigningCertificate: Identifiable, Codable, Sendable, Equatable {
         self.p12FileName = p12FileName
         self.password = password
         self.isDefault = isDefault
+        self.isRevoked = isRevoked
+        self.revocationCheckDate = revocationCheckDate
     }
     
     public var isExpired: Bool {
         expirationDate < Date()
+    }
+    
+    public var isValid: Bool {
+        !isExpired && !isRevoked
     }
     
     public var daysRemaining: Int {
@@ -197,6 +207,9 @@ public struct SigningConfig: Sendable {
     public var profile: ProvisioningProfile?
     public var dylibs: [DylibTweak]
     public var removeExtensions: Bool
+    public var injectGetTaskAllow: Bool
+    public var enableFileSharing: Bool
+    public var installAfterSigned: Bool
     
     public init(
         customName: String,
@@ -205,7 +218,10 @@ public struct SigningConfig: Sendable {
         certificate: SigningCertificate? = nil,
         profile: ProvisioningProfile? = nil,
         dylibs: [DylibTweak] = [],
-        removeExtensions: Bool = false
+        removeExtensions: Bool = false,
+        injectGetTaskAllow: Bool = false,
+        enableFileSharing: Bool = true,
+        installAfterSigned: Bool = false
     ) {
         self.customName = customName
         self.customBundleId = customBundleId
@@ -214,5 +230,8 @@ public struct SigningConfig: Sendable {
         self.profile = profile
         self.dylibs = dylibs
         self.removeExtensions = removeExtensions
+        self.injectGetTaskAllow = injectGetTaskAllow
+        self.enableFileSharing = enableFileSharing
+        self.installAfterSigned = installAfterSigned
     }
 }

@@ -24,8 +24,11 @@ public struct SignerStudioView: View {
     @State private var customBundleId: String = ""
     @State private var customVersion: String = "1.0"
     @State private var stripExtensions: Bool = true
+    @State private var removeWatchApp: Bool = true
     @State private var injectTaskAllow: Bool = false
     @State private var enableFileSharing: Bool = true
+    @State private var adhocMode: Bool = false
+    @State private var autoInstallAfterSigning: Bool = false
     
     @State private var showIpaPicker: Bool = false
     @State private var showDylibPicker: Bool = false
@@ -57,6 +60,8 @@ public struct SignerStudioView: View {
                 dylibInjectionCard
                 
                 compatibilityCard
+                
+                zsignCommandCard
                 
                 signActionButton
                 
@@ -105,11 +110,11 @@ public struct SignerStudioView: View {
                     Image(systemName: "bolt.shield.fill")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(LinearGradient(colors: [.cyan, .purple], startPoint: .topLeading, endPoint: .bottomTrailing))
-                    Text("SIGNER STUDIO")
+                    Text("ZSIGN STUDIO")
                         .font(.system(size: 14, weight: .black, design: .monospaced))
                         .foregroundStyle(LinearGradient(colors: [.cyan, .white], startPoint: .leading, endPoint: .trailing))
                 }
-                Text("Enterprise On-Device & Cloud Sideloading Workbench")
+                Text("Fast Cross-Platform iOS Code Signer • zhlynn/zsign")
                     .font(.system(size: 11))
                     .foregroundColor(.white.opacity(0.6))
             }
@@ -135,21 +140,21 @@ public struct SignerStudioView: View {
     
     private var engineSelectorCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("SIGNING ENGINE")
+            Text("ZSIGN ENGINE MODE")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.cyan)
             
             HStack(spacing: 8) {
                 engineButton(
-                    title: "On-Device Swift",
-                    subtitle: "Zero network • Pure Swift crypto",
+                    title: "ZSign Native Swift",
+                    subtitle: "Zero network • Pure zsign crypto",
                     icon: "cpu.fill",
                     mode: .onDevice
                 )
                 
                 engineButton(
-                    title: "Cloud Signer Server",
-                    subtitle: "Remote cluster • Instant OTA",
+                    title: "ZSign Cloud Cluster",
+                    subtitle: "Remote zsign server • Instant OTA",
                     icon: "cloud.fill",
                     mode: .cloudServer
                 )
@@ -477,28 +482,38 @@ public struct SignerStudioView: View {
         )
     }
     
-    // MARK: - 7. Compatibility Card
+    // MARK: - 7. Compatibility Card (zsign CLI flags)
     
     private var compatibilityCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("COMPATIBILITY & HARDENING")
+            Text("ZSIGN COMPATIBILITY & HARNESSING")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.cyan)
             
-            Toggle("Strip Unsupported Extensions (PlugIns/Watch)", isOn: $stripExtensions)
+            Toggle("[-E] Strip App Extensions (PlugIns/Extensions)", isOn: $stripExtensions)
                 .font(.system(size: 12))
                 .foregroundColor(.white)
                 .tint(.cyan)
             
-            Toggle("Inject get-task-allow (Safari / LLDB Debugging)", isOn: $injectTaskAllow)
+            Toggle("[-W] Remove Watch Applications", isOn: $removeWatchApp)
                 .font(.system(size: 12))
                 .foregroundColor(.white)
                 .tint(.cyan)
             
-            Toggle("Enable iTunes & Finder File Sharing", isOn: $enableFileSharing)
+            Toggle("[-S] Enable Files App & Document Sharing", isOn: $enableFileSharing)
                 .font(.system(size: 12))
                 .foregroundColor(.white)
                 .tint(.cyan)
+            
+            Toggle("[-a] Ad-Hoc Signature Mode (TrollStore / Jailbreak)", isOn: $adhocMode)
+                .font(.system(size: 12))
+                .foregroundColor(.white)
+                .tint(.cyan)
+            
+            Toggle("[✓] Auto-Install via Wireless OTA After Signing", isOn: $autoInstallAfterSigning)
+                .font(.system(size: 12))
+                .foregroundColor(.white)
+                .tint(.green)
         }
         .padding(14)
         .background(
@@ -508,14 +523,108 @@ public struct SignerStudioView: View {
         )
     }
     
-    // MARK: - 8. Sign Action Button
+    // MARK: - 8. Live ZSign CLI Command Inspector
+    
+    private var zsignCommandCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "terminal.fill")
+                        .font(.system(size: 11))
+                        .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                    Text("ZSIGN CLI INVOCATION")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                }
+                
+                Spacer()
+                
+                Button(action: {
+                    #if canImport(UIKit)
+                    UIPasteboard.general.string = generatedZSignCommand
+                    #endif
+                    SoundAndHapticManager.shared.triggerHaptic(.light)
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.on.doc")
+                        Text("Copy Command")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.cyan.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+            }
+            
+            Text(generatedZSignCommand)
+                .font(.system(size: 10, weight: .medium, design: .monospaced))
+                .foregroundColor(.white.opacity(0.85))
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.black.opacity(0.5))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.white.opacity(0.1), lineWidth: 0.8))
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color.white.opacity(0.04))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.08), lineWidth: 0.8))
+        )
+    }
+    
+    private var generatedZSignCommand: String {
+        var parts = ["zsign"]
+        if adhocMode {
+            parts.append("-a")
+        } else {
+            if let cert = certManager.activeCertificate {
+                parts.append("-k \(cert.name.replacingOccurrences(of: " ", with: "_")).p12")
+                if !cert.password.isEmpty {
+                    parts.append("-p \(cert.password)")
+                }
+            }
+            if let profile = certManager.activeProfile {
+                parts.append("-m \(profile.name.replacingOccurrences(of: " ", with: "_")).mobileprovision")
+            }
+        }
+        if !customBundleId.isEmpty {
+            parts.append("-b '\(customBundleId)'")
+        }
+        if !customName.isEmpty {
+            parts.append("-n '\(customName)'")
+        }
+        if !customVersion.isEmpty {
+            parts.append("-r '\(customVersion)'")
+        }
+        for tweak in signerViewModel.tweaks.filter({ $0.isEnabled }) {
+            parts.append("-l '\(tweak.filename)'")
+        }
+        if stripExtensions {
+            parts.append("-E")
+        }
+        if removeWatchApp {
+            parts.append("-W")
+        }
+        if enableFileSharing {
+            parts.append("-S")
+        }
+        let outName = (customName.isEmpty ? "app" : customName.replacingOccurrences(of: " ", with: "_")) + "_signed.ipa"
+        parts.append("-o '\(outName)'")
+        parts.append(selectedApp?.name ?? "input.ipa")
+        return parts.joined(separator: " ")
+    }
+    
+    // MARK: - 9. Sign Action Button
     
     private var signActionButton: some View {
         Button(action: executeSigning) {
             HStack(spacing: 8) {
                 Image(systemName: "bolt.fill")
                     .font(.system(size: 16, weight: .black))
-                Text(signerViewModel.selectedEngineMode == .cloudServer ? "SIGN WITH CLOUD SERVER" : "SIGN APPLICATION NOW")
+                Text(signerViewModel.selectedEngineMode == .cloudServer ? "SIGN WITH ZSIGN CLOUD" : "SIGN WITH ZSIGN ENGINE")
                     .font(.system(size: 14, weight: .black, design: .monospaced))
             }
             .foregroundColor(.black)
@@ -623,10 +732,13 @@ public struct SignerStudioView: View {
             customName: customName.trimmingCharacters(in: .whitespaces),
             customBundleId: customBundleId.trimmingCharacters(in: .whitespaces),
             customVersion: customVersion.trimmingCharacters(in: .whitespaces),
-            certificate: certManager.activeCertificate,
-            profile: certManager.activeProfile,
+            certificate: adhocMode ? nil : certManager.activeCertificate,
+            profile: adhocMode ? nil : certManager.activeProfile,
             dylibs: signerViewModel.tweaks.filter { $0.isEnabled },
-            removeExtensions: stripExtensions
+            removeExtensions: stripExtensions,
+            injectGetTaskAllow: injectTaskAllow,
+            enableFileSharing: enableFileSharing,
+            installAfterSigned: autoInstallAfterSigning
         )
         
         signerViewModel.signAppWithSelectedEngine(app: app, config: config)

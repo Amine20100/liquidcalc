@@ -15,6 +15,9 @@ jobs:
     steps:
       - name: Checkout Source Code
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
 
       - name: Verify Xcode Environment
         run: |
@@ -80,12 +83,30 @@ jobs:
           path: output/LiquidCalc.zip
           retention-days: 14
 
-      - name: Attach IPA & App to GitHub Release
+      - name: Build Native zsign Binary (zhlynn/zsign)
+        run: |
+          echo "Building zsign binary on macOS..."
+          cd zsign/build/macos
+          make clean && make
+          echo "zsign successfully built:"
+          ls -la ../../bin/zsign
+          cp ../../bin/zsign ../../../output/zsign
+          chmod +x ../../../output/zsign
+          ../../../output/zsign -v || true
+
+      - name: Upload Built zsign Binary Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: zsign-macos-binary
+          path: output/zsign
+          retention-days: 14
+
+      - name: Attach IPA, App & zsign to GitHub Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Attaching LiquidCalc.ipa and LiquidCalc.zip to release..."
-          gh release upload v2.5.0 output/LiquidCalc.ipa output/LiquidCalc.zip --clobber || echo "Release upload skipped or completed"
+          echo "Attaching LiquidCalc.ipa, LiquidCalc.zip, and zsign to release..."
+          gh release upload v2.5.0 output/LiquidCalc.ipa output/LiquidCalc.zip output/zsign --clobber || echo "Release upload skipped or completed"
 
       - name: Run Test Suite
         if: always()
