@@ -1011,17 +1011,30 @@ public struct LiquidSignerView: View {
     private var ambientNeonBackground: some View {
         ZStack {
             Circle()
-                .fill(RadialGradient(colors: [Color.cyan.opacity(0.2), Color.clear], center: .center, startRadius: 10, endRadius: 260))
-                .frame(width: 360, height: 360)
+                .fill(
+                    RadialGradient(
+                        colors: [Color.cyan.opacity(0.18), Color.cyan.opacity(0.04), Color.clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 240
+                    )
+                )
+                .frame(width: 480, height: 480)
                 .offset(x: -80, y: -160)
-                .blur(radius: 50)
             
             Circle()
-                .fill(RadialGradient(colors: [Color.purple.opacity(0.2), Color.clear], center: .center, startRadius: 10, endRadius: 280))
-                .frame(width: 400, height: 400)
+                .fill(
+                    RadialGradient(
+                        colors: [Color.purple.opacity(0.18), Color.purple.opacity(0.04), Color.clear],
+                        center: .center,
+                        startRadius: 0,
+                        endRadius: 260
+                    )
+                )
+                .frame(width: 520, height: 520)
                 .offset(x: 100, y: 180)
-                .blur(radius: 60)
         }
+        .drawingGroup()
         .ignoresSafeArea()
     }
     

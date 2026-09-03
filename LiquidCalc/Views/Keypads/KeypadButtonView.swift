@@ -35,21 +35,23 @@ public struct KeypadButtonView: View {
             action()
         }) {
             ZStack {
-                // Ambient Contact Glow Halo Burst (Expands on touch)
-                RoundedRectangle(cornerRadius: 22, style: .continuous)
-                    .fill(
-                        RadialGradient(
-                            colors: [
-                                glowColor.opacity(isPressed ? 0.50 : 0.0),
-                                Color.clear
-                            ],
-                            center: .center,
-                            startRadius: 5,
-                            endRadius: 50
+                // Ambient Contact Glow Halo Burst (Evaluated only during active touch)
+                if isPressed {
+                    RoundedRectangle(cornerRadius: 22, style: .continuous)
+                        .fill(
+                            RadialGradient(
+                                colors: [
+                                    glowColor.opacity(0.40),
+                                    Color.clear
+                                ],
+                                center: .center,
+                                startRadius: 5,
+                                endRadius: 40
+                            )
                         )
-                    )
-                    .scaleEffect(isPressed ? 1.25 : 0.8)
-                    .blur(radius: isPressed ? 8 : 0)
+                        .scaleEffect(1.15)
+                        .transition(.opacity)
+                }
                 
                 // Background Glass Fill with Specular Gradient
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -61,26 +63,26 @@ public struct KeypadButtonView: View {
                         )
                     )
                     .overlay(
-                        // Moving Specular Sheen Highlight Border
+                        // Specular Sheen Highlight Border
                         RoundedRectangle(cornerRadius: 22, style: .continuous)
                             .stroke(
                                 LinearGradient(
                                     stops: [
-                                        .init(color: Color.white.opacity(isPressed ? 0.85 : 0.38), location: 0.0),
-                                        .init(color: glowColor.opacity(isPressed ? 0.60 : 0.15), location: 0.5),
-                                        .init(color: Color.white.opacity(isPressed ? 0.30 : 0.05), location: 1.0)
+                                        .init(color: Color.white.opacity(isPressed ? 0.80 : 0.28), location: 0.0),
+                                        .init(color: glowColor.opacity(isPressed ? 0.50 : 0.08), location: 0.5),
+                                        .init(color: Color.white.opacity(isPressed ? 0.20 : 0.04), location: 1.0)
                                     ],
                                     startPoint: isPressed ? .topTrailing : .topLeading,
                                     endPoint: isPressed ? .bottomLeading : .bottomTrailing
                                 ),
-                                lineWidth: isPressed ? 1.6 : 1.0
+                                lineWidth: isPressed ? 1.4 : 0.8
                             )
                     )
                     .shadow(
-                        color: isPressed ? glowColor.opacity(0.65) : Color.black.opacity(0.28),
-                        radius: isPressed ? 14 : 5,
+                        color: isPressed ? glowColor.opacity(0.45) : Color.black.opacity(0.18),
+                        radius: isPressed ? 8 : 2,
                         x: 0,
-                        y: isPressed ? 1 : 4
+                        y: isPressed ? 1 : 2
                     )
                 
                 // Label Content with interactive spring pop
