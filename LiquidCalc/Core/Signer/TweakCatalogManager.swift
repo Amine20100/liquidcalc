@@ -7,15 +7,16 @@
 //
 
 import Foundation
-import Combine
+import Observation
 
-public final class TweakCatalogManager: ObservableObject, @unchecked Sendable {
+@Observable
+public final class TweakCatalogManager: @unchecked Sendable {
     public static let shared = TweakCatalogManager()
     
-    @Published public var catalogItems: [TweakCatalogItem] = []
-    @Published public var isDownloading: Bool = false
-    @Published public var downloadProgress: Double = 0.0
-    @Published public var errorMessage: String?
+    public var catalogItems: [TweakCatalogItem] = []
+    public var isDownloading: Bool = false
+    public var downloadProgress: Double = 0.0
+    public var errorMessage: String?
     
     private let fileManager = FileManager.default
     private let tweaksDir: URL

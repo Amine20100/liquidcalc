@@ -9,7 +9,7 @@
 import SwiftUI
 
 public struct CertificateStoreView: View {
-    @ObservedObject var certManager: CertificateManager
+    @Bindable var certManager: CertificateManager
     @Environment(\.dismiss) private var dismiss
     
     @State private var remoteZipUrl: String = ""
@@ -143,36 +143,7 @@ public struct CertificateStoreView: View {
                 .foregroundColor(.cyan)
             
             ForEach(certManager.certificates) { cert in
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(cert.name)
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                        Text(cert.teamName ?? "Personal Developer")
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.5))
-                    }
-                    
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("\(cert.daysRemaining)d left")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundColor(cert.isValid ? .green : .red)
-                        
-                        Button("Check Revocation") {
-                            Task {
-                                let isRevoked = await certManager.checkRevocationStatus(for: cert)
-                                statusMessage = isRevoked ? "⚠️ Certificate has been REVOKED" : "✓ Certificate is ACTIVE"
-                            }
-                        }
-                        .font(.system(size: 9))
-                        .foregroundColor(.cyan)
-                    }
-                }
-                .padding(10)
-                .background(Color.white.opacity(0.03))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                certificateRow(cert)
             }
         }
         .padding(14)
@@ -181,6 +152,45 @@ public struct CertificateStoreView: View {
                 .fill(Color.white.opacity(0.04))
                 .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.08), lineWidth: 0.8))
         )
+    }
+    
+    private func certificateRow(_ cert: SigningCertificate) -> some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(cert.name)
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(.white)
+                Text(cert.teamName ?? "Personal Developer")
+                    .font(.system(size: 10))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(cert.daysRemaining)d left")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(cert.isValid ? .green : .red)
+                
+                Button("Check Revocation") {
+                    checkRevocation(for: cert)
+                }
+                .font(.system(size: 9))
+                .foregroundColor(.cyan)
+            }
+        }
+        .padding(10)
+        .background(Color.white.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+    
+    private func checkRevocation(for cert: SigningCertificate) {
+        Task {
+            let isRevoked = await certManager.checkRevocationStatus(for: cert)
+            await MainActor.run {
+                statusMessage = isRevoked ? "⚠️ Certificate has been REVOKED" : "✓ Certificate is ACTIVE"
+            }
+        }
     }
     
     private func downloadAndImportCertificate() {
