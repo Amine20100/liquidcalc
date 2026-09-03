@@ -93,10 +93,13 @@ public struct KeypadButtonView: View {
                             .foregroundColor(.white.opacity(isPressed ? 0.70 : 0.45))
                     }
                     
-                    Text(button.label)
-                        .font(.system(size: fontSizeForLabel, weight: isPressed ? .medium : .regular, design: .rounded))
-                        .foregroundColor(button.accentStyle.foregroundColor)
-                        .scaleEffect(isPressed ? 0.94 : 1.0)
+                    CalcIconView(
+                        label: button.label,
+                        type: button.type,
+                        foregroundColor: button.accentStyle.foregroundColor,
+                        isPressed: isPressed,
+                        size: fontSizeForLabel
+                    )
                 }
             }
             .frame(maxWidth: .infinity)
