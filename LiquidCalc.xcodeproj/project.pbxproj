@@ -96,6 +96,11 @@
 		AA3000332C85000100000001 /* MachOInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000342C85000100000001 /* MachOInspectorView.swift */; };
 		AA3000352C85000100000001 /* TweakCatalogSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000362C85000100000001 /* TweakCatalogSheetView.swift */; };
 		AA3000372C85000100000001 /* CertificateStoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000382C85000100000001 /* CertificateStoreView.swift */; };
+		AA3000412C85000100000001 /* LiquidMarkdownView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000422C85000100000001 /* LiquidMarkdownView.swift */; };
+		AA3000432C85000100000001 /* MarkdownNotebookView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000442C85000100000001 /* MarkdownNotebookView.swift */; };
+		AA3000452C85000100000001 /* LiquidAIAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000462C85000100000001 /* LiquidAIAgent.swift */; };
+		AA3000472C85000100000001 /* LiquidAIAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000482C85000100000001 /* LiquidAIAgentView.swift */; };
+		AA3000492C85000100000001 /* MarkdownAndAgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -191,6 +196,11 @@
 		AA3000342C85000100000001 /* MachOInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/MachOInspectorView.swift"; sourceTree = "<group>"; };
 		AA3000362C85000100000001 /* TweakCatalogSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/TweakCatalogSheetView.swift"; sourceTree = "<group>"; };
 		AA3000382C85000100000001 /* CertificateStoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/CertificateStoreView.swift"; sourceTree = "<group>"; };
+		AA3000422C85000100000001 /* LiquidMarkdownView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/LiquidMarkdownView.swift"; sourceTree = "<group>"; };
+		AA3000442C85000100000001 /* MarkdownNotebookView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/MarkdownNotebookView.swift"; sourceTree = "<group>"; };
+		AA3000462C85000100000001 /* LiquidAIAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AI/LiquidAIAgent.swift"; sourceTree = "<group>"; };
+		AA3000482C85000100000001 /* LiquidAIAgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AI/LiquidAIAgentView.swift"; sourceTree = "<group>"; };
+		AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownAndAgentTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -287,6 +297,7 @@
 				AA3000062C85000100000001 /* LiquidSignEngine.swift */,
 				AA3000082C85000100000001 /* LocalInstallServer.swift */,
 				AA3000322C85000100000001 /* TweakCatalogManager.swift */,
+				AA3000462C85000100000001 /* LiquidAIAgent.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -342,6 +353,9 @@
 				AA3000342C85000100000001 /* MachOInspectorView.swift */,
 				AA3000362C85000100000001 /* TweakCatalogSheetView.swift */,
 				AA3000382C85000100000001 /* CertificateStoreView.swift */,
+				AA3000422C85000100000001 /* LiquidMarkdownView.swift */,
+				AA3000442C85000100000001 /* MarkdownNotebookView.swift */,
+				AA3000482C85000100000001 /* LiquidAIAgentView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -368,6 +382,7 @@
 				AA2000102C85000100000001 /* AdvancedMathTests.swift */,
 				AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */,
 				AA3000222C85000100000001 /* LiquidSignerTests.swift */,
+				AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */,
 			);
 			path = LiquidCalcTests;
 			sourceTree = "<group>";
@@ -550,6 +565,10 @@
 				AA3000332C85000100000001 /* MachOInspectorView.swift in Sources */,
 				AA3000352C85000100000001 /* TweakCatalogSheetView.swift in Sources */,
 				AA3000372C85000100000001 /* CertificateStoreView.swift in Sources */,
+				AA3000412C85000100000001 /* LiquidMarkdownView.swift in Sources */,
+				AA3000432C85000100000001 /* MarkdownNotebookView.swift in Sources */,
+				AA3000452C85000100000001 /* LiquidAIAgent.swift in Sources */,
+				AA3000472C85000100000001 /* LiquidAIAgentView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -567,6 +586,7 @@
 				AA20000F2C85000100000001 /* AdvancedMathTests.swift in Sources */,
 				AA2000112C85000100000001 /* HandwritingMathRecognizerTests.swift in Sources */,
 				AA3000212C85000100000001 /* LiquidSignerTests.swift in Sources */,
+				AA3000492C85000100000001 /* MarkdownAndAgentTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -645,7 +665,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
@@ -654,7 +674,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -668,7 +688,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
@@ -677,7 +697,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -690,10 +710,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -707,10 +727,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 27;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 2.6.0;
+				MARKETING_VERSION = 2.7.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;

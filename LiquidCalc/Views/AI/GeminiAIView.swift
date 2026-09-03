@@ -17,6 +17,9 @@ public struct GeminiAIView: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var selectedImage: UIImage? = nil
     
+    @State private var showAgentWorkbench: Bool = false
+    @State private var showMarkdownScratchpad: Bool = false
+    
     public init(calculatorViewModel: CalculatorViewModel) {
         self.calculatorViewModel = calculatorViewModel
     }
@@ -40,6 +43,40 @@ public struct GeminiAIView: View {
                         )
                 }
                 Spacer()
+                
+                Button(action: {
+                    SoundAndHapticManager.shared.triggerHaptic(.selection)
+                    showAgentWorkbench = true
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "brain.head.profile")
+                        Text("AI Agent")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.purple.opacity(0.18))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                
+                Button(action: {
+                    SoundAndHapticManager.shared.triggerHaptic(.selection)
+                    showMarkdownScratchpad = true
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "square.and.pencil")
+                        Text("Notes")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 7)
+                    .padding(.vertical, 3)
+                    .background(Color.cyan.opacity(0.18))
+                    .clipShape(Capsule())
+                }
+                .buttonStyle(.plain)
                 
                 if !geminiService.chatHistory.isEmpty {
                     Button(action: {
@@ -215,6 +252,12 @@ public struct GeminiAIView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showAgentWorkbench) {
+            LiquidAIAgentView()
+        }
+        .sheet(isPresented: $showMarkdownScratchpad) {
+            MarkdownNotebookView()
         }
     }
     
