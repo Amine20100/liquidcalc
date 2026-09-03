@@ -101,6 +101,7 @@
 		AA3000452C85000100000001 /* LiquidAIAgent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000462C85000100000001 /* LiquidAIAgent.swift */; };
 		AA3000472C85000100000001 /* LiquidAIAgentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000482C85000100000001 /* LiquidAIAgentView.swift */; };
 		AA3000492C85000100000001 /* MarkdownAndAgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */; };
+		AA3000512C85000100000001 /* CalcIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000522C85000100000001 /* CalcIconView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -201,6 +202,7 @@
 		AA3000462C85000100000001 /* LiquidAIAgent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AI/LiquidAIAgent.swift"; sourceTree = "<group>"; };
 		AA3000482C85000100000001 /* LiquidAIAgentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AI/LiquidAIAgentView.swift"; sourceTree = "<group>"; };
 		AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownAndAgentTests.swift; sourceTree = "<group>"; };
+		AA3000522C85000100000001 /* CalcIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/CalcIconView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -356,6 +358,7 @@
 				AA3000422C85000100000001 /* LiquidMarkdownView.swift */,
 				AA3000442C85000100000001 /* MarkdownNotebookView.swift */,
 				AA3000482C85000100000001 /* LiquidAIAgentView.swift */,
+				AA3000522C85000100000001 /* CalcIconView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -569,6 +572,7 @@
 				AA3000432C85000100000001 /* MarkdownNotebookView.swift in Sources */,
 				AA3000452C85000100000001 /* LiquidAIAgent.swift in Sources */,
 				AA3000472C85000100000001 /* LiquidAIAgentView.swift in Sources */,
+				AA3000512C85000100000001 /* CalcIconView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
