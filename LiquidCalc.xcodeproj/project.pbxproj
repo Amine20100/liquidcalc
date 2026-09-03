@@ -92,6 +92,10 @@
 		AA3000232C85000100000001 /* VaultUnlockAnimationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */; };
 		AA3000252C85000100000001 /* UpdateNotificationBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */; };
 		AA3000272C85000100000001 /* SignerStudioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000282C85000100000001 /* SignerStudioView.swift */; };
+		AA3000312C85000100000001 /* TweakCatalogManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000322C85000100000001 /* TweakCatalogManager.swift */; };
+		AA3000332C85000100000001 /* MachOInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000342C85000100000001 /* MachOInspectorView.swift */; };
+		AA3000352C85000100000001 /* TweakCatalogSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000362C85000100000001 /* TweakCatalogSheetView.swift */; };
+		AA3000372C85000100000001 /* CertificateStoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000382C85000100000001 /* CertificateStoreView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -183,6 +187,10 @@
 		AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/VaultUnlockAnimationView.swift"; sourceTree = "<group>"; };
 		AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Components/UpdateNotificationBannerView.swift"; sourceTree = "<group>"; };
 		AA3000282C85000100000001 /* SignerStudioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/SignerStudioView.swift"; sourceTree = "<group>"; };
+		AA3000322C85000100000001 /* TweakCatalogManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/TweakCatalogManager.swift"; sourceTree = "<group>"; };
+		AA3000342C85000100000001 /* MachOInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/MachOInspectorView.swift"; sourceTree = "<group>"; };
+		AA3000362C85000100000001 /* TweakCatalogSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/TweakCatalogSheetView.swift"; sourceTree = "<group>"; };
+		AA3000382C85000100000001 /* CertificateStoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/CertificateStoreView.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -330,6 +338,10 @@
 				AA3000242C85000100000001 /* VaultUnlockAnimationView.swift */,
 				AA3000262C85000100000001 /* UpdateNotificationBannerView.swift */,
 				AA3000282C85000100000001 /* SignerStudioView.swift */,
+				AA3000322C85000100000001 /* TweakCatalogManager.swift */,
+				AA3000342C85000100000001 /* MachOInspectorView.swift */,
+				AA3000362C85000100000001 /* TweakCatalogSheetView.swift */,
+				AA3000382C85000100000001 /* CertificateStoreView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -534,6 +546,10 @@
 				AA3000232C85000100000001 /* VaultUnlockAnimationView.swift in Sources */,
 				AA3000252C85000100000001 /* UpdateNotificationBannerView.swift in Sources */,
 				AA3000272C85000100000001 /* SignerStudioView.swift in Sources */,
+				AA3000312C85000100000001 /* TweakCatalogManager.swift in Sources */,
+				AA3000332C85000100000001 /* MachOInspectorView.swift in Sources */,
+				AA3000352C85000100000001 /* TweakCatalogSheetView.swift in Sources */,
+				AA3000372C85000100000001 /* CertificateStoreView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -629,7 +645,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 26;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
@@ -638,7 +654,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.5.0;
+				MARKETING_VERSION = 2.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -652,7 +668,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = LiquidCalc/Resources/Info.plist;
@@ -661,7 +677,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 2.5.0;
+				MARKETING_VERSION = 2.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -674,10 +690,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 2.5.0;
+				MARKETING_VERSION = 2.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -691,10 +707,10 @@
 			buildSettings = {
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 25;
+				CURRENT_PROJECT_VERSION = 26;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 2.5.0;
+				MARKETING_VERSION = 2.6.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.liquidcalc.LiquidCalcTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;

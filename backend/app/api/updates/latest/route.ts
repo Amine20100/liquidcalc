@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
   const baseUrl = `${protocol}://${host}`;
 
   const payload = {
-    id: 250001,
-    tag_name: "v2.5.0",
-    name: "LiquidCalc v2.5.0 - Full In-App Updating Flow & Sideloading Hub",
-    body: "LiquidCalc v2.5.0 production release featuring a comprehensive multi-tier in-app updating flow, live background IPA download progress, 1-tap wireless OTA installation, Liquid Signer on-device re-signing handoff, TrollStore deep linking, and floating launch banner.",
-    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.5.0",
-    published_at: "2026-09-02T23:30:00Z",
+    id: 260001,
+    tag_name: "v2.6.0",
+    name: "LiquidCalc v2.6.0 - ZSign Studio & Tweak Ecosystem",
+    body: "LiquidCalc v2.6.0 production release featuring zhlynn/zsign cross-platform C++ iOS code signing engine, live ZSign CLI command inspector, In-App Certificate Repository, Dylib Tweak Catalog, and Mach-O Architecture Inspector.",
+    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.6.0",
+    published_at: "2026-09-03T04:00:00Z",
     prerelease: false,
     draft: false,
     assets: [

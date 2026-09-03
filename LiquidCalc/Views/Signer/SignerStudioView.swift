@@ -34,6 +34,11 @@ public struct SignerStudioView: View {
     @State private var showDylibPicker: Bool = false
     @State private var showSuccessToast: Bool = false
     
+    // v2.6.0 Ecosystem Sheets
+    @State private var showMachOInspector: Bool = false
+    @State private var showTweakCatalog: Bool = false
+    @State private var showCertStore: Bool = false
+    
     public init(
         signerViewModel: LiquidSignerViewModel,
         certManager: CertificateManager,
@@ -98,6 +103,17 @@ public struct SignerStudioView: View {
             if case .success(let url) = result {
                 signerViewModel.importDylib(from: url)
             }
+        }
+        .sheet(isPresented: $showMachOInspector) {
+            if let app = selectedApp {
+                MachOInspectorView(app: app)
+            }
+        }
+        .sheet(isPresented: $showTweakCatalog) {
+            TweakCatalogSheetView(catalogManager: TweakCatalogManager.shared, signerViewModel: signerViewModel)
+        }
+        .sheet(isPresented: $showCertStore) {
+            CertificateStoreView(certManager: certManager)
         }
     }
     
@@ -270,6 +286,22 @@ public struct SignerStudioView: View {
                                 .background(Color.green.opacity(0.2))
                                 .foregroundColor(.green)
                                 .clipShape(Capsule())
+                            
+                            Button(action: {
+                                SoundAndHapticManager.shared.triggerHaptic(.selection)
+                                showMachOInspector = true
+                            }) {
+                                HStack(spacing: 3) {
+                                    Image(systemName: "cpu")
+                                    Text("Mach-O")
+                                }
+                                .font(.system(size: 9, weight: .bold))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 1)
+                                .background(Color.cyan.opacity(0.2))
+                                .foregroundColor(.cyan)
+                                .clipShape(Capsule())
+                            }
                         }
                     }
                     Spacer()
@@ -377,9 +409,27 @@ public struct SignerStudioView: View {
     
     private var certificateSelectionCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("SIGNING IDENTITY & PROVISION")
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundColor(.cyan)
+            HStack {
+                Text("SIGNING IDENTITY & PROVISION")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(.cyan)
+                Spacer()
+                Button(action: {
+                    SoundAndHapticManager.shared.triggerHaptic(.selection)
+                    showCertStore = true
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "checkmark.seal.fill")
+                        Text("Cert Store")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.12))
+                    .clipShape(Capsule())
+                }
+            }
             
             if let cert = certManager.activeCertificate {
                 HStack(spacing: 10) {
@@ -440,13 +490,34 @@ public struct SignerStudioView: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(.cyan)
                 Spacer()
-                Button(action: { showDylibPicker = true }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                        Text("Add Tweak")
+                
+                Button(action: {
+                    SoundAndHapticManager.shared.triggerHaptic(.selection)
+                    showTweakCatalog = true
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "puzzlepiece.extension.fill")
+                        Text("Tweak Store")
                     }
-                    .font(.system(size: 11, weight: .semibold))
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.purple.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+                
+                Button(action: { showDylibPicker = true }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "plus")
+                        Text("Custom")
+                    }
+                    .font(.system(size: 10, weight: .semibold))
                     .foregroundColor(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.cyan.opacity(0.12))
+                    .clipShape(Capsule())
                 }
             }
             
