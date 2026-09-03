@@ -4,18 +4,17 @@ import { buildItmsServicesUrl, DEFAULT_BUNDLE_ID, DEFAULT_IPA_URL } from "@/lib/
 
 export const dynamic = "force-dynamic";
 
-const LATEST_VERSION = "2.6.0";
-const LATEST_BUILD = "26";
+const LATEST_VERSION = "2.7.0";
+const LATEST_BUILD = "27";
 const RELEASE_DATE = "2026-09-03";
-const RELEASE_TITLE = "LiquidCalc v2.6.0 - ZSign Studio & Tweak Ecosystem";
+const RELEASE_TITLE = "LiquidCalc v2.7.0 - Markdown Math Engine & Autonomous AI Agent";
 
 const CHANGELOG = [
-  "Integrated zhlynn/zsign cross-platform C++ iOS code signing engine via git submodules",
-  "Added live ZSign CLI invocation generator with real-time command syntax preview and 1-tap copy",
-  "Built In-App Public Certificate Store with 1-tap remote installation and OCSP health checking",
-  "Added Dylib Tweak Catalog with built-in runtime debugging (FLEX) and sandbox file browser",
-  "Implemented Mach-O Architecture & Entitlements Binary Inspector for imported IPAs",
-  "Eliminated GPU thermal throttling with analytical Metal shader gradients and 120Hz fluid touch",
+  "Integrated full Markdown & LaTeX math rendering engine supporting inline/display formulas ($...$, $$...$$)",
+  "Built interactive Markdown & Math Scratchpad with live preview and quick math symbols toolbar",
+  "Developed Autonomous ReAct AI Agent with native tool execution across calculus, algebra, units, and zsign",
+  "Interactive tool execution timeline and action cards in the AI Workbench",
+  "Updated app ecosystem, certificate store, and tweak catalog to release v2.7.0",
 ];
 
 function parseSemVer(versionStr: string): [number, number, number] {

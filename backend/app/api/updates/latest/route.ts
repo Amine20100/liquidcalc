@@ -15,20 +15,20 @@ export async function GET(req: NextRequest) {
 
   const payload = {
     id: 260001,
-    tag_name: "v2.6.0",
-    name: "LiquidCalc v2.6.0 - ZSign Studio & Tweak Ecosystem",
+    tag_name: "v2.7.0",
+    name: "LiquidCalc v2.7.0 - Markdown Math Engine & Autonomous AI Agent",
     body: "LiquidCalc v2.6.0 production release featuring zhlynn/zsign cross-platform C++ iOS code signing engine, live ZSign CLI command inspector, In-App Certificate Repository, Dylib Tweak Catalog, and Mach-O Architecture Inspector.",
-    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.6.0",
-    published_at: "2026-09-03T04:00:00Z",
+    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.7.0",
+    published_at: "2026-09-03T05:00:00Z",
     prerelease: false,
     draft: false,
     assets: [
       {
         id: 133701,
         name: "LiquidCalc.ipa",
-        size: 5242880,
+        size: 5782076,
         download_count: 2480,
-        browser_download_url: DEFAULT_IPA_URL,
+        browser_download_url: "https://github.com/Amine20100/liquidcalc/releases/download/v2.7.0/LiquidCalc.ipa",
         content_type: "application/octet-stream",
       },
     ],

@@ -98,11 +98,8 @@ public struct ChatMessageBubble: View {
                         .padding(.vertical, 4)
                 } else {
                     let isLast = index == parts.count - 1
-                    HStack(alignment: .bottom, spacing: 2) {
-                        Text(LocalizedStringKey(part.content))
-                            .font(.system(size: 15))
-                            .foregroundColor(.white.opacity(0.95))
-                            .lineSpacing(4)
+                    VStack(alignment: .leading, spacing: 4) {
+                        LiquidMarkdownView(text: part.content)
                         
                         if isStreaming && isLast {
                             Text("▋")

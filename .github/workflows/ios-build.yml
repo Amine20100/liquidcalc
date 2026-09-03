@@ -105,8 +105,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "Attaching LiquidCalc.ipa, LiquidCalc.zip, and zsign to release v2.6.0..."
-          gh release upload v2.6.0 output/LiquidCalc.ipa output/LiquidCalc.zip output/zsign --clobber || gh release create v2.6.0 output/LiquidCalc.ipa output/LiquidCalc.zip output/zsign --title "LiquidCalc v2.6.0 - ZSign Studio & Tweak Ecosystem" --notes "LiquidCalc v2.6.0 release" || echo "Release upload skipped or completed"
+          echo "Attaching LiquidCalc.ipa, LiquidCalc.zip, and zsign to release v2.7.0..."
+          gh release upload v2.7.0 output/LiquidCalc.ipa output/LiquidCalc.zip output/zsign --clobber || gh release create v2.7.0 output/LiquidCalc.ipa output/LiquidCalc.zip output/zsign --title "LiquidCalc v2.7.0 - Markdown & AI Agent" --notes "LiquidCalc v2.7.0 release" || echo "Release upload skipped or completed"
 
       - name: Run Test Suite
         if: always()

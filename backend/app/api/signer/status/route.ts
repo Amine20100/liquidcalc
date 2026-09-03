@@ -8,8 +8,8 @@ export async function GET() {
   return NextResponse.json({
     service: "ZSign Cloud Server (zhlynn/zsign Integration)",
     status: "operational",
-    version: "2.6.0",
-    engine: "zsign C++ + TypeScript Cryptographic SuperBlob & Mach-O Pipeline",
+    version: "2.7.0",
+    engine: "zhlynn/zsign C++ + Swift Native SuperBlob",
     supportedArchitectures: ["arm64", "arm64e", "universal2"],
     signingAlgorithms: [
       "sha256WithRSAEncryption",
