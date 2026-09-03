@@ -96,14 +96,11 @@ public struct LiquidDisplayView: View {
                         .foregroundColor(.white.opacity(0.65))
                         .lineLimit(1)
                     
-                    // Living Cyan Expression Cursor Dot
+                    // Clean Cyan Expression Cursor Dot
                     if !viewModel.expression.isEmpty {
                         Circle()
-                            .fill(Color.cyan)
+                            .fill(Color.cyan.opacity(0.85))
                             .frame(width: 4, height: 4)
-                            .opacity(cursorBlink ? 0.9 : 0.2)
-                            .scaleEffect(cursorBlink ? 1.2 : 0.8)
-                            .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: cursorBlink)
                     }
                 }
             }
