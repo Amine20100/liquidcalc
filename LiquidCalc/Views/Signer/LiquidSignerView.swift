@@ -170,7 +170,7 @@ public struct LiquidSignerView: View {
         .alert("Installation Started", isPresented: $signerViewModel.showInstallAlert) {
             Button("OK", role: .cancel) {}
         } message: {
-            Text("Liquid Signer local OTA server is dispatching '\(signerViewModel.installedAppName)'. Follow the on-screen iOS prompt to install.")
+            Text("ZSign local OTA micro-server is dispatching '\(signerViewModel.installedAppName)'. Follow the on-screen iOS prompt to install.")
         }
     }
     
@@ -178,24 +178,24 @@ public struct LiquidSignerView: View {
     
     private var topVaultHeader: some View {
         HStack(spacing: 8) {
-            // Stealth Branding
+            // ZSign Branding
             HStack(spacing: 6) {
                 ZStack {
                     Circle()
                         .fill(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.2))
                         .frame(width: 24, height: 24)
                     
-                    Image(systemName: "lock.shield.fill")
+                    Image(systemName: "bolt.shield.fill")
                         .font(.system(size: 13))
                         .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
                 }
                 
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("LIQUID SIGNER")
+                    Text("ZSIGN iOS")
                         .font(.system(size: 13, weight: .bold, design: .monospaced))
                         .foregroundColor(.white)
                     
-                    Text("On-Device iOS Sideloading")
+                    Text("zhlynn/zsign Engine Integration")
                         .font(.system(size: 9, weight: .semibold))
                         .foregroundColor(.cyan.opacity(0.8))
                 }
@@ -208,7 +208,7 @@ public struct LiquidSignerView: View {
                 Circle()
                     .fill(localServer.isRunning ? Color.green : Color.orange)
                     .frame(width: 6, height: 6)
-                Text(localServer.isRunning ? "OTA :8080" : "Standby")
+                Text(localServer.isRunning ? "ZSign OTA :8080" : "Standby")
                     .font(.system(size: 9, weight: .semibold, design: .monospaced))
                     .foregroundColor(localServer.isRunning ? .green : .orange)
             }

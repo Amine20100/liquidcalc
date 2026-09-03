@@ -239,5 +239,27 @@ final class LiquidSignerTests: XCTestCase {
         XCTAssertTrue(urlString.contains("liquidcalc-backend.vercel.app"))
         XCTAssertTrue(urlString.contains("com.test.app"))
     }
+    
+    // MARK: - Test 7: ZSign Configuration & CLI Options
+    
+    func testZSignConfigurationOptions() {
+        let config = SigningConfig(
+            customName: "TestApp",
+            customBundleId: "com.test.cloned",
+            customVersion: "2.0",
+            removeExtensions: true,
+            injectGetTaskAllow: true,
+            enableFileSharing: true,
+            installAfterSigned: true
+        )
+        
+        XCTAssertEqual(config.customName, "TestApp")
+        XCTAssertEqual(config.customBundleId, "com.test.cloned")
+        XCTAssertEqual(config.customVersion, "2.0")
+        XCTAssertTrue(config.removeExtensions)
+        XCTAssertTrue(config.injectGetTaskAllow)
+        XCTAssertTrue(config.enableFileSharing)
+        XCTAssertTrue(config.installAfterSigned)
+    }
 }
 

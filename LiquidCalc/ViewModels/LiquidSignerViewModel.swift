@@ -77,7 +77,7 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
             createSampleDemoApp()
         }
         
-        appendLog("✓ Liquid Signer Vault initialized (Security Subsystem Active)", .terminal)
+        appendLog("✓ ZSign iOS Engine Initialized (zhlynn/zsign Subsystem Active)", .terminal)
     }
     
     // MARK: - Logging
@@ -251,6 +251,10 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
                     self.activeSigningApp = self.apps.first(where: { $0.id == app.id })
                     SoundAndHapticManager.shared.triggerHaptic(.success)
                     SoundAndHapticManager.shared.playSuccessSound()
+                    
+                    if config.installAfterSigned, let updated = self.apps.first(where: { $0.id == app.id }) {
+                        self.installApp(updated)
+                    }
                 }
             } catch {
                 await MainActor.run {
