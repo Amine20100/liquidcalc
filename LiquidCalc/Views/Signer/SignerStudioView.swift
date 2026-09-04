@@ -46,6 +46,17 @@ public struct SignerStudioView: View {
     @State private var showMachOInspector: Bool = false
     @State private var showTweakCatalog: Bool = false
     @State private var showCertStore: Bool = false
+    @State private var showReadinessDetails: Bool = false
+
+    /// A signing session should feel safe before it feels powerful. These checks make
+    /// the primary action deterministic instead of leaving users to discover failures
+    /// after a long signing run.
+    private struct ReadinessCheck: Identifiable {
+        let id: String
+        let title: String
+        let detail: String
+        let isPassing: Bool
+    }
     
     public init(
         signerViewModel: LiquidSignerViewModel,
@@ -61,6 +72,8 @@ public struct SignerStudioView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 studioHeader
+
+                signingReadinessCard
                 
                 engineSelectorCard
                 
@@ -238,6 +251,118 @@ public struct SignerStudioView: View {
                 .clipShape(Capsule())
             }
         }
+    }
+
+    // MARK: - Signing Readiness
+
+    private var readinessChecks: [ReadinessCheck] {
+        let trimmedName = customName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedBundleID = customBundleId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let bundleParts = trimmedBundleID.split(separator: ".")
+        let validBundleID = bundleParts.count >= 2 && bundleParts.allSatisfy { part in
+            !part.isEmpty && part.allSatisfy { $0.isLetter || $0.isNumber || $0 == "-" }
+        }
+        let validCertificate = certManager.activeCertificate?.isValid ?? false
+        let validProfile = !(certManager.activeProfile?.isExpired ?? false)
+
+        return [
+            ReadinessCheck(
+                id: "package",
+                title: "Package selected",
+                detail: selectedApp?.name ?? "Import an IPA to begin",
+                isPassing: selectedApp?.originalIpaUrl != nil
+            ),
+            ReadinessCheck(
+                id: "identity",
+                title: adhocMode ? "Ad-hoc mode" : "Signing identity",
+                detail: adhocMode ? "No certificate required" : (validCertificate ? "Valid certificate selected" : "Import or select a valid P12"),
+                isPassing: adhocMode || validCertificate
+            ),
+            ReadinessCheck(
+                id: "profile",
+                title: "Provisioning profile",
+                detail: adhocMode ? "Not required for ad-hoc signing" : (validProfile ? "Profile is current" : "Selected profile has expired"),
+                isPassing: adhocMode || validProfile
+            ),
+            ReadinessCheck(
+                id: "identifier",
+                title: "App identity",
+                detail: validBundleID && !trimmedName.isEmpty ? trimmedBundleID : "Enter a valid display name and bundle ID",
+                isPassing: validBundleID && !trimmedName.isEmpty
+            )
+        ]
+    }
+
+    private var isReadyToSign: Bool {
+        readinessChecks.allSatisfy(\.isPassing)
+    }
+
+    private var signingReadinessCard: some View {
+        let passedCount = readinessChecks.filter(\.isPassing).count
+
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 10) {
+                ZStack {
+                    Circle()
+                        .fill((isReadyToSign ? Color.green : Color.orange).opacity(0.16))
+                        .frame(width: 40, height: 40)
+                    Image(systemName: isReadyToSign ? "checkmark.shield.fill" : "shield.lefthalf.filled")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(isReadyToSign ? .green : .orange)
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(isReadyToSign ? "Ready to sign" : "Complete your signing setup")
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .foregroundColor(.white)
+                    Text(isReadyToSign ? "Your package, identity, and app metadata passed preflight." : "\(passedCount) of \(readinessChecks.count) preflight checks complete")
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.62))
+                }
+                Spacer()
+                Button(showReadinessDetails ? "Less" : "Review") {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showReadinessDetails.toggle()
+                    }
+                }
+                .font(.system(size: 11, weight: .bold))
+                .foregroundColor(isReadyToSign ? .green : .orange)
+                .buttonStyle(.plain)
+                .accessibilityLabel("Review signing readiness")
+            }
+
+            if showReadinessDetails || !isReadyToSign {
+                VStack(spacing: 8) {
+                    ForEach(readinessChecks) { check in
+                        HStack(spacing: 8) {
+                            Image(systemName: check.isPassing ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                                .foregroundColor(check.isPassing ? .green : .orange)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(check.title)
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text(check.detail)
+                                    .font(.system(size: 10))
+                                    .foregroundColor(.white.opacity(0.52))
+                                    .lineLimit(1)
+                            }
+                            Spacer()
+                        }
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill((isReadyToSign ? Color.green : Color.orange).opacity(0.08))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke((isReadyToSign ? Color.green : Color.orange).opacity(0.28), lineWidth: 1)
+                )
+        )
+        .accessibilityElement(children: .contain)
     }
     
     // MARK: - 2. Engine Selector Card
@@ -793,9 +918,8 @@ public struct SignerStudioView: View {
         } else {
             if let cert = certManager.activeCertificate {
                 parts.append("-k \(cert.name.replacingOccurrences(of: " ", with: "_")).p12")
-                if !cert.password.isEmpty {
-                    parts.append("-p \(cert.password)")
-                }
+                // Never surface a certificate password in UI or clipboard output.
+                // The signer reads the identity from its protected import store.
             }
             if let profile = certManager.activeProfile {
                 parts.append("-m \(profile.name.replacingOccurrences(of: " ", with: "_")).mobileprovision")
@@ -833,9 +957,9 @@ public struct SignerStudioView: View {
     private var signActionButton: some View {
         Button(action: executeSigning) {
             HStack(spacing: 8) {
-                Image(systemName: "bolt.fill")
+                Image(systemName: isReadyToSign ? "checkmark.shield.fill" : "shield.lefthalf.filled")
                     .font(.system(size: 16, weight: .black))
-                Text(signerViewModel.selectedEngineMode == .cloudServer ? "SIGN WITH ZSIGN CLOUD" : "SIGN WITH ZSIGN ENGINE")
+                Text(isReadyToSign ? (signerViewModel.selectedEngineMode == .cloudServer ? "SIGN WITH ZSIGN CLOUD" : "SIGN SECURELY ON DEVICE") : "COMPLETE PREFLIGHT TO SIGN")
                     .font(.system(size: 14, weight: .black, design: .monospaced))
             }
             .foregroundColor(.black)
@@ -859,8 +983,9 @@ public struct SignerStudioView: View {
             )
         }
         .buttonStyle(.plain)
-        .disabled(selectedApp == nil || signerViewModel.isSigning)
-        .opacity(selectedApp == nil || signerViewModel.isSigning ? 0.5 : 1.0)
+        .disabled(!isReadyToSign || signerViewModel.isSigning)
+        .opacity(!isReadyToSign || signerViewModel.isSigning ? 0.5 : 1.0)
+        .accessibilityHint(isReadyToSign ? "Starts the protected signing workflow" : "Resolve the preflight checks before signing")
     }
     
     // MARK: - 9. Recent Signed App Card
@@ -937,7 +1062,11 @@ public struct SignerStudioView: View {
     }
     
     private func executeSigning() {
-        guard let app = selectedApp else { return }
+        guard let app = selectedApp, isReadyToSign else {
+            showReadinessDetails = true
+            SoundAndHapticManager.shared.triggerHaptic(.warning)
+            return
+        }
         
         let config = SigningConfig(
             customName: customName.trimmingCharacters(in: .whitespaces),

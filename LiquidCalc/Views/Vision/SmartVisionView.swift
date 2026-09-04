@@ -17,13 +17,18 @@ public struct SmartVisionView: View {
     @State private var viewModel = VisionViewModel()
     @Bindable var calculatorViewModel: CalculatorViewModel
     @State private var isTorchOn: Bool = false
+    private let onSendToAI: ((WorkspaceContext) -> Void)?
+    private let onSaveToNotes: ((WorkspaceContext) -> Void)?
     
-    public init(calculatorViewModel: CalculatorViewModel) {
+    public init(calculatorViewModel: CalculatorViewModel, onSendToAI: ((WorkspaceContext) -> Void)? = nil, onSaveToNotes: ((WorkspaceContext) -> Void)? = nil) {
         self.calculatorViewModel = calculatorViewModel
+        self.onSendToAI = onSendToAI
+        self.onSaveToNotes = onSaveToNotes
     }
     
     public var body: some View {
         VStack(spacing: 12) {
+            HStack(spacing: 8) {
             // Sub-mode pill (Math vs Receipt)
             HStack(spacing: 4) {
                 ForEach(VisionSubMode.allCases) { subMode in
@@ -52,6 +57,15 @@ public struct SmartVisionView: View {
             }
             .padding(3)
             .background(Capsule().fill(Color.black.opacity(0.4)))
+            Picker("Scan mode", selection: $viewModel.scanMode) {
+                ForEach(VisionScanMode.allCases) { Text($0.rawValue).tag($0) }
+            }
+            .pickerStyle(.segmented).frame(width: 138).accessibilityLabel("Scanning mode")
+            }
+            .padding(.horizontal, 12)
+
+            Text(viewModel.scanMode == .guided ? "Frame the problem, then capture when it is sharp." : "Live detection is ready. Point at one problem at a time.")
+                .font(.system(size: 11, weight: .medium)).foregroundStyle(.white.opacity(0.55)).multilineTextAlignment(.center).padding(.horizontal, 24)
             
             // Viewfinder Container
             ZStack {
@@ -129,6 +143,12 @@ public struct SmartVisionView: View {
             }
             .frame(height: 260)
             .padding(.horizontal, 12)
+
+            if viewModel.hasDetectedTarget {
+                scanReviewCard
+                    .padding(.horizontal, 16)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             
             // Receipt Splitter (If in Receipt Mode)
             if viewModel.selectedSubMode == .receipt {
@@ -228,8 +248,44 @@ public struct SmartVisionView: View {
         .onAppear {
             viewModel.startCamera()
         }
+        .task(id: viewModel.scanMode) {
+            guard viewModel.scanMode == .live else { return }
+            while !Task.isCancelled && viewModel.scanMode == .live {
+                viewModel.scanCurrentFrame()
+                try? await Task.sleep(nanoseconds: 1_600_000_000)
+            }
+        }
         .onDisappear {
             viewModel.stopCamera()
         }
+    }
+
+    private var scanReviewCard: some View {
+        LiquidSurface {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                Label("Review capture", systemImage: "checkmark.seal.fill").font(.system(size: 12, weight: .bold)).foregroundStyle(.green)
+                Spacer()
+                Text("\(Int(viewModel.recognitionConfidence * 100))% confidence").font(.system(size: 10, weight: .bold, design: .monospaced)).foregroundStyle(.cyan)
+            }
+            if viewModel.selectedSubMode == .equation {
+                TextField("Recognized expression", text: $viewModel.detectedExpression)
+                    .font(.system(size: 15, design: .monospaced)).foregroundStyle(.white).padding(10).background(.black.opacity(0.28), in: RoundedRectangle(cornerRadius: 10))
+                HStack(spacing: 8) {
+                    reviewAction("Calculate", icon: "equal") { calculatorViewModel.expression = viewModel.detectedExpression; calculatorViewModel.evaluateFinal() }
+                    reviewAction("Ask AI", icon: "sparkles") { onSendToAI?(.scan(expression: viewModel.detectedExpression, result: viewModel.solvedResult)) }
+                    reviewAction("Save", icon: "square.and.pencil") { onSaveToNotes?(.scan(expression: viewModel.detectedExpression, result: viewModel.solvedResult)) }
+                }
+            } else {
+                Text("\(viewModel.receiptItems.count) receipt items ready to review and split.").font(.system(size: 12)).foregroundStyle(.white.opacity(0.72))
+            }
+        }
+        .padding(12)
+        }
+    }
+
+    private func reviewAction(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) { Label(title, systemImage: icon).font(.system(size: 11, weight: .bold)).frame(maxWidth: .infinity, minHeight: 38) }
+            .foregroundStyle(.cyan).background(.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
     }
 }

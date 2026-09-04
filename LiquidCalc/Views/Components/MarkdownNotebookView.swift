@@ -14,30 +14,14 @@ import UIKit
 
 public struct MarkdownNotebookView: View {
     @Environment(\.dismiss) private var dismiss
+    @Bindable private var workspace = WorkspaceRepository.shared
+    private let isEmbedded: Bool
     
-    @State private var markdownContent: String = """
-    # LiquidCalc Mathematical Derivation
-    
-    Calculations and notes with **LaTeX** mathematical notation and code blocks:
-    
-    ### 1. Fundamental Theorem of Calculus
-    $$ \\int_{a}^{b} f(x) dx = F(b) - F(a) $$
-    
-    ### 2. Kinetic & Mass-Energy Equivalence
-    $$ E = mc^2 $$
-    
-    > [!NOTE]
-    > Velocity $v$ approaching speed of light $c$ requires relativistic momentum.
-    
-    ### 3. Algorithm Implementation
-    ```swift
-    func integral(f: (Double) -> Double, from a: Double, to b: Double) -> Double {
-        let n = 1000
-        let h = (b - a) / Double(n)
-        return (0..<n).map { f(a + Double($0) * h) * h }.reduce(0, +)
-    }
-    ```
-    """
+    @State private var markdownContent: String = ""
+    @State private var documentTitle: String = "Untitled note"
+    @State private var tagText: String = ""
+    @State private var selectedDocumentID: UUID?
+    @State private var searchText: String = ""
     
     enum EditorMode: String, CaseIterable {
         case edit = "Editor"
@@ -48,7 +32,7 @@ public struct MarkdownNotebookView: View {
     @State private var mode: EditorMode = .split
     @State private var showCopiedAlert: Bool = false
     
-    public init() {}
+    public init(isEmbedded: Bool = false) { self.isEmbedded = isEmbedded }
     
     public var body: some View {
         NavigationStack {
@@ -57,6 +41,7 @@ public struct MarkdownNotebookView: View {
                     .ignoresSafeArea()
                 
                 VStack(spacing: 0) {
+                    documentLibraryBar
                     modePickerToolbar
                     quickSymbolBar
                     
@@ -82,9 +67,11 @@ public struct MarkdownNotebookView: View {
             .navigationTitle("Math Scratchpad")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button("Close") { dismiss() }
-                        .foregroundColor(.cyan)
+                if !isEmbedded {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Close") { dismiss() }
+                            .foregroundColor(.cyan)
+                    }
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -107,9 +94,37 @@ public struct MarkdownNotebookView: View {
                 }
             }
         }
+        .onAppear(perform: loadInitialDocument)
+        .onChange(of: markdownContent) { _, _ in saveCurrentDocument() }
+        .onChange(of: documentTitle) { _, _ in saveCurrentDocument() }
+        .onChange(of: tagText) { _, _ in saveCurrentDocument() }
     }
     
     // MARK: - Subcomponents
+
+    private var documentLibraryBar: some View {
+        VStack(spacing: 8) {
+            HStack(spacing: 8) {
+                Menu {
+                    ForEach(workspace.search(searchText)) { document in
+                        Button(document.title) { select(document) }
+                    }
+                    Divider()
+                    Button { createDocument() } label: { Label("New note", systemImage: "plus") }
+                } label: {
+                    Label("Library", systemImage: "books.vertical.fill").font(.system(size: 12, weight: .bold)).foregroundStyle(.cyan).frame(minHeight: 36)
+                }
+                TextField("Note title", text: $documentTitle).font(.system(size: 14, weight: .semibold)).foregroundStyle(.white)
+                Button { createDocument() } label: { Image(systemName: "plus.circle.fill").font(.system(size: 20)).foregroundStyle(.cyan) }
+                    .accessibilityLabel("Create note")
+            }
+            HStack(spacing: 8) {
+                TextField("Search notes", text: $searchText).font(.system(size: 11)).foregroundStyle(.white).padding(.horizontal, 9).frame(height: 32).background(.white.opacity(0.06), in: Capsule())
+                TextField("tags, comma separated", text: $tagText).font(.system(size: 11)).foregroundStyle(.white).padding(.horizontal, 9).frame(height: 32).background(.white.opacity(0.06), in: Capsule())
+            }
+        }
+        .padding(.horizontal, 14).padding(.vertical, 8).background(.black.opacity(0.22))
+    }
     
     private var modePickerToolbar: some View {
         Picker("Mode", selection: $mode) {
@@ -191,5 +206,35 @@ public struct MarkdownNotebookView: View {
         $$ \\nabla \\cdot \\mathbf{B} = 0 $$
         """)
         SoundAndHapticManager.shared.triggerHaptic(.selection)
+    }
+
+    private func loadInitialDocument() {
+        if let context = workspace.pendingContext {
+            let document = workspace.saveContext(context)
+            workspace.pendingContext = nil
+            select(document)
+        } else if let existing = workspace.documents.first {
+            select(existing)
+        } else {
+            createDocument()
+        }
+    }
+
+    private func createDocument() {
+        let document = workspace.create()
+        select(document)
+    }
+
+    private func select(_ document: WorkspaceDocument) {
+        selectedDocumentID = document.id
+        documentTitle = document.title
+        markdownContent = document.markdown
+        tagText = document.tags.joined(separator: ", ")
+    }
+
+    private func saveCurrentDocument() {
+        guard let selectedDocumentID else { return }
+        let tags = tagText.split(separator: ",").map { String($0) }
+        workspace.upsert(WorkspaceDocument(id: selectedDocumentID, title: documentTitle, markdown: markdownContent, tags: tags))
     }
 }

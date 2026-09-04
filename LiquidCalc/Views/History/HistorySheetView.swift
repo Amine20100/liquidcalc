@@ -10,14 +10,18 @@ import SwiftUI
 public struct HistorySheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable var calculatorViewModel: CalculatorViewModel
+    private let onAskAI: ((WorkspaceContext) -> Void)?
+    private let onSaveToNotes: ((WorkspaceContext) -> Void)?
     private var historyManager = HistoryManager.shared
     
     @State private var searchText = ""
     @State private var showClearConfirmation = false
     @State private var copiedItemId: UUID? = nil
     
-    public init(calculatorViewModel: CalculatorViewModel) {
+    public init(calculatorViewModel: CalculatorViewModel, onAskAI: ((WorkspaceContext) -> Void)? = nil, onSaveToNotes: ((WorkspaceContext) -> Void)? = nil) {
         self.calculatorViewModel = calculatorViewModel
+        self.onAskAI = onAskAI
+        self.onSaveToNotes = onSaveToNotes
     }
     
     private var filteredItems: [HistoryItem] {
@@ -162,6 +166,30 @@ public struct HistorySheetView: View {
                         .background(Color.white.opacity(0.1))
                         .foregroundColor(copiedItemId == item.id ? .green : .white.opacity(0.6))
                         .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        onSaveToNotes?(.calculation(expression: item.expression, result: item.result))
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 30, height: 28)
+                            .background(Color.green.opacity(0.14))
+                            .foregroundColor(.green)
+                            .clipShape(Capsule())
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        onAskAI?(.calculation(expression: item.expression, result: item.result))
+                    } label: {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 11, weight: .bold))
+                            .frame(width: 30, height: 28)
+                            .background(Color.purple.opacity(0.16))
+                            .foregroundColor(.purple)
+                            .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
                     

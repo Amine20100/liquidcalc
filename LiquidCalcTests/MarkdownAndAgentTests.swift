@@ -125,4 +125,33 @@ final class MarkdownAndAgentTests: XCTestCase {
         XCTAssertTrue(cmd.contains("-E"))
         XCTAssertTrue(cmd.contains("-W"))
     }
+
+    func testWorkspacePersistsAndSearchesDocuments() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let repository = WorkspaceRepository(directoryURL: directory)
+        var document = repository.create(title: "Calculus revision", markdown: "# Integrals", tags: ["math", "calculus"])
+        document.markdown += "\n\nResult: 64"
+        repository.upsert(document)
+
+        XCTAssertEqual(repository.search("integrals").count, 1)
+        XCTAssertEqual(repository.search("", tag: "calculus").first?.id, document.id)
+
+        let reloaded = WorkspaceRepository(directoryURL: directory)
+        XCTAssertEqual(reloaded.documents.first?.markdown, document.markdown)
+        XCTAssertEqual(reloaded.documents.first?.tags, ["calculus", "math"])
+    }
+
+    func testWorkspaceContextProducesStudyReadyContent() {
+        let context = WorkspaceContext.scan(expression: "2x + 4 = 10", result: "x = 3")
+        XCTAssertTrue(context.promptText.contains("2x + 4"))
+        XCTAssertTrue(context.markdownBlock.contains("x = 3"))
+
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let repository = WorkspaceRepository(directoryURL: directory)
+        let document = repository.saveContext(context)
+        XCTAssertEqual(document.attachments.first?.kind, .scan)
+    }
 }

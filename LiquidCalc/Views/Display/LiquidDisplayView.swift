@@ -31,9 +31,11 @@ public struct ShakeEffect: GeometryEffect {
 
 public struct LiquidDisplayView: View {
     @Bindable var viewModel: CalculatorViewModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var shakeAmount: CGFloat = 0
     @State private var showCopiedHUD = false
     @State private var cursorBlink = false
+    @State private var resultPulse = false
     
     public init(viewModel: CalculatorViewModel) {
         self.viewModel = viewModel
@@ -101,6 +103,12 @@ public struct LiquidDisplayView: View {
                         Circle()
                             .fill(Color.cyan.opacity(0.85))
                             .frame(width: 4, height: 4)
+                            .scaleEffect(cursorBlink ? 1.0 : 0.45)
+                            .opacity(cursorBlink ? 1.0 : 0.35)
+                            .animation(
+                                reduceMotion ? .default : .easeInOut(duration: 0.78).repeatForever(autoreverses: true),
+                                value: cursorBlink
+                            )
                     }
                 }
             }
@@ -114,6 +122,7 @@ public struct LiquidDisplayView: View {
                     .foregroundColor(viewModel.hasError ? .red : .white)
                     .contentTransition(.numericText())
                     .animation(.spring(response: 0.22, dampingFraction: 0.78), value: viewModel.displayResult)
+                    .scaleEffect(resultPulse && !reduceMotion ? 1.018 : 1.0)
                     .minimumScaleFactor(0.4)
                     .lineLimit(1)
                     .modifier(ShakeEffect(shakes: shakeAmount))
@@ -209,6 +218,17 @@ public struct LiquidDisplayView: View {
         .padding(.horizontal, 12)
         .onAppear {
             cursorBlink = true
+        }
+        .onChange(of: viewModel.displayResult) { _, _ in
+            guard !reduceMotion else { return }
+            withAnimation(.easeOut(duration: 0.10)) {
+                resultPulse = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.10) {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.62)) {
+                    resultPulse = false
+                }
+            }
         }
         .onChange(of: viewModel.shouldShakeDisplay) { _, newValue in
             if newValue {

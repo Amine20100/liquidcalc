@@ -29,6 +29,12 @@ public enum VisionSubMode: String, CaseIterable, Identifiable {
     }
 }
 
+public enum VisionScanMode: String, CaseIterable, Identifiable {
+    case guided = "Guided"
+    case live = "Live"
+    public var id: String { rawValue }
+}
+
 @Observable
 public final class VisionViewModel {
     public let cameraService = CameraCaptureService()
@@ -37,7 +43,10 @@ public final class VisionViewModel {
     private let historyManager = HistoryManager.shared
     
     public var selectedSubMode: VisionSubMode = .equation
+    public var scanMode: VisionScanMode = .guided
     public var isScanning: Bool = false
+    public var recognitionConfidence: Double = 0
+    public var lastScanSource: String = "Camera"
     public var detectedExpression: String = ""
     public var solvedResult: String? = nil
     public var detectedSteps: [String] = []
@@ -97,6 +106,7 @@ public final class VisionViewModel {
     }
     
     public func scanCurrentFrame() {
+        guard !isScanning else { return }
         withAnimation(.easeInOut(duration: 0.2)) {
             isScanning = true
         }
@@ -128,6 +138,9 @@ public final class VisionViewModel {
                         }
                         if case .success(let obs) = result {
                             self.scannedObservations = obs
+                            if self.detectedExpression.isEmpty && self.receiptItems.isEmpty {
+                                self.processScannedResults(obs)
+                            }
                         }
                     }
                 }
@@ -163,6 +176,7 @@ public final class VisionViewModel {
     }
     
     public func processScannedResults(_ observations: [ScannedTextObservation]) {
+        recognitionConfidence = observations.isEmpty ? 0 : min(0.98, 0.45 + Double(observations.count) * 0.12)
         if selectedSubMode == .equation {
             // Find best evaluating mathematical candidate
             var bestExpression: String = ""
@@ -338,6 +352,9 @@ public final class VisionViewModel {
                                     }
                                     if case .success(let obs) = scanRes {
                                         self.scannedObservations = obs
+                                        if self.detectedExpression.isEmpty && self.receiptItems.isEmpty {
+                                            self.processScannedResults(obs)
+                                        }
                                     }
                                 }
                             }

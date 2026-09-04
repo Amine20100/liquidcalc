@@ -83,7 +83,7 @@ public struct LiquidAIAgentView: View {
                     Image(systemName: "brain.head.profile")
                         .foregroundColor(.purple)
                         .font(.system(size: 14, weight: .bold))
-                    Text("RE-ACT AUTONOMOUS AGENT")
+                    Text("STUDY AGENT")
                         .font(.system(size: 12, weight: .black, design: .monospaced))
                         .foregroundColor(.white)
                 }
@@ -97,7 +97,7 @@ public struct LiquidAIAgentView: View {
                 Circle()
                     .fill(agent.isExecuting ? Color.yellow : Color.green)
                     .frame(width: 8, height: 8)
-                Text(agent.isExecuting ? "THINKING" : "STANDBY")
+                Text(agent.isExecuting ? "WORKING" : "READY")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundColor(agent.isExecuting ? .yellow : .green)
             }
@@ -115,7 +115,7 @@ public struct LiquidAIAgentView: View {
     
     private var presetPromptsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("SAMPLE MULTI-TOOL MISSIONS")
+            Text("STARTER MISSIONS")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.cyan)
             
@@ -205,7 +205,7 @@ public struct LiquidAIAgentView: View {
             HStack {
                 Image(systemName: "list.bullet.rectangle.portrait")
                     .foregroundColor(.purple)
-                Text("AUTONOMOUS EXECUTION AUDIT")
+                Text("TOOL ACTIVITY")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(.purple)
                 Spacer()
@@ -322,6 +322,22 @@ public struct LiquidAIAgentView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(Color.cyan.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+
+                Button(action: {
+                    WorkspaceRepository.shared.saveContext(.ai(markdown: markdown))
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "square.and.pencil")
+                        Text("Save to Notes")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.green)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(Color.green.opacity(0.12))
                     .clipShape(Capsule())
                 }
             }

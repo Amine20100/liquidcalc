@@ -8,13 +8,87 @@
 
 import SwiftUI
 
+/// Shared visual vocabulary for the student workspace. Components use semantic
+/// roles instead of inventing screen-specific shades and corner radii.
+public enum LiquidTheme {
+    public static let canvas = Color(red: 0.04, green: 0.05, blue: 0.08)
+    public static let surface = Color.white.opacity(0.07)
+    public static let elevatedSurface = Color.white.opacity(0.11)
+    public static let primary = Color.cyan
+    public static let secondary = Color.indigo
+    public static let primaryText = Color.white
+    public static let secondaryText = Color.white.opacity(0.62)
+    public static let border = Color.white.opacity(0.13)
+    public static let cornerRadius: CGFloat = 18
+    public static let compactRadius: CGFloat = 12
+    public static let minimumTouchTarget: CGFloat = 44
+}
+
+public struct LiquidSurface<Content: View>: View {
+    private let content: Content
+    public init(@ViewBuilder content: () -> Content) { self.content = content() }
+    public var body: some View {
+        content
+            .background(LiquidTheme.surface, in: RoundedRectangle(cornerRadius: LiquidTheme.cornerRadius, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: LiquidTheme.cornerRadius, style: .continuous).stroke(LiquidTheme.border, lineWidth: 1))
+    }
+}
+
+public struct LiquidSectionHeader: View {
+    public let title: String
+    public let detail: String?
+    public init(_ title: String, detail: String? = nil) { self.title = title; self.detail = detail }
+    public var body: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.system(size: 15, weight: .bold, design: .rounded)).foregroundStyle(LiquidTheme.primaryText)
+            if let detail { Text(detail).font(.system(size: 11, weight: .medium)).foregroundStyle(LiquidTheme.secondaryText) }
+        }
+    }
+}
+
+public struct LiquidEmptyState: View {
+    public let icon: String
+    public let title: String
+    public let detail: String
+    public init(icon: String, title: String, detail: String) { self.icon = icon; self.title = title; self.detail = detail }
+    public var body: some View {
+        VStack(spacing: 10) {
+            Image(systemName: icon).font(.system(size: 34, weight: .light)).foregroundStyle(LiquidTheme.primary.opacity(0.8))
+            Text(title).font(.system(size: 16, weight: .bold, design: .rounded)).foregroundStyle(LiquidTheme.primaryText)
+            Text(detail).font(.system(size: 12)).multilineTextAlignment(.center).foregroundStyle(LiquidTheme.secondaryText)
+        }
+        .padding(24).frame(maxWidth: .infinity)
+    }
+}
+
+public struct LiquidActionButton: View {
+    public enum Tone { case primary, secondary, destructive }
+    private let title: String
+    private let icon: String
+    private let tone: Tone
+    private let action: () -> Void
+    public init(_ title: String, icon: String, tone: Tone = .primary, action: @escaping () -> Void) { self.title = title; self.icon = icon; self.tone = tone; self.action = action }
+    public var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: icon).font(.system(size: 12, weight: .bold)).frame(maxWidth: .infinity, minHeight: LiquidTheme.minimumTouchTarget)
+        }
+        .foregroundStyle(tone == .primary ? .black : tone == .destructive ? .red : LiquidTheme.primary)
+        .background(background, in: RoundedRectangle(cornerRadius: LiquidTheme.compactRadius, style: .continuous))
+        .accessibilityLabel(title)
+    }
+    private var background: Color { switch tone { case .primary: return LiquidTheme.primary; case .secondary: return LiquidTheme.primary.opacity(0.12); case .destructive: return Color.red.opacity(0.13) } }
+}
+
 public struct LiquidGlassBackground: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isDrifting = false
+
     public init() {}
     
     public var body: some View {
         ZStack {
             // Deep OLED Canvas Base
-            Color(red: 0.04, green: 0.05, blue: 0.08)
+            LiquidTheme.canvas
                 .ignoresSafeArea()
             
             // High-Performance Metal-Accelerated Ambient Glow Mesh
@@ -40,6 +114,7 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 440, height: 440)
                         .position(x: w * 0.15, y: h * 0.12)
+                        .offset(x: isDrifting ? 18 : -12, y: isDrifting ? 10 : -8)
                     
                     // Accent 2: Vibrant Indigo / Purple Glow (Center-Right)
                     Circle()
@@ -57,6 +132,7 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 520, height: 520)
                         .position(x: w * 0.85, y: h * 0.42)
+                        .offset(x: isDrifting ? -20 : 14, y: isDrifting ? -14 : 10)
                     
                     // Accent 3: Emerald Mint Glow (Bottom-Left)
                     Circle()
@@ -74,6 +150,7 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 400, height: 400)
                         .position(x: w * 0.10, y: h * 0.78)
+                        .offset(x: isDrifting ? 12 : -10, y: isDrifting ? -16 : 12)
                     
                     // Accent 4: Subtle Warm Amber Glow (Bottom-Right)
                     Circle()
@@ -91,7 +168,12 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 360, height: 360)
                         .position(x: w * 0.80, y: h * 0.82)
+                        .offset(x: isDrifting ? -10 : 14, y: isDrifting ? 12 : -10)
                 }
+                .animation(
+                    reduceMotion ? .default : .easeInOut(duration: 8).repeatForever(autoreverses: true),
+                    value: isDrifting
+                )
             }
             .drawingGroup() // Metal hardware accelerated rasterization
             .ignoresSafeArea()
@@ -107,6 +189,13 @@ public struct LiquidGlassBackground: View {
                 endPoint: .bottom
             )
             .ignoresSafeArea()
+        }
+        .onAppear {
+            guard !reduceMotion else { return }
+            isDrifting = true
+        }
+        .onChange(of: reduceMotion) { _, shouldReduceMotion in
+            isDrifting = !shouldReduceMotion
         }
     }
 }
