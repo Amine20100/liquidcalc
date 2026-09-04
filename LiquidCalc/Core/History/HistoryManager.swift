@@ -45,6 +45,10 @@ public final class HistoryManager {
         saveHistory()
     }
     
+    public func clearHistory() {
+        clearAll()
+    }
+    
     public func exportAsText() -> String {
         return items.map { "\($0.formattedDate) \($0.formattedTime): \($0.expression) = \($0.result)" }
             .joined(separator: "\n")

@@ -121,9 +121,7 @@ public struct SignerStudioView: View {
         ) { result in
             switch result {
             case .success(let url):
-                if let tweak = signerViewModel.importDylib(from: url) {
-                    activeTweaks.insert(tweak.id)
-                }
+                _ = signerViewModel.importDylib(from: url)
             case .failure(let error):
                 signerViewModel.appendLog("Dylib import error: \(error.localizedDescription)", .error)
             }

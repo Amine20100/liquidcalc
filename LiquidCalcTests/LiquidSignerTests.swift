@@ -196,22 +196,25 @@ final class LiquidSignerTests: XCTestCase {
             removeExtensions: true
         )
         
-        var recordedStages: [String] = []
-        var maxProgress: Double = 0.0
+        final class ProgressTracker: @unchecked Sendable {
+            var recordedStages: [String] = []
+            var maxProgress: Double = 0.0
+        }
+        let tracker = ProgressTracker()
         
         let signedUrl = try await LiquidSignEngine.shared.signIPA(
             inputIpaUrl: dummyIpa,
             config: config,
             progress: { pct, stage in
-                maxProgress = max(maxProgress, pct)
-                recordedStages.append(stage)
+                tracker.maxProgress = max(tracker.maxProgress, pct)
+                tracker.recordedStages.append(stage)
             },
             log: { _, _ in }
         )
         
         XCTAssertTrue(FileManager.default.fileExists(atPath: signedUrl.path), "Signed IPA must exist on disk")
-        XCTAssertEqual(maxProgress, 1.0, "Signing pipeline must reach 100% progress")
-        XCTAssertTrue(recordedStages.contains(where: { $0.contains("Packaging") || $0.contains("complete") }))
+        XCTAssertEqual(tracker.maxProgress, 1.0, "Signing pipeline must reach 100% progress")
+        XCTAssertTrue(tracker.recordedStages.contains(where: { $0.contains("Packaging") || $0.contains("complete") }))
     }
     
     // MARK: - Test 5: Signer Studio & Engine Modes

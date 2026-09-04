@@ -10,11 +10,13 @@ import SwiftUI
 
 public struct SonarWaveRingsView: View {
     public let isScanning: Bool
+    public let ringCount: Int
     
     @State private var phase: CGFloat = 0.0
     
-    public init(isScanning: Bool = true) {
+    public init(isScanning: Bool = true, ringCount: Int = 3) {
         self.isScanning = isScanning
+        self.ringCount = ringCount
     }
     
     public var body: some View {
