@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 public struct CertificateStoreView: View {
     @Bindable var certManager: CertificateManager
