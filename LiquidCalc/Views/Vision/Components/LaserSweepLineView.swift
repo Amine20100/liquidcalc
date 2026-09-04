@@ -12,6 +12,7 @@ public struct LaserSweepLineView: View {
     public let isScanning: Bool
     
     @State private var sweepPhase: CGFloat = 0.0 // 0.0 (top) to 1.0 (bottom)
+    @State private var sparkPhase: CGFloat = 0.0
     
     public init(isScanning: Bool = true) {
         self.isScanning = isScanning
@@ -25,42 +26,62 @@ public struct LaserSweepLineView: View {
             let currentY = 20 + (sweepPhase * verticalRange)
             
             ZStack(alignment: .top) {
-                // 1. Trailing Optical Curtain (Holographic phosphor gradient)
+                // 1. Holographic Phosphor Chromatic Curtain
                 LinearGradient(
                     stops: [
                         .init(color: .clear, location: 0.0),
-                        .init(color: Color.cyan.opacity(0.12), location: 0.5),
-                        .init(color: Color.cyan.opacity(0.35), location: 1.0)
+                        .init(color: Color(red: 0.4, green: 0.1, blue: 0.9).opacity(0.08), location: 0.4),
+                        .init(color: Color.cyan.opacity(0.18), location: 0.75),
+                        .init(color: Color(red: 0.0, green: 1.0, blue: 0.8).opacity(0.38), location: 1.0)
                     ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
-                .frame(width: max(width - 24, 20), height: 36)
-                .position(x: width / 2, y: currentY - 18)
+                .frame(width: max(width - 24, 20), height: 42)
+                .position(x: width / 2, y: currentY - 21)
                 
-                // 2. Neon Glow Beam (Hardware-rendered gradient beam)
+                // 2. High-Intensity Laser Beam
                 Capsule()
                     .fill(
                         LinearGradient(
                             colors: [
                                 Color.clear,
-                                Color.cyan.opacity(0.7),
+                                Color.cyan.opacity(0.6),
+                                Color(red: 0.0, green: 1.0, blue: 0.7),
                                 Color.white,
-                                Color.cyan.opacity(0.7),
+                                Color(red: 0.0, green: 1.0, blue: 0.7),
+                                Color.cyan.opacity(0.6),
                                 Color.clear
                             ],
                             startPoint: .leading,
                             endPoint: .trailing
                         )
                     )
-                    .frame(width: max(width - 20, 20), height: 3)
+                    .frame(width: max(width - 16, 20), height: 3.5)
                     .position(x: width / 2, y: currentY)
+                    .shadow(color: Color.cyan.opacity(0.8), radius: 6)
                 
                 // 3. Center Specular Flare Burst
                 Circle()
                     .fill(Color.white)
                     .frame(width: 8, height: 8)
                     .position(x: width / 2, y: currentY)
+                    .shadow(color: .white, radius: 4)
+                
+                // 4. Shimmering Holographic Spark Particles along Laser Sweep
+                if isScanning {
+                    ForEach(0..<5, id: \.self) { idx in
+                        let frac = (CGFloat(idx) * 0.22 + sparkPhase).truncatingRemainder(dividingBy: 1.0)
+                        let sparkX = 24 + frac * max(width - 48, 10)
+                        
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 2.5, height: 2.5)
+                            .position(x: sparkX, y: currentY + (idx % 2 == 0 ? -1.5 : 1.5))
+                            .opacity(Double(sin(frac * .pi)))
+                            .shadow(color: Color.cyan, radius: 3)
+                    }
+                }
             }
             .drawingGroup() // 100% Metal GPU accelerated
             .opacity(isScanning ? 1.0 : 0.0)
@@ -80,10 +101,18 @@ public struct LaserSweepLineView: View {
     private func startSweep() {
         sweepPhase = 0.0
         withAnimation(
-            .easeInOut(duration: 1.2)
+            .easeInOut(duration: 1.3)
             .repeatForever(autoreverses: true)
         ) {
             sweepPhase = 1.0
+        }
+        
+        sparkPhase = 0.0
+        withAnimation(
+            .linear(duration: 2.2)
+            .repeatForever(autoreverses: false)
+        ) {
+            sparkPhase = 1.0
         }
     }
 }

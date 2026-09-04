@@ -48,6 +48,24 @@ public struct MathDrawCanvasView: View {
                     solvedMotionBadge(result: result)
                 }
                 
+                // Holographic HUD Scan Effects during Handwriting Recognition / AI Solving
+                if viewModel.isRecognizing || viewModel.isGeminiAnalyzing {
+                    SonarWaveRingsView(isScanning: true, ringCount: 3)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                    
+                    LaserSweepLineView(isScanning: true)
+                        .allowsHitTesting(false)
+                        .transition(.opacity)
+                }
+                
+                // Holographic Reticle Overlay Framing Drawn Formula
+                ReticleOverlayView(
+                    isScanning: viewModel.isRecognizing || viewModel.isGeminiAnalyzing,
+                    hasTarget: !viewModel.recognizedExpression.isEmpty
+                )
+                .allowsHitTesting(false)
+                
                 // Gemini 2.5 Flash Floating AI Solution Card
                 if viewModel.showGeminiCard, let result = viewModel.solvedResult {
                     geminiSolutionCard(result: result)

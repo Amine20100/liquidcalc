@@ -31,6 +31,7 @@ public final class CalculatorViewModel {
     public var hasError: Bool = false
     public var errorMessage: String? = nil
     public var shouldShakeDisplay: Bool = false
+    public var evaluationTriggerCount: Int = 0
     
     // Hidden Liquid Signer Stealth Vault State
     public var isUnlockingSigner: Bool = false
@@ -252,6 +253,7 @@ public final class CalculatorViewModel {
             expression = formatted
             livePreview = nil
             hasError = false
+            evaluationTriggerCount += 1
         } catch {
             triggerError(error.localizedDescription)
         }
