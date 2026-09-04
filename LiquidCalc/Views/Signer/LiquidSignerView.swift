@@ -24,6 +24,8 @@ public struct LiquidSignerView: View {
     // P12 Password Prompt Sheet
     @State private var showPasswordPrompt = false
     @State private var pendingP12Url: URL? = nil
+    @State private var pendingP12Data: Data? = nil
+    @State private var pendingP12Filename: String = ""
     @State private var p12PasswordInput = ""
     
     // Settings PIN Sheet
@@ -103,7 +105,7 @@ public struct LiquidSignerView: View {
         // File Pickers
         .fileImporter(
             isPresented: $showIpaImporter,
-            allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data, .zip, .data]
+            allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data, .zip, .data, .item]
         ) { result in
             if case .success(let url) = result {
                 signerViewModel.importIPA(from: url)
@@ -111,17 +113,23 @@ public struct LiquidSignerView: View {
         }
         .fileImporter(
             isPresented: $showP12Importer,
-            allowedContentTypes: [UTType(filenameExtension: "p12") ?? .data, .data]
+            allowedContentTypes: [UTType(filenameExtension: "p12") ?? .data, .data, .item]
         ) { result in
             if case .success(let url) = result {
-                pendingP12Url = url
-                p12PasswordInput = ""
-                showPasswordPrompt = true
+                let isAccessing = url.startAccessingSecurityScopedResource()
+                defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+                if let data = try? Data(contentsOf: url) {
+                    pendingP12Data = data
+                    pendingP12Filename = url.lastPathComponent
+                    pendingP12Url = url
+                    p12PasswordInput = ""
+                    showPasswordPrompt = true
+                }
             }
         }
         .fileImporter(
             isPresented: $showProfileImporter,
-            allowedContentTypes: [UTType(filenameExtension: "mobileprovision") ?? .data, .data]
+            allowedContentTypes: [UTType(filenameExtension: "mobileprovision") ?? .data, .data, .item]
         ) { result in
             if case .success(let url) = result {
                 do {
@@ -136,7 +144,7 @@ public struct LiquidSignerView: View {
         }
         .fileImporter(
             isPresented: $showDylibImporter,
-            allowedContentTypes: [UTType(filenameExtension: "dylib") ?? .data, .data]
+            allowedContentTypes: [UTType(filenameExtension: "dylib") ?? .data, .data, .item]
         ) { result in
             if case .success(let url) = result {
                 signerViewModel.importDylib(from: url)
@@ -151,7 +159,20 @@ public struct LiquidSignerView: View {
         .alert("Enter P12 Password", isPresented: $showPasswordPrompt) {
             SecureField("Password (or leave blank)", text: $p12PasswordInput)
             Button("Import") {
-                if let url = pendingP12Url {
+                if let data = pendingP12Data {
+                    do {
+                        let cert = try certManager.importP12Data(
+                            data: data,
+                            originalFilename: pendingP12Filename,
+                            password: p12PasswordInput
+                        )
+                        signerViewModel.appendLog("✓ Imported certificate: \(cert.name)", .success)
+                        SoundAndHapticManager.shared.triggerHaptic(.success)
+                    } catch {
+                        signerViewModel.appendLog("Failed importing certificate: \(error.localizedDescription)", .error)
+                        SoundAndHapticManager.shared.triggerHaptic(.error)
+                    }
+                } else if let url = pendingP12Url {
                     do {
                         _ = try certManager.importP12(from: url, password: p12PasswordInput)
                         signerViewModel.appendLog("✓ Imported certificate: \(url.lastPathComponent)", .success)

@@ -43,6 +43,12 @@ public final class CertificateManager: @unchecked Sendable {
     // MARK: - Certificate Import (.p12)
     
     public func importP12(from url: URL, password: String, customName: String? = nil) throws -> SigningCertificate {
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
         let data = try Data(contentsOf: url)
         return try importP12Data(data: data, originalFilename: url.lastPathComponent, password: password, customName: customName)
     }
@@ -93,12 +99,20 @@ public final class CertificateManager: @unchecked Sendable {
             isDefault: certificates.isEmpty
         )
         
-        DispatchQueue.main.async {
+        if Thread.isMainThread {
             self.certificates.append(newCert)
             if self.activeCertificate == nil {
                 self.activeCertificate = newCert
             }
             self.saveData()
+        } else {
+            DispatchQueue.main.sync {
+                self.certificates.append(newCert)
+                if self.activeCertificate == nil {
+                    self.activeCertificate = newCert
+                }
+                self.saveData()
+            }
         }
         
         return newCert
@@ -107,6 +121,12 @@ public final class CertificateManager: @unchecked Sendable {
     // MARK: - Provisioning Profile Import (.mobileprovision)
     
     public func importProvisioningProfile(from url: URL, customName: String? = nil) throws -> ProvisioningProfile {
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
         let data = try Data(contentsOf: url)
         return try importProfileData(data: data, originalFilename: url.lastPathComponent, customName: customName)
     }
@@ -132,12 +152,20 @@ public final class CertificateManager: @unchecked Sendable {
             isWildcard: isWildcard
         )
         
-        DispatchQueue.main.async {
+        if Thread.isMainThread {
             self.profiles.append(newProfile)
             if self.activeProfile == nil {
                 self.activeProfile = newProfile
             }
             self.saveData()
+        } else {
+            DispatchQueue.main.sync {
+                self.profiles.append(newProfile)
+                if self.activeProfile == nil {
+                    self.activeProfile = newProfile
+                }
+                self.saveData()
+            }
         }
         
         return newProfile
@@ -222,18 +250,17 @@ public final class CertificateManager: @unchecked Sendable {
     // MARK: - ESign ZIP Certificate Archive Import
     
     public func importCertificateZip(from zipUrl: URL, password: String) throws -> (SigningCertificate?, ProvisioningProfile?) {
+        let isAccessing = zipUrl.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing { zipUrl.stopAccessingSecurityScopedResource() }
+        }
+        
         let tempExtractDir = fileManager.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
         try fileManager.createDirectory(at: tempExtractDir, withIntermediateDirectories: true)
         defer { try? fileManager.removeItem(at: tempExtractDir) }
         
-        #if os(macOS)
-        // If unzip binary is available on macOS host
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/usr/bin/unzip")
-        process.arguments = ["-q", zipUrl.path, "-d", tempExtractDir.path]
-        try? process.run()
-        process.waitUntilExit()
-        #endif
+        // Extract using ZipArchiveExtractor (pure Swift + Compression on iOS / unzip on macOS)
+        try? ZipArchiveExtractor.shared.extract(archiveUrl: zipUrl, destinationDir: tempExtractDir)
         
         // Traverse extracted files to locate .p12 and .mobileprovision
         var foundCert: SigningCertificate? = nil
