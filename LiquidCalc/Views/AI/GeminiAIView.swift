@@ -12,6 +12,7 @@ import PhotosUI
 public struct GeminiAIView: View {
     @Bindable var calculatorViewModel: CalculatorViewModel
     @Bindable private var geminiService = GeminiService.shared
+    private let initialContext: WorkspaceContext?
     
     @State private var promptText: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -20,8 +21,9 @@ public struct GeminiAIView: View {
     @State private var showAgentWorkbench: Bool = false
     @State private var showMarkdownScratchpad: Bool = false
     
-    public init(calculatorViewModel: CalculatorViewModel) {
+    public init(calculatorViewModel: CalculatorViewModel, initialContext: WorkspaceContext? = nil) {
         self.calculatorViewModel = calculatorViewModel
+        self.initialContext = initialContext
     }
     
     public var body: some View {
@@ -63,6 +65,9 @@ public struct GeminiAIView: View {
                 
                 Button(action: {
                     SoundAndHapticManager.shared.triggerHaptic(.selection)
+                    if let answer = geminiService.chatHistory.last(where: { $0.role == .model && !$0.text.isEmpty })?.text {
+                        WorkspaceRepository.shared.saveContext(.ai(markdown: answer))
+                    }
                     showMarkdownScratchpad = true
                 }) {
                     HStack(spacing: 3) {
@@ -251,6 +256,11 @@ public struct GeminiAIView: View {
                         self.selectedImage = uiImg
                     }
                 }
+            }
+        }
+        .onAppear {
+            if promptText.isEmpty, let initialContext {
+                promptText = initialContext.promptText
             }
         }
         .sheet(isPresented: $showAgentWorkbench) {

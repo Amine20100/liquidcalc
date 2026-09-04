@@ -55,8 +55,8 @@ public struct GeminiMathResponse: Codable, Sendable {
 public final class GeminiService: @unchecked Sendable {
     public static let shared = GeminiService()
     
-    private static let defaultKeyB64 = "QVEuQWI4Uk42S1BYOUlQbDAxZVNkYjZsZjJwRW9PdmVKS1JTQm9CRnk4Q2hFdHdSOVM2WkE="
-    
+    /// Optional development override. Production requests are proxied through the
+    /// LiquidCalc backend so the app binary never contains a provider secret.
     public var apiKey: String
     public var selectedModel: String = "gemini-2.5-flash"
     public var isAnalyzing: Bool = false
@@ -68,14 +68,7 @@ public final class GeminiService: @unchecked Sendable {
     private let userDefaultsApiKey = "LiquidCalc_GeminiApiKey"
     
     public init() {
-        if let customKey = UserDefaults.standard.string(forKey: userDefaultsApiKey), !customKey.isEmpty {
-            self.apiKey = customKey
-        } else if let keyData = Data(base64Encoded: Self.defaultKeyB64),
-                  let decoded = String(data: keyData, encoding: .utf8) {
-            self.apiKey = decoded
-        } else {
-            self.apiKey = ""
-        }
+        self.apiKey = UserDefaults.standard.string(forKey: userDefaultsApiKey) ?? ""
     }
     
     public func updateApiKey(_ newKey: String) {
@@ -111,45 +104,26 @@ public final class GeminiService: @unchecked Sendable {
             }
         }
         
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(selectedModel):streamGenerateContent?alt=sse&key=\(apiKey)"
+        let endpoint = "https://liquidcalc-backend.vercel.app/api/ai/stream"
         guard let url = URL(string: endpoint) else {
             throw NSError(domain: "GeminiService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
         }
         
-        var contents: [[String: Any]] = []
-        for msg in chatHistory.dropLast() { // drop the empty placeholder
-            var parts: [[String: Any]] = []
-            parts.append(["text": msg.text])
-            if let img = msg.image, let jpegData = img.jpegData(compressionQuality: 0.8) {
-                parts.append([
-                    "inline_data": [
-                        "mime_type": "image/jpeg",
-                        "data": jpegData.base64EncodedString()
-                    ]
-                ])
-            }
-            contents.append([
-                "role": msg.role.rawValue,
-                "parts": parts
-            ])
-        }
-        
-        let systemPrompt = "You are LiquidCalc AI, an expert and concise math & physics tutor. Solve formulas, explain steps clearly, highlight the final answer, and support robust markdown rendering. If the user asks for a diagram, flowchart, or graph, output ONLY valid mermaid code inside a ```mermaid codeblock. Make it concise and extremely readable."
-        
-        let payload: [String: Any] = [
-            "system_instruction": [
-                "parts": [["text": systemPrompt]]
-            ],
-            "contents": contents,
-            "generationConfig": [
-                "temperature": 0.2,
-                "maxOutputTokens": 2048
-            ]
+        let history = chatHistory.dropLast().map { ["role": $0.role.rawValue, "text": $0.text] }
+        var payload: [String: Any] = [
+            "prompt": prompt,
+            "history": history,
+            "model": selectedModel,
+            "temperature": 0.2
         ]
+        if let imageData = image?.jpegData(compressionQuality: 0.8) {
+            payload["image"] = imageData.base64EncodedString()
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !apiKey.isEmpty { request.setValue(apiKey, forHTTPHeaderField: "x-gemini-api-key") }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         request.timeoutInterval = 45
         
@@ -171,12 +145,7 @@ public final class GeminiService: @unchecked Sendable {
                 guard !jsonString.isEmpty, let data = jsonString.data(using: .utf8) else { continue }
                 
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let candidates = json["candidates"] as? [[String: Any]],
-                   let firstCandidate = candidates.first,
-                   let content = firstCandidate["content"] as? [String: Any],
-                   let resParts = content["parts"] as? [[String: Any]],
-                   let firstPart = resParts.first,
-                   let text = firstPart["text"] as? String {
+                   let text = json["text"] as? String, !text.isEmpty {
                     
                     await MainActor.run {
                         if !self.chatHistory.isEmpty {
@@ -225,7 +194,7 @@ public final class GeminiService: @unchecked Sendable {
         Do NOT wrap in markdown or backticks outside the JSON.
         """
         
-        let rawResponse = try await executeGeminiRequest(prompt: prompt, image: image, additionalText: expressionText)
+        let rawResponse = try await executeGeminiRequest(prompt: prompt, image: image, additionalText: expressionText, mode: "math")
         let cleanJson = extractCleanJSON(from: rawResponse)
         
         guard let data = cleanJson.data(using: .utf8) else {
@@ -268,7 +237,7 @@ public final class GeminiService: @unchecked Sendable {
         Do NOT wrap in markdown like ```json.
         """
         
-        let rawResponse = try await executeGeminiRequest(prompt: prompt, image: image)
+        let rawResponse = try await executeGeminiRequest(prompt: prompt, image: image, mode: "receipt")
         let cleanJson = extractCleanJSON(from: rawResponse)
         
         guard let data = cleanJson.data(using: .utf8) else {
@@ -280,41 +249,23 @@ public final class GeminiService: @unchecked Sendable {
     
     // MARK: - Core Gemini HTTP Request
     
-    private func executeGeminiRequest(prompt: String, image: UIImage? = nil, additionalText: String? = nil) async throws -> String {
-        let endpoint = "https://generativelanguage.googleapis.com/v1beta/models/\(selectedModel):generateContent?key=\(apiKey)"
+    private func executeGeminiRequest(prompt: String, image: UIImage? = nil, additionalText: String? = nil, mode: String) async throws -> String {
+        let endpoint = "https://liquidcalc-backend.vercel.app/api/ai/solve"
         guard let url = URL(string: endpoint) else {
             throw NSError(domain: "GeminiService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
         }
-        
-        var parts: [[String: Any]] = []
         
         var combinedText = prompt
         if let extra = additionalText, !extra.isEmpty {
             combinedText += "\nContext expression: \(extra)"
         }
-        parts.append(["text": combinedText])
-        
-        if let img = image, let jpegData = img.jpegData(compressionQuality: 0.8) {
-            let base64String = jpegData.base64EncodedString()
-            parts.append([
-                "inline_data": [
-                    "mime_type": "image/jpeg",
-                    "data": base64String
-                ]
-            ])
-        }
-        
-        let payload: [String: Any] = [
-            "contents": [["parts": parts]],
-            "generationConfig": [
-                "temperature": 0.1,
-                "maxOutputTokens": 2048
-            ]
-        ]
+        var payload: [String: Any] = ["mode": mode, "prompt": combinedText, "model": selectedModel]
+        if let jpegData = image?.jpegData(compressionQuality: 0.8) { payload["image"] = jpegData.base64EncodedString() }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        if !apiKey.isEmpty { request.setValue(apiKey, forHTTPHeaderField: "x-gemini-api-key") }
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
         request.timeoutInterval = 30
         
@@ -330,19 +281,12 @@ public final class GeminiService: @unchecked Sendable {
                let msg = errorObj["message"] as? String {
                 throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
             }
-            throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Gemini API error (Status \(httpResponse.statusCode))"])
+            throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "AI service error (Status \(httpResponse.statusCode))"])
         }
-        
-        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let resParts = content["parts"] as? [[String: Any]],
-              let firstPart = resParts.first,
-              let text = firstPart["text"] as? String else {
-            throw NSError(domain: "GeminiService", code: -4, userInfo: [NSLocalizedDescriptionKey: "Empty response from Gemini"])
+
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw NSError(domain: "GeminiService", code: -4, userInfo: [NSLocalizedDescriptionKey: "Unreadable AI response"])
         }
-        
         return text
     }
     

@@ -123,8 +123,8 @@ public final class LiquidAIAgent: @unchecked Sendable {
         // Step 1: Initial Thought & Problem Decomposition
         let initialStep = AgentStep(
             type: .thought,
-            title: "Deconstructing Task & Planning Tools",
-            detail: "Analyzing request: \"\(query)\". Selecting appropriate mathematical and system tools...",
+            title: "Planning workspace tools",
+            detail: "Choosing the local math and study tools needed for this request.",
             status: .running
         )
         steps.append(initialStep)

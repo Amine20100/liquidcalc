@@ -14,6 +14,12 @@ public struct MainCalculatorView: View {
     @Bindable private var updateManager = AppUpdateManager.shared
     @State private var showHistorySheet = false
     @State private var showSettingsSheet = false
+    @State private var workspaceSurface: WorkspaceDestination = .calculator
+    @State private var showToolsSheet = false
+    @State private var showCopilot = false
+    @State private var copilotContext: WorkspaceContext?
+    @State private var activeToolMode: CalculatorMode?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     public init() {}
     
@@ -22,61 +28,27 @@ public struct MainCalculatorView: View {
             // Liquid Frosted Background
             LiquidGlassBackground()
             
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 // Top Header Toolbar with safe area spacing
                 topHeaderBar
                     .padding(.top, 4)
                 
-                // Mode Switcher Capsule Bar
-                ModeSwitcherView(selectedMode: $calculatorViewModel.currentMode)
-                    .padding(.horizontal, 8)
-                
-                // Standard Display Area (Shown in Standard & Scientific modes)
-                if calculatorViewModel.currentMode == .standard || calculatorViewModel.currentMode == .scientific {
-                    LiquidDisplayView(viewModel: calculatorViewModel)
-                        .transition(.asymmetric(
-                            insertion: .scale(scale: 0.94, anchor: .top).combined(with: .opacity).combined(with: .offset(y: -8)),
-                            removal: .scale(scale: 0.96, anchor: .top).combined(with: .opacity)
-                        ))
-                }
-                
-                Spacer(minLength: 4)
-                
-                // Dynamic Mode Keypad / Workstation
-                Group {
-                    switch calculatorViewModel.currentMode {
-                    case .standard:
-                        StandardKeypadView(viewModel: calculatorViewModel)
-                    case .scientific:
-                        ScientificKeypadView(viewModel: calculatorViewModel)
-                    case .programmer:
-                        ProgrammerKeypadView(viewModel: programmerViewModel)
-                    case .converter:
-                        UnitConverterView(viewModel: converterViewModel)
-                    case .vision:
-                        SmartVisionView(calculatorViewModel: calculatorViewModel)
-                    case .geminiAI:
-                        GeminiAIView(calculatorViewModel: calculatorViewModel)
-                    case .advancedMath:
-                        AdvancedMathView()
-                    case .graphing:
-                        FunctionGrapherView()
-                    case .mathDraw:
-                        MathDrawCanvasView()
-                    }
-                }
-                .transition(.asymmetric(
-                    insertion: .scale(scale: 0.95).combined(with: .opacity).combined(with: .offset(y: 14)),
-                    removal: .scale(scale: 0.97).combined(with: .opacity)
-                ))
-                
-                Spacer(minLength: 8)
+                workspaceContent
+                    .frame(maxWidth: 760, maxHeight: .infinity)
+                    .frame(maxWidth: .infinity)
+                    .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity.combined(with: .offset(y: 10)), removal: .opacity))
+
+                workspaceDock
             }
             .safeAreaPadding(.top)
-            .animation(.spring(response: 0.32, dampingFraction: 0.82), value: calculatorViewModel.currentMode)
+            .animation(reduceMotion ? .default : .spring(response: 0.32, dampingFraction: 0.84), value: workspaceSurface)
         }
         .sheet(isPresented: $showHistorySheet) {
-            HistorySheetView(calculatorViewModel: calculatorViewModel)
+            HistorySheetView(
+                calculatorViewModel: calculatorViewModel,
+                onAskAI: { context in showHistorySheet = false; presentCopilot(context) },
+                onSaveToNotes: { context in WorkspaceRepository.shared.saveContext(context) }
+            )
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.visible)
         }
@@ -84,6 +56,11 @@ public struct MainCalculatorView: View {
             SettingsSheetView()
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showToolsSheet) { toolsSheet }
+        .sheet(isPresented: $showCopilot) {
+            GeminiAIView(calculatorViewModel: calculatorViewModel, initialContext: copilotContext)
+                .presentationDetents([.large])
         }
         .sheet(isPresented: $updateManager.showUpdateSheet) {
             if let release = updateManager.latestRelease {
@@ -118,6 +95,119 @@ public struct MainCalculatorView: View {
         }
     }
     
+    @ViewBuilder
+    private var workspaceContent: some View {
+        switch workspaceSurface {
+        case .calculator:
+            if let activeToolMode {
+                VStack(spacing: 10) {
+                    HStack {
+                        Button { self.activeToolMode = nil } label: { Label("Calculator", systemImage: "chevron.left") }
+                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(.cyan)
+                        Spacer()
+                        Text(activeToolMode.rawValue).font(.system(size: 14, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                    }.padding(.horizontal, 20)
+                    toolContent(activeToolMode)
+                }
+            } else {
+            VStack(spacing: 12) {
+                LiquidDisplayView(viewModel: calculatorViewModel)
+                HStack(spacing: 8) {
+                    workspaceAction("Explain", icon: "sparkles") { presentCopilot(.calculation(expression: calculatorViewModel.expression, result: calculatorViewModel.displayResult)) }
+                    workspaceAction("Save", icon: "square.and.pencil") { WorkspaceRepository.shared.saveContext(.calculation(expression: calculatorViewModel.expression, result: calculatorViewModel.displayResult)); workspaceSurface = .notes }
+                    workspaceAction("Scientific", icon: "function") { showToolsSheet = true }
+                }.padding(.horizontal, 16)
+                StandardKeypadView(viewModel: calculatorViewModel)
+                Spacer(minLength: 4)
+            }
+            }
+        case .scan:
+            SmartVisionView(
+                calculatorViewModel: calculatorViewModel,
+                onSendToAI: { presentCopilot($0) },
+                onSaveToNotes: { WorkspaceRepository.shared.saveContext($0); workspaceSurface = .notes }
+            )
+        case .ai:
+            GeminiAIView(calculatorViewModel: calculatorViewModel, initialContext: copilotContext)
+        case .notes:
+            MarkdownNotebookView(isEmbedded: true)
+        }
+    }
+
+    private func workspaceAction(_ title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: icon).font(.system(size: 12, weight: .semibold)).frame(maxWidth: .infinity, minHeight: 42)
+        }
+        .foregroundStyle(.cyan).background(.cyan.opacity(0.10), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
+        .accessibilityLabel(title)
+    }
+
+    private var workspaceDock: some View {
+        HStack(spacing: 4) {
+            ForEach(WorkspaceDestination.allCases) { surface in
+                Button {
+                    SoundAndHapticManager.shared.triggerHaptic(.selection)
+                    workspaceSurface = surface
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: surface.icon).font(.system(size: 16, weight: .semibold))
+                        Text(surface.shortTitle).font(.system(size: 10, weight: .semibold))
+                    }
+                    .foregroundStyle(workspaceSurface == surface ? .white : .white.opacity(0.52))
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .background(workspaceSurface == surface ? Color.cyan.opacity(0.20) : .clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain).accessibilityLabel(surface.title).accessibilityAddTraits(workspaceSurface == surface ? .isSelected : [])
+            }
+            Button { showToolsSheet = true } label: {
+                VStack(spacing: 3) { Image(systemName: "square.grid.2x2").font(.system(size: 16, weight: .semibold)); Text("Tools").font(.system(size: 10, weight: .semibold)) }
+                    .foregroundStyle(.white.opacity(0.62)).frame(maxWidth: .infinity, minHeight: 52)
+            }.buttonStyle(.plain).accessibilityLabel("More tools")
+        }
+        .padding(6).background(.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.12), lineWidth: 1))
+        .padding(.horizontal, 12).padding(.bottom, 8)
+    }
+
+    private var toolsSheet: some View {
+        NavigationStack {
+            List {
+                Section("Compute") {
+                    toolRow("Scientific", icon: "function", mode: .scientific)
+                    toolRow("Math Lab", icon: "atom", mode: .advancedMath)
+                    toolRow("Graphing", icon: "waveform.path.ecg", mode: .graphing)
+                    toolRow("Unit Converter", icon: "arrow.triangle.2.circlepath", mode: .converter)
+                    toolRow("Programmer", icon: "chevron.left.forwardslash.chevron.right", mode: .programmer)
+                    toolRow("Draw Calc", icon: "hand.draw.fill", mode: .mathDraw)
+                }
+                Section("Advanced") {
+                    Button { showToolsSheet = false; calculatorViewModel.showLiquidSigner = true } label: { Label("Signer Studio", systemImage: "signature") }
+                }
+            }.navigationTitle("Tools").navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    private func toolRow(_ title: String, icon: String, mode: CalculatorMode) -> some View {
+        Button { activeToolMode = mode; workspaceSurface = .calculator; showToolsSheet = false } label: { Label(title, systemImage: icon) }
+    }
+
+    @ViewBuilder
+    private func toolContent(_ mode: CalculatorMode) -> some View {
+        switch mode {
+        case .scientific: ScientificKeypadView(viewModel: calculatorViewModel)
+        case .programmer: ProgrammerKeypadView(viewModel: programmerViewModel)
+        case .converter: UnitConverterView(viewModel: converterViewModel)
+        case .advancedMath: AdvancedMathView()
+        case .graphing: FunctionGrapherView()
+        case .mathDraw: MathDrawCanvasView()
+        case .vision: SmartVisionView(calculatorViewModel: calculatorViewModel)
+        case .geminiAI: GeminiAIView(calculatorViewModel: calculatorViewModel)
+        case .standard: StandardKeypadView(viewModel: calculatorViewModel)
+        }
+    }
+
+    private func presentCopilot(_ context: WorkspaceContext) { copilotContext = context; showCopilot = true }
+
     private var topHeaderBar: some View {
         HStack(spacing: 8) {
             // App Branding

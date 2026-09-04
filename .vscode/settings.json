@@ -1,0 +1,12 @@
+{
+    "terminal.integrated.fontFamily": "'Cascadia Code', 'Apple Color Emoji', 'Segoe UI Emoji', 'BabelStone Flags', Consolas, monospace",
+    "editor.fontFamily": "Consolas, 'Cascadia Code', 'Apple Color Emoji', 'Segoe UI Emoji', 'BabelStone Flags', monospace",
+    "terminal.integrated.unicodeVersion": "11",
+    "terminal.integrated.defaultProfile.windows": "PowerShell",
+    "terminal.integrated.env.windows": {
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONUTF8": "1",
+        "LANG": "en_US.UTF-8",
+        "LC_ALL": "en_US.UTF-8"
+    }
+}

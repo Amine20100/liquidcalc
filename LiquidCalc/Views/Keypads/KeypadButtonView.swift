@@ -10,8 +10,10 @@ import SwiftUI
 public struct KeypadButtonView: View {
     public let button: KeypadButton
     public let action: () -> Void
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     @State private var isPressed = false
+    @State private var tapPulse = false
     
     public init(button: KeypadButton, action: @escaping () -> Void) {
         self.button = button
@@ -32,9 +34,25 @@ public struct KeypadButtonView: View {
                 SoundAndHapticManager.shared.triggerHaptic(.light)
                 SoundAndHapticManager.shared.playKeySound()
             }
+            if !reduceMotion {
+                withAnimation(.easeOut(duration: 0.12)) {
+                    tapPulse = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+                    withAnimation(.easeOut(duration: 0.16)) {
+                        tapPulse = false
+                    }
+                }
+            }
             action()
         }) {
             ZStack {
+                // A short afterglow confirms a completed tap, separate from the
+                // finger-down state so rapid calculations still feel responsive.
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(glowColor.opacity(tapPulse ? 0.58 : 0), lineWidth: 1.5)
+                    .scaleEffect(tapPulse ? 1.13 : 1.0)
+                    .opacity(tapPulse ? 1 : 0)
                 // Ambient Contact Glow Halo Burst (Evaluated only during active touch)
                 if isPressed {
                     RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -105,7 +123,7 @@ public struct KeypadButtonView: View {
             .frame(maxWidth: .infinity)
             .frame(height: 62)
             .offset(y: isPressed ? 2.0 : 0.0)
-            .animation(.spring(response: 0.18, dampingFraction: 0.54), value: isPressed)
+            .animation(reduceMotion ? .default : .spring(response: 0.18, dampingFraction: 0.54), value: isPressed)
         }
         .buttonStyle(KeypadPressStyle(isPressed: $isPressed))
     }
@@ -148,7 +166,7 @@ public struct KeypadPressStyle: ButtonStyle {
     
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.89 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
             .animation(.spring(response: 0.18, dampingFraction: 0.54), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, newValue in
                 if hasBinding {
