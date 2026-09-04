@@ -18,7 +18,7 @@ public struct MainCalculatorView: View {
     @State private var showToolsSheet = false
     @State private var showCopilot = false
     @State private var copilotContext: WorkspaceContext?
-    @State private var activeToolMode: CalculatorMode?
+    @Namespace private var dockTransitionAnimation
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     public init() {}
@@ -99,27 +99,54 @@ public struct MainCalculatorView: View {
     private var workspaceContent: some View {
         switch workspaceSurface {
         case .calculator:
-            if let activeToolMode {
-                VStack(spacing: 10) {
-                    HStack {
-                        Button { self.activeToolMode = nil } label: { Label("Calculator", systemImage: "chevron.left") }
-                            .font(.system(size: 12, weight: .semibold)).foregroundStyle(.cyan)
-                        Spacer()
-                        Text(activeToolMode.rawValue).font(.system(size: 14, weight: .bold, design: .rounded)).foregroundStyle(.white)
-                    }.padding(.horizontal, 20)
-                    toolContent(activeToolMode)
-                }
-            } else {
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
+                // Mode Selector Bar with smooth matched geometry
+                ModeSwitcherView(selectedMode: $calculatorViewModel.currentMode)
+                    .padding(.horizontal, 14)
+                
                 LiquidDisplayView(viewModel: calculatorViewModel)
+                
                 HStack(spacing: 8) {
                     workspaceAction("Explain", icon: "sparkles") { presentCopilot(.calculation(expression: calculatorViewModel.expression, result: calculatorViewModel.displayResult)) }
                     workspaceAction("Save", icon: "square.and.pencil") { WorkspaceRepository.shared.saveContext(.calculation(expression: calculatorViewModel.expression, result: calculatorViewModel.displayResult)); workspaceSurface = .notes }
-                    workspaceAction("Scientific", icon: "function") { showToolsSheet = true }
-                }.padding(.horizontal, 16)
-                StandardKeypadView(viewModel: calculatorViewModel)
+                    workspaceAction("Signer", icon: "signature") { calculatorViewModel.showLiquidSigner = true }
+                    workspaceAction("Tools", icon: "square.grid.2x2") { showToolsSheet = true }
+                }
+                .padding(.horizontal, 16)
+                
+                ZStack {
+                    switch calculatorViewModel.currentMode {
+                    case .standard:
+                        StandardKeypadView(viewModel: calculatorViewModel)
+                    case .scientific:
+                        ScientificKeypadView(viewModel: calculatorViewModel)
+                    case .programmer:
+                        ProgrammerKeypadView(viewModel: programmerViewModel)
+                    case .converter:
+                        UnitConverterView(viewModel: converterViewModel)
+                    case .vision:
+                        SmartVisionView(
+                            calculatorViewModel: calculatorViewModel,
+                            onSendToAI: { presentCopilot($0) },
+                            onSaveToNotes: { WorkspaceRepository.shared.saveContext($0); workspaceSurface = .notes }
+                        )
+                    case .geminiAI:
+                        GeminiAIView(calculatorViewModel: calculatorViewModel, initialContext: copilotContext)
+                    case .advancedMath:
+                        AdvancedMathView()
+                    case .graphing:
+                        FunctionGrapherView()
+                    case .mathDraw:
+                        MathDrawCanvasView()
+                    }
+                }
+                .transition(reduceMotion ? .opacity : .asymmetric(
+                    insertion: .scale(scale: 0.96).combined(with: .opacity).combined(with: .offset(y: 8)),
+                    removal: .scale(scale: 0.98).combined(with: .opacity)
+                ))
+                .animation(reduceMotion ? .default : .spring(response: 0.34, dampingFraction: 0.78), value: calculatorViewModel.currentMode)
+                
                 Spacer(minLength: 4)
-            }
             }
         case .scan:
             SmartVisionView(
@@ -147,17 +174,41 @@ public struct MainCalculatorView: View {
             ForEach(WorkspaceDestination.allCases) { surface in
                 Button {
                     SoundAndHapticManager.shared.triggerHaptic(.selection)
-                    workspaceSurface = surface
+                    withAnimation(reduceMotion ? .default : .spring(response: 0.32, dampingFraction: 0.74)) {
+                        workspaceSurface = surface
+                    }
                 } label: {
                     VStack(spacing: 3) {
-                        Image(systemName: surface.icon).font(.system(size: 16, weight: .semibold))
-                        Text(surface.shortTitle).font(.system(size: 10, weight: .semibold))
+                        Image(systemName: surface.icon)
+                            .font(.system(size: 16, weight: .semibold))
+                            .symbolEffect(.bounce, value: workspaceSurface == surface)
+                        Text(surface.shortTitle)
+                            .font(.system(size: 10, weight: .semibold))
                     }
                     .foregroundStyle(workspaceSurface == surface ? .white : .white.opacity(0.52))
                     .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(workspaceSurface == surface ? Color.cyan.opacity(0.20) : .clear, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background {
+                        if workspaceSurface == surface {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .fill(
+                                    LinearGradient(
+                                        colors: [Color.cyan.opacity(0.35), Color.blue.opacity(0.20)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                        .stroke(Color.cyan.opacity(0.6), lineWidth: 1.2)
+                                )
+                                .shadow(color: Color.cyan.opacity(0.35), radius: 8)
+                                .matchedGeometryEffect(id: "ActiveDockSurfaceIndicator", in: dockTransitionAnimation)
+                        }
+                    }
                 }
-                .buttonStyle(.plain).accessibilityLabel(surface.title).accessibilityAddTraits(workspaceSurface == surface ? .isSelected : [])
+                .buttonStyle(.plain)
+                .accessibilityLabel(surface.title)
+                .accessibilityAddTraits(workspaceSurface == surface ? .isSelected : [])
             }
             Button { showToolsSheet = true } label: {
                 VStack(spacing: 3) { Image(systemName: "square.grid.2x2").font(.system(size: 16, weight: .semibold)); Text("Tools").font(.system(size: 10, weight: .semibold)) }
@@ -188,7 +239,13 @@ public struct MainCalculatorView: View {
     }
 
     private func toolRow(_ title: String, icon: String, mode: CalculatorMode) -> some View {
-        Button { activeToolMode = mode; workspaceSurface = .calculator; showToolsSheet = false } label: { Label(title, systemImage: icon) }
+        Button {
+            withAnimation(reduceMotion ? .default : .spring(response: 0.32, dampingFraction: 0.78)) {
+                calculatorViewModel.currentMode = mode
+                workspaceSurface = .calculator
+            }
+            showToolsSheet = false
+        } label: { Label(title, systemImage: icon) }
     }
 
     @ViewBuilder

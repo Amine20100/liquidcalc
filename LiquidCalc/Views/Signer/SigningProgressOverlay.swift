@@ -15,6 +15,9 @@ public struct SigningProgressOverlay: View {
     @State private var ringRotation: Double = 0
     @State private var pulseScale: CGFloat = 1.0
     @State private var showTerminalLogs: Bool = false
+    @State private var celebrationRingScale: CGFloat = 0.8
+    @State private var celebrationRingOpacity: Double = 0.8
+    @State private var tipOrbScale: CGFloat = 1.0
     
     public init(signerViewModel: LiquidSignerViewModel, onDismiss: @escaping () -> Void) {
         self.signerViewModel = signerViewModel
@@ -87,18 +90,54 @@ public struct SigningProgressOverlay: View {
                 pulseScale = 1.0
             }
         }
+        .onChange(of: isDone) { _, done in
+            if done {
+                SoundAndHapticManager.shared.triggerHaptic(.success)
+                SoundAndHapticManager.shared.playSuccessSound()
+                withAnimation(.spring(response: 0.42, dampingFraction: 0.52)) {
+                    pulseScale = 1.18
+                }
+                celebrationRingScale = 0.9
+                celebrationRingOpacity = 0.85
+                withAnimation(.easeOut(duration: 0.75)) {
+                    celebrationRingScale = 1.75
+                    celebrationRingOpacity = 0.0
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.65)) {
+                        pulseScale = 1.0
+                    }
+                }
+            }
+        }
     }
     
     // MARK: - Progress Ring Section
     
     private var progressRingSection: some View {
-        ZStack {
+        let progress = CGFloat(min(1.0, max(0.05, signerViewModel.signingProgress)))
+        let tipAngle = (progress * 360.0) - 90.0
+        let tipRad = tipAngle * .pi / 180.0
+        let tipX = 60.0 * cos(tipRad)
+        let tipY = 60.0 * sin(tipRad)
+        
+        return ZStack {
+            // Ambient celebration ring
+            if isDone {
+                Circle()
+                    .stroke(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(celebrationRingOpacity), lineWidth: 3)
+                    .frame(width: 120, height: 120)
+                    .scaleEffect(celebrationRingScale)
+            }
+            
+            // Background track
             Circle()
                 .stroke(Color.white.opacity(0.12), lineWidth: 8)
                 .frame(width: 120, height: 120)
             
+            // Dynamic Progress Stroke
             Circle()
-                .trim(from: 0, to: CGFloat(min(1.0, max(0.05, signerViewModel.signingProgress))))
+                .trim(from: 0, to: progress)
                 .stroke(
                     LinearGradient(
                         colors: isDone
@@ -113,6 +152,17 @@ public struct SigningProgressOverlay: View {
                 .rotationEffect(.degrees(-90))
                 .animation(.spring(response: 0.35, dampingFraction: 0.8), value: signerViewModel.signingProgress)
             
+            // Leading Edge Glowing Particle Tip Orb
+            if !isDone {
+                Circle()
+                    .fill(Color.white)
+                    .frame(width: 10, height: 10)
+                    .shadow(color: Color.cyan, radius: 6)
+                    .offset(x: tipX, y: tipY)
+                    .scaleEffect(tipOrbScale)
+                    .animation(.spring(response: 0.35, dampingFraction: 0.8), value: signerViewModel.signingProgress)
+            }
+            
             if isDone {
                 Image(systemName: "checkmark")
                     .font(.system(size: 42, weight: .bold))
@@ -124,6 +174,7 @@ public struct SigningProgressOverlay: View {
                     Text("\(Int(signerViewModel.signingProgress * 100))%")
                         .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
+                        .contentTransition(.numericText())
                     
                     Image(systemName: "signature")
                         .font(.system(size: 13))

@@ -47,6 +47,7 @@ public struct SignerStudioView: View {
     @State private var showTweakCatalog: Bool = false
     @State private var showCertStore: Bool = false
     @State private var showReadinessDetails: Bool = false
+    @State private var cardsAppeared: Bool = false
 
     /// A signing session should feel safe before it feels powerful. These checks make
     /// the primary action deterministic instead of leaving users to discover failures
@@ -72,34 +73,60 @@ public struct SignerStudioView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 studioHeader
+                    .offset(y: cardsAppeared ? 0 : 16)
+                    .opacity(cardsAppeared ? 1 : 0)
 
                 signingReadinessCard
+                    .offset(y: cardsAppeared ? 0 : 20)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 engineSelectorCard
+                    .offset(y: cardsAppeared ? 0 : 24)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 sourceAppCard
+                    .offset(y: cardsAppeared ? 0 : 28)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 customizationCard
+                    .offset(y: cardsAppeared ? 0 : 32)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 certificateSelectionCard
+                    .offset(y: cardsAppeared ? 0 : 36)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 dylibInjectionCard
+                    .offset(y: cardsAppeared ? 0 : 40)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 compatibilityCard
+                    .offset(y: cardsAppeared ? 0 : 44)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 zsignCommandCard
+                    .offset(y: cardsAppeared ? 0 : 48)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 signActionButton
+                    .offset(y: cardsAppeared ? 0 : 52)
+                    .opacity(cardsAppeared ? 1 : 0)
                 
                 if let lastSigned = signerViewModel.apps.first(where: { $0.status == .signed }) {
                     recentSignedCard(lastSigned)
+                        .offset(y: cardsAppeared ? 0 : 56)
+                        .opacity(cardsAppeared ? 1 : 0)
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
             .padding(.bottom, 32)
+            .animation(.spring(response: 0.42, dampingFraction: 0.78), value: cardsAppeared)
         }
         .onAppear {
+            withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+                cardsAppeared = true
+            }
             if selectedApp == nil {
                 selectedApp = signerViewModel.apps.first
                 syncFieldsWithSelectedApp()
@@ -304,11 +331,29 @@ public struct SignerStudioView: View {
             HStack(alignment: .top, spacing: 10) {
                 ZStack {
                     Circle()
-                        .fill((isReadyToSign ? Color.green : Color.orange).opacity(0.16))
-                        .frame(width: 40, height: 40)
+                        .stroke(Color.white.opacity(0.12), lineWidth: 3.5)
+                        .frame(width: 44, height: 44)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(passedCount) / CGFloat(max(readinessChecks.count, 1)))
+                        .stroke(
+                            LinearGradient(
+                                colors: isReadyToSign
+                                    ? [Color(red: 0.0, green: 1.0, blue: 0.64), Color.cyan]
+                                    : [Color.orange, Color.yellow],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            style: StrokeStyle(lineWidth: 3.5, lineCap: .round)
+                        )
+                        .frame(width: 44, height: 44)
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(response: 0.35, dampingFraction: 0.75), value: passedCount)
+                    
                     Image(systemName: isReadyToSign ? "checkmark.shield.fill" : "shield.lefthalf.filled")
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(isReadyToSign ? .green : .orange)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundColor(isReadyToSign ? Color(red: 0.0, green: 1.0, blue: 0.64) : .orange)
+                        .scaleEffect(isReadyToSign ? 1.08 : 1.0)
+                        .animation(.spring(response: 0.30, dampingFraction: 0.60), value: isReadyToSign)
                 }
 
                 VStack(alignment: .leading, spacing: 3) {

@@ -29,6 +29,17 @@ public struct ShakeEffect: GeometryEffect {
     }
 }
 
+public struct DisplaySparkle: Identifiable, Sendable {
+    public let id = UUID()
+    public var x: CGFloat
+    public var y: CGFloat
+    public var scale: CGFloat
+    public var opacity: Double
+    public var rotation: Double
+    public var color: Color
+    public var size: CGFloat
+}
+
 public struct LiquidDisplayView: View {
     @Bindable var viewModel: CalculatorViewModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -36,6 +47,9 @@ public struct LiquidDisplayView: View {
     @State private var showCopiedHUD = false
     @State private var cursorBlink = false
     @State private var resultPulse = false
+    @State private var sparkles: [DisplaySparkle] = []
+    @State private var rippleScale: CGFloat = 0.85
+    @State private var rippleOpacity: Double = 0.0
     
     public init(viewModel: CalculatorViewModel) {
         self.viewModel = viewModel
@@ -115,19 +129,53 @@ public struct LiquidDisplayView: View {
             .padding(.horizontal, 16)
             
             // Primary Result Display with Gesture Interaction & iOS 18 Numeric Transition
-            HStack {
-                Spacer()
-                Text(viewModel.displayResult)
-                    .font(.system(size: resultFontSize, weight: .regular, design: .rounded))
-                    .foregroundColor(viewModel.hasError ? .red : .white)
-                    .contentTransition(.numericText())
-                    .animation(.spring(response: 0.22, dampingFraction: 0.78), value: viewModel.displayResult)
-                    .scaleEffect(resultPulse && !reduceMotion ? 1.018 : 1.0)
-                    .minimumScaleFactor(0.4)
-                    .lineLimit(1)
-                    .modifier(ShakeEffect(shakes: shakeAmount))
+            ZStack {
+                // Smooth Fluid Ripple Wave Effect upon evaluation / equals tap
+                if rippleOpacity > 0.01 {
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: [Color.cyan.opacity(0.85), Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.5), .clear],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 2.2
+                        )
+                        .scaleEffect(rippleScale)
+                        .opacity(rippleOpacity)
+                        .blur(radius: 0.8)
+                        .allowsHitTesting(false)
+                }
+                
+                HStack {
+                    Spacer()
+                    ZStack(alignment: .trailing) {
+                        Text(viewModel.displayResult)
+                            .font(.system(size: resultFontSize, weight: .regular, design: .rounded))
+                            .foregroundColor(viewModel.hasError ? .red : .white)
+                            .contentTransition(.numericText())
+                            .animation(.spring(response: 0.22, dampingFraction: 0.78), value: viewModel.displayResult)
+                            .scaleEffect(resultPulse && !reduceMotion ? 1.025 : 1.0)
+                            .minimumScaleFactor(0.4)
+                            .lineLimit(1)
+                            .modifier(ShakeEffect(shakes: shakeAmount))
+                        
+                        // Floating Particle Sparkles upon evaluation / equals tap
+                        ForEach(sparkles) { particle in
+                            Image(systemName: "sparkle")
+                                .font(.system(size: particle.size, weight: .bold))
+                                .foregroundColor(particle.color)
+                                .scaleEffect(particle.scale)
+                                .rotationEffect(.degrees(particle.rotation))
+                                .opacity(particle.opacity)
+                                .offset(x: particle.x, y: particle.y)
+                                .shadow(color: particle.color.opacity(0.8), radius: 5)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
             }
-            .padding(.horizontal, 16)
             .frame(height: 70)
             // Gesture: Swipe to delete last character
             .gesture(
@@ -230,6 +278,9 @@ public struct LiquidDisplayView: View {
                 }
             }
         }
+        .onChange(of: viewModel.evaluationTriggerCount) { _, _ in
+            triggerEvaluationFX()
+        }
         .onChange(of: viewModel.shouldShakeDisplay) { _, newValue in
             if newValue {
                 SoundAndHapticManager.shared.triggerHaptic(.error)
@@ -244,6 +295,64 @@ public struct LiquidDisplayView: View {
                     }
                 }
             }
+        }
+    }
+    
+    private func triggerEvaluationFX() {
+        guard !reduceMotion else { return }
+        
+        // 1. Smooth Ripple Animation across Display
+        rippleScale = 0.85
+        rippleOpacity = 0.80
+        withAnimation(.easeOut(duration: 0.65)) {
+            rippleScale = 1.18
+            rippleOpacity = 0.0
+        }
+        
+        // 2. Floating Particle Sparkles Burst
+        let colors: [Color] = [.cyan, .yellow, .white, Color(red: 0.0, green: 1.0, blue: 0.64)]
+        var initialSparkles: [DisplaySparkle] = []
+        for _ in 0..<14 {
+            let angle = Double.random(in: 0...2 * .pi)
+            let distance = CGFloat.random(in: 8...25)
+            let color = colors.randomElement() ?? .cyan
+            let size = CGFloat.random(in: 10...18)
+            initialSparkles.append(
+                DisplaySparkle(
+                    x: cos(angle) * distance - 20,
+                    y: sin(angle) * distance,
+                    scale: 0.2,
+                    opacity: 1.0,
+                    rotation: Double.random(in: -30...30),
+                    color: color,
+                    size: size
+                )
+            )
+        }
+        sparkles = initialSparkles
+        
+        withAnimation(.spring(response: 0.48, dampingFraction: 0.64)) {
+            for i in sparkles.indices {
+                let angle = Double.random(in: 0...2 * .pi)
+                let distance = CGFloat.random(in: 35...95)
+                sparkles[i].x = cos(angle) * distance - 20
+                sparkles[i].y = sin(angle) * distance
+                sparkles[i].scale = CGFloat.random(in: 0.9...1.3)
+                sparkles[i].rotation += Double.random(in: 60...180)
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+            withAnimation(.easeOut(duration: 0.38)) {
+                for i in sparkles.indices {
+                    sparkles[i].opacity = 0.0
+                    sparkles[i].scale = 0.1
+                }
+            }
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+            sparkles.removeAll()
         }
     }
     

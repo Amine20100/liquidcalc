@@ -18,6 +18,8 @@ public struct LiquidAIAgentView: View {
     
     @State private var inputPrompt: String = ""
     @State private var showScratchpadSheet: Bool = false
+    @State private var workingRotation: Double = 0
+    @State private var stepPulse: Bool = false
     
     public init(agent: LiquidAIAgent = LiquidAIAgent.shared) {
         self.agent = agent
@@ -94,9 +96,17 @@ public struct LiquidAIAgentView: View {
             Spacer()
             
             HStack(spacing: 5) {
-                Circle()
-                    .fill(agent.isExecuting ? Color.yellow : Color.green)
-                    .frame(width: 8, height: 8)
+                if agent.isExecuting {
+                    Circle()
+                        .trim(from: 0, to: 0.75)
+                        .stroke(Color.yellow, lineWidth: 2)
+                        .frame(width: 9, height: 9)
+                        .rotationEffect(.degrees(workingRotation))
+                } else {
+                    Circle()
+                        .fill(Color.green)
+                        .frame(width: 8, height: 8)
+                }
                 Text(agent.isExecuting ? "WORKING" : "READY")
                     .font(.system(size: 9, weight: .bold, design: .monospaced))
                     .foregroundColor(agent.isExecuting ? .yellow : .green)
@@ -109,6 +119,14 @@ public struct LiquidAIAgentView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(Color.black.opacity(0.4))
+        .onAppear {
+            withAnimation(.linear(duration: 1.0).repeatForever(autoreverses: false)) {
+                workingRotation = 360
+            }
+            withAnimation(.easeInOut(duration: 0.75).repeatForever(autoreverses: true)) {
+                stepPulse = true
+            }
+        }
     }
     
     // MARK: - 2. Quick Preset Prompts
@@ -217,8 +235,13 @@ public struct LiquidAIAgentView: View {
             VStack(spacing: 8) {
                 ForEach(agent.steps) { step in
                     stepRow(step)
+                        .transition(.asymmetric(
+                            insertion: .scale(scale: 0.88).combined(with: .offset(y: 12)).combined(with: .opacity),
+                            removal: .opacity
+                        ))
                 }
             }
+            .animation(.spring(response: 0.35, dampingFraction: 0.68), value: agent.steps.count)
         }
         .padding(14)
         .background(
@@ -231,6 +254,14 @@ public struct LiquidAIAgentView: View {
     private func stepRow(_ step: AgentStep) -> some View {
         HStack(alignment: .top, spacing: 10) {
             ZStack {
+                if step.status == .running {
+                    Circle()
+                        .stroke(stepColor(step.type).opacity(0.6), lineWidth: 1.5)
+                        .frame(width: 30, height: 30)
+                        .scaleEffect(stepPulse ? 1.25 : 1.0)
+                        .opacity(stepPulse ? 0.2 : 0.8)
+                }
+                
                 Circle()
                     .fill(stepColor(step.type).opacity(0.2))
                     .frame(width: 24, height: 24)
@@ -350,18 +381,24 @@ public struct LiquidAIAgentView: View {
         .padding(14)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
+                .fill(Color(white: 0.08, opacity: 0.94))
                 .overlay(
                     RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(
                             LinearGradient(
-                                colors: [Color.purple.opacity(0.5), Color.cyan.opacity(0.3)],
+                                colors: [Color.purple.opacity(0.7), Color.cyan.opacity(0.4)],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             ),
-                            lineWidth: 1
+                            lineWidth: 1.2
                         )
                 )
+                .shadow(color: Color.purple.opacity(0.25), radius: 10)
         )
+        .transition(.asymmetric(
+            insertion: .scale(scale: 0.92).combined(with: .offset(y: 16)).combined(with: .opacity),
+            removal: .opacity
+        ))
+        .animation(.spring(response: 0.40, dampingFraction: 0.72), value: markdown)
     }
 }

@@ -14,6 +14,9 @@ public struct KeypadButtonView: View {
     
     @State private var isPressed = false
     @State private var tapPulse = false
+    @State private var sheenOffset: CGFloat = -140
+    @State private var glowWaveScale: CGFloat = 0.9
+    @State private var glowWaveOpacity: Double = 0.0
     
     public init(button: KeypadButton, action: @escaping () -> Void) {
         self.button = button
@@ -35,18 +38,41 @@ public struct KeypadButtonView: View {
                 SoundAndHapticManager.shared.playKeySound()
             }
             if !reduceMotion {
+                sheenOffset = -140
+                glowWaveScale = 0.9
+                glowWaveOpacity = 0.8
                 withAnimation(.easeOut(duration: 0.12)) {
                     tapPulse = true
+                    glowWaveScale = 1.36
                 }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
-                    withAnimation(.easeOut(duration: 0.16)) {
+                withAnimation(.easeInOut(duration: 0.36)) {
+                    sheenOffset = 140
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
+                    withAnimation(.easeOut(duration: 0.20)) {
                         tapPulse = false
+                        glowWaveOpacity = 0.0
                     }
                 }
             }
             action()
         }) {
             ZStack {
+                // Tactile Glow Pulse Wave (expanding radial aura on tap)
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(
+                        RadialGradient(
+                            colors: [glowColor.opacity(0.85), glowColor.opacity(0.2), .clear],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 55
+                        ),
+                        lineWidth: 2.0
+                    )
+                    .scaleEffect(glowWaveScale)
+                    .opacity(glowWaveOpacity)
+                    .allowsHitTesting(false)
+                
                 // A short afterglow confirms a completed tap, separate from the
                 // finger-down state so rapid calculations still feel responsive.
                 RoundedRectangle(cornerRadius: 22, style: .continuous)
@@ -103,6 +129,23 @@ public struct KeypadButtonView: View {
                         y: isPressed ? 1 : 2
                     )
                 
+                // Specular Sheen Glint Sweep Across Frosted Glass
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0.0),
+                        .init(color: Color.white.opacity(0.12), location: 0.38),
+                        .init(color: Color.white.opacity(0.60), location: 0.50),
+                        .init(color: Color.white.opacity(0.12), location: 0.62),
+                        .init(color: .clear, location: 1.0)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+                .rotationEffect(.degrees(24))
+                .offset(x: sheenOffset)
+                .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .allowsHitTesting(false)
+                
                 // Label Content with interactive spring pop
                 VStack(spacing: 2) {
                     if let secondary = button.secondaryLabel {
@@ -122,8 +165,8 @@ public struct KeypadButtonView: View {
             }
             .frame(maxWidth: .infinity)
             .frame(height: 62)
-            .offset(y: isPressed ? 2.0 : 0.0)
-            .animation(reduceMotion ? .default : .spring(response: 0.18, dampingFraction: 0.54), value: isPressed)
+            .offset(y: isPressed ? 2.5 : 0.0)
+            .animation(reduceMotion ? .default : .spring(response: 0.20, dampingFraction: 0.54), value: isPressed)
         }
         .buttonStyle(KeypadPressStyle(isPressed: $isPressed))
     }
@@ -166,8 +209,8 @@ public struct KeypadPressStyle: ButtonStyle {
     
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.94 : 1.0)
-            .animation(.spring(response: 0.18, dampingFraction: 0.54), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.91 : 1.0)
+            .animation(.spring(response: 0.20, dampingFraction: 0.54), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, newValue in
                 if hasBinding {
                     isPressedBinding = newValue

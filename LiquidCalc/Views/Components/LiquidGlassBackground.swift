@@ -82,6 +82,8 @@ public struct LiquidActionButton: View {
 public struct LiquidGlassBackground: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var isDrifting = false
+    @State private var isBreathing = false
+    @State private var reflectionDrift = false
 
     public init() {}
     
@@ -114,7 +116,7 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 440, height: 440)
                         .position(x: w * 0.15, y: h * 0.12)
-                        .offset(x: isDrifting ? 18 : -12, y: isDrifting ? 10 : -8)
+                        .offset(x: isDrifting ? 22 : -16, y: isDrifting ? 14 : -12)
                     
                     // Accent 2: Vibrant Indigo / Purple Glow (Center-Right)
                     Circle()
@@ -132,7 +134,7 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 520, height: 520)
                         .position(x: w * 0.85, y: h * 0.42)
-                        .offset(x: isDrifting ? -20 : 14, y: isDrifting ? -14 : 10)
+                        .offset(x: isDrifting ? -24 : 18, y: isDrifting ? -18 : 14)
                     
                     // Accent 3: Emerald Mint Glow (Bottom-Left)
                     Circle()
@@ -150,7 +152,7 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 400, height: 400)
                         .position(x: w * 0.10, y: h * 0.78)
-                        .offset(x: isDrifting ? 12 : -10, y: isDrifting ? -16 : 12)
+                        .offset(x: isDrifting ? 16 : -14, y: isDrifting ? -20 : 16)
                     
                     // Accent 4: Subtle Warm Amber Glow (Bottom-Right)
                     Circle()
@@ -168,22 +170,80 @@ public struct LiquidGlassBackground: View {
                         )
                         .frame(width: 360, height: 360)
                         .position(x: w * 0.80, y: h * 0.82)
-                        .offset(x: isDrifting ? -10 : 14, y: isDrifting ? 12 : -10)
+                        .offset(x: isDrifting ? -14 : 18, y: isDrifting ? 16 : -14)
                 }
                 .animation(
-                    reduceMotion ? .default : .easeInOut(duration: 8).repeatForever(autoreverses: true),
+                    reduceMotion ? .default : .easeInOut(duration: 8.5).repeatForever(autoreverses: true),
                     value: isDrifting
                 )
             }
             .drawingGroup() // Metal hardware accelerated rasterization
             .ignoresSafeArea()
             
+            // Breathing Glass Reflections & Prismatic Caustics Layer
+            GeometryReader { proxy in
+                let w = proxy.size.width
+                let h = proxy.size.height
+                
+                ZStack {
+                    // Specular Reflection Caustic Beam 1 (Primary Cyan/White diagonal sweep)
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.0),
+                            .init(color: Color.white.opacity(0.02), location: 0.38),
+                            .init(color: Color.cyan.opacity(0.07), location: 0.50),
+                            .init(color: Color.white.opacity(0.03), location: 0.62),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    .frame(width: max(w * 1.5, 500), height: 180)
+                    .rotationEffect(.degrees(-32))
+                    .position(x: w * 0.45, y: h * 0.38)
+                    .offset(x: reflectionDrift ? 40 : -35, y: reflectionDrift ? -25 : 25)
+                    .opacity(isBreathing ? 0.95 : 0.35)
+                    .animation(
+                        reduceMotion ? .default : .easeInOut(duration: 6.2).repeatForever(autoreverses: true),
+                        value: isBreathing
+                    )
+                    
+                    // Specular Reflection Caustic Beam 2 (Secondary Indigo/Magenta refraction)
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0.0),
+                            .init(color: Color.white.opacity(0.015), location: 0.42),
+                            .init(color: Color(red: 0.6, green: 0.3, blue: 1.0).opacity(0.05), location: 0.50),
+                            .init(color: Color.white.opacity(0.02), location: 0.58),
+                            .init(color: .clear, location: 1.0)
+                        ],
+                        startPoint: .topTrailing,
+                        endPoint: .bottomLeading
+                    )
+                    .frame(width: max(w * 1.4, 450), height: 210)
+                    .rotationEffect(.degrees(26))
+                    .position(x: w * 0.55, y: h * 0.65)
+                    .offset(x: reflectionDrift ? -35 : 35, y: reflectionDrift ? 30 : -30)
+                    .opacity(isBreathing ? 0.40 : 0.85)
+                    .animation(
+                        reduceMotion ? .default : .easeInOut(duration: 7.8).repeatForever(autoreverses: true),
+                        value: isBreathing
+                    )
+                }
+                .animation(
+                    reduceMotion ? .default : .easeInOut(duration: 9.5).repeatForever(autoreverses: true),
+                    value: reflectionDrift
+                )
+            }
+            .drawingGroup()
+            .ignoresSafeArea()
+            
             // Specular Frosted Glass Vignette & Tint (Zero real-time blur kernel convolution)
             LinearGradient(
                 colors: [
-                    Color.black.opacity(0.15),
-                    Color.black.opacity(0.40),
-                    Color.black.opacity(0.65)
+                    Color.black.opacity(0.12),
+                    Color.black.opacity(0.38),
+                    Color.black.opacity(0.62)
                 ],
                 startPoint: .top,
                 endPoint: .bottom
@@ -193,9 +253,13 @@ public struct LiquidGlassBackground: View {
         .onAppear {
             guard !reduceMotion else { return }
             isDrifting = true
+            isBreathing = true
+            reflectionDrift = true
         }
         .onChange(of: reduceMotion) { _, shouldReduceMotion in
             isDrifting = !shouldReduceMotion
+            isBreathing = !shouldReduceMotion
+            reflectionDrift = !shouldReduceMotion
         }
     }
 }
