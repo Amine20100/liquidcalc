@@ -32,7 +32,15 @@ public struct SignerStudioView: View {
     
     @State private var showIpaPicker: Bool = false
     @State private var showDylibPicker: Bool = false
+    @State private var showP12Picker: Bool = false
+    @State private var showProfilePicker: Bool = false
     @State private var showSuccessToast: Bool = false
+    
+    // P12 import state
+    @State private var pendingP12Data: Data? = nil
+    @State private var pendingP12Filename: String = ""
+    @State private var p12PasswordInput: String = ""
+    @State private var showP12PasswordPrompt: Bool = false
     
     // v2.6.0 Ecosystem Sheets
     @State private var showMachOInspector: Bool = false
@@ -86,23 +94,105 @@ public struct SignerStudioView: View {
         }
         .fileImporter(
             isPresented: $showIpaPicker,
-            allowedContentTypes: [UTType(filenameExtension: "ipa") ?? .data, .zip, .data]
+            allowedContentTypes: [
+                UTType(filenameExtension: "ipa") ?? .data,
+                UTType.zip,
+                UTType.data,
+                UTType.item
+            ]
         ) { result in
-            if case .success(let url) = result {
-                signerViewModel.importIPA(from: url)
-                if let newest = signerViewModel.apps.first {
-                    selectedApp = newest
+            switch result {
+            case .success(let url):
+                if let newApp = signerViewModel.importIPA(from: url) {
+                    selectedApp = newApp
                     syncFieldsWithSelectedApp()
                 }
+            case .failure(let error):
+                signerViewModel.appendLog("IPA import error: \(error.localizedDescription)", .error)
             }
         }
         .fileImporter(
             isPresented: $showDylibPicker,
-            allowedContentTypes: [UTType(filenameExtension: "dylib") ?? .data, .data]
+            allowedContentTypes: [
+                UTType(filenameExtension: "dylib") ?? .data,
+                UTType.data,
+                UTType.item
+            ]
         ) { result in
-            if case .success(let url) = result {
-                signerViewModel.importDylib(from: url)
+            switch result {
+            case .success(let url):
+                if let tweak = signerViewModel.importDylib(from: url) {
+                    activeTweaks.insert(tweak.id)
+                }
+            case .failure(let error):
+                signerViewModel.appendLog("Dylib import error: \(error.localizedDescription)", .error)
             }
+        }
+        .fileImporter(
+            isPresented: $showP12Picker,
+            allowedContentTypes: [
+                UTType(filenameExtension: "p12") ?? .data,
+                UTType.data,
+                UTType.item
+            ]
+        ) { result in
+            switch result {
+            case .success(let url):
+                let isAccessing = url.startAccessingSecurityScopedResource()
+                defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+                if let data = try? Data(contentsOf: url) {
+                    pendingP12Data = data
+                    pendingP12Filename = url.lastPathComponent
+                    p12PasswordInput = ""
+                    showP12PasswordPrompt = true
+                }
+            case .failure(let error):
+                signerViewModel.appendLog("P12 import error: \(error.localizedDescription)", .error)
+            }
+        }
+        .fileImporter(
+            isPresented: $showProfilePicker,
+            allowedContentTypes: [
+                UTType(filenameExtension: "mobileprovision") ?? .data,
+                UTType.data,
+                UTType.item
+            ]
+        ) { result in
+            switch result {
+            case .success(let url):
+                do {
+                    let prof = try certManager.importProvisioningProfile(from: url)
+                    signerViewModel.appendLog("✓ Imported provisioning profile: \(prof.name)", .success)
+                    SoundAndHapticManager.shared.triggerHaptic(.success)
+                } catch {
+                    signerViewModel.appendLog("Profile import failed: \(error.localizedDescription)", .error)
+                    SoundAndHapticManager.shared.triggerHaptic(.error)
+                }
+            case .failure(let error):
+                signerViewModel.appendLog("Profile import error: \(error.localizedDescription)", .error)
+            }
+        }
+        .alert("Enter P12 Password", isPresented: $showP12PasswordPrompt) {
+            SecureField("Password (or leave blank)", text: $p12PasswordInput)
+            Button("Import") {
+                if let data = pendingP12Data {
+                    do {
+                        let cert = try certManager.importP12Data(
+                            data: data,
+                            originalFilename: pendingP12Filename,
+                            password: p12PasswordInput
+                        )
+                        signerViewModel.appendLog("✓ Imported certificate: \(cert.name)", .success)
+                        SoundAndHapticManager.shared.triggerHaptic(.success)
+                    } catch {
+                        signerViewModel.appendLog("Failed importing certificate: \(error.localizedDescription)", .error)
+                        SoundAndHapticManager.shared.triggerHaptic(.error)
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Enter the decryption password for \(pendingP12Filename).")
         }
         .sheet(isPresented: $showMachOInspector) {
             if let app = selectedApp {
@@ -230,25 +320,43 @@ public struct SignerStudioView: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(.cyan)
                 Spacer()
-                Menu {
-                    ForEach(signerViewModel.apps) { app in
-                        Button(app.name) {
-                            selectedApp = app
-                            syncFieldsWithSelectedApp()
-                        }
-                    }
-                    Divider()
-                    Button("Import New IPA...") {
+                HStack(spacing: 8) {
+                    Button(action: {
+                        SoundAndHapticManager.shared.triggerHaptic(.medium)
                         showIpaPicker = true
+                    }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "plus.circle.fill")
+                            Text("Import IPA")
+                        }
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color.cyan)
+                        .clipShape(Capsule())
                     }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text("Switch App")
-                        Image(systemName: "chevron.up.chevron.down")
-                            .font(.system(size: 9))
+                    
+                    Menu {
+                        ForEach(signerViewModel.apps) { app in
+                            Button(app.name) {
+                                selectedApp = app
+                                syncFieldsWithSelectedApp()
+                            }
+                        }
+                        Divider()
+                        Button("Import New IPA...") {
+                            showIpaPicker = true
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text("Switch App")
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.system(size: 9))
+                        }
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundColor(.cyan)
                     }
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundColor(.cyan)
                 }
             }
             
@@ -414,20 +522,54 @@ public struct SignerStudioView: View {
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
                     .foregroundColor(.cyan)
                 Spacer()
-                Button(action: {
-                    SoundAndHapticManager.shared.triggerHaptic(.selection)
-                    showCertStore = true
-                }) {
-                    HStack(spacing: 3) {
-                        Image(systemName: "checkmark.seal.fill")
-                        Text("Cert Store")
+                HStack(spacing: 6) {
+                    Button(action: {
+                        SoundAndHapticManager.shared.triggerHaptic(.selection)
+                        showP12Picker = true
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "plus")
+                            Text("P12")
+                        }
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.cyan)
+                        .clipShape(Capsule())
                     }
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.12))
-                    .clipShape(Capsule())
+                    
+                    Button(action: {
+                        SoundAndHapticManager.shared.triggerHaptic(.selection)
+                        showProfilePicker = true
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "plus")
+                            Text("Profile")
+                        }
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.black)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(Color.cyan)
+                        .clipShape(Capsule())
+                    }
+                    
+                    Button(action: {
+                        SoundAndHapticManager.shared.triggerHaptic(.selection)
+                        showCertStore = true
+                    }) {
+                        HStack(spacing: 3) {
+                            Image(systemName: "checkmark.seal.fill")
+                            Text("Cert Store")
+                        }
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 3)
+                        .background(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.12))
+                        .clipShape(Capsule())
+                    }
                 }
             }
             

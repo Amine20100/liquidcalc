@@ -286,5 +286,89 @@ final class LiquidSignerTests: XCTestCase {
         XCTAssertTrue(report.architectures.contains("arm64"))
         XCTAssertGreaterThan(report.linkedLibraries.count, 0)
     }
+    
+    // MARK: - Test 9: ZipArchiveExtractor & In-Memory Extraction
+    
+    func testZipArchiveExtractorBasic() {
+        let extractor = ZipArchiveExtractor.shared
+        
+        // Construct a valid standard uncompressed ZIP entry in-memory:
+        // File: "test.txt", Content: "Hello LiquidSigner"
+        let filename = "test.txt"
+        let fileContent = "Hello LiquidSigner".data(using: .utf8)!
+        
+        var zipBytes = Data()
+        // Signature: 0x04034b50
+        zipBytes.append(contentsOf: [0x50, 0x4b, 0x03, 0x04])
+        // Version: 20 (2.0)
+        zipBytes.append(contentsOf: [0x14, 0x00])
+        // Flags: 0
+        zipBytes.append(contentsOf: [0x00, 0x00])
+        // Method: 0 (Stored)
+        zipBytes.append(contentsOf: [0x00, 0x00])
+        // Mod Time & Date: 0
+        zipBytes.append(contentsOf: [0x00, 0x00, 0x00, 0x00])
+        // CRC32: 0
+        zipBytes.append(contentsOf: [0x00, 0x00, 0x00, 0x00])
+        // Compressed size
+        let compSize = UInt32(fileContent.count)
+        zipBytes.append(contentsOf: withUnsafeBytes(of: compSize.littleEndian) { Array($0) })
+        // Uncompressed size
+        zipBytes.append(contentsOf: withUnsafeBytes(of: compSize.littleEndian) { Array($0) })
+        // Filename length
+        let fnLen = UInt16(filename.utf8.count)
+        zipBytes.append(contentsOf: withUnsafeBytes(of: fnLen.littleEndian) { Array($0) })
+        // Extra field length: 0
+        zipBytes.append(contentsOf: [0x00, 0x00])
+        // Filename
+        zipBytes.append(filename.data(using: .utf8)!)
+        // File content
+        zipBytes.append(fileContent)
+        
+        let entries = extractor.parseEntries(from: zipBytes)
+        XCTAssertEqual(entries.count, 1)
+        XCTAssertEqual(entries.first?.path, "test.txt")
+        XCTAssertEqual(entries.first?.data, fileContent)
+        
+        let found = extractor.findFiles(in: zipBytes, extensions: ["txt"])
+        XCTAssertEqual(found.count, 1)
+        XCTAssertEqual(found.first?.filename, "test.txt")
+    }
+    
+    // MARK: - Test 10: LiquidSignerViewModel Import Returns SignedApp
+    
+    func testImportIPAProducesValidSignedApp() throws {
+        let vm = LiquidSignerViewModel()
+        let tempDir = FileManager.default.temporaryDirectory
+        let mockIpaUrl = tempDir.appendingPathComponent("TestSampleApp.ipa")
+        
+        // Write mock binary file
+        try "Mock IPA Data".data(using: .utf8)?.write(to: mockIpaUrl)
+        defer { try? FileManager.default.removeItem(at: mockIpaUrl) }
+        
+        let imported = vm.importIPA(from: mockIpaUrl)
+        XCTAssertNotNil(imported, "importIPA should return the newly created SignedApp")
+        XCTAssertEqual(imported?.name, "TestSampleApp")
+        XCTAssertEqual(imported?.version, "1.0")
+        XCTAssertTrue(vm.apps.contains(where: { $0.id == imported?.id }))
+    }
+    
+    // MARK: - Test 11: LiquidSignerViewModel Import Dylib Returns DylibTweak
+    
+    func testImportDylibProducesValidTweak() throws {
+        let vm = LiquidSignerViewModel()
+        let tempDir = FileManager.default.temporaryDirectory
+        let mockDylibUrl = tempDir.appendingPathComponent("TestTweak.dylib")
+        
+        try "Mock Dylib Binary".data(using: .utf8)?.write(to: mockDylibUrl)
+        defer { try? FileManager.default.removeItem(at: mockDylibUrl) }
+        
+        let importedTweak = vm.importDylib(from: mockDylibUrl)
+        XCTAssertNotNil(importedTweak, "importDylib should return the newly created DylibTweak")
+        XCTAssertEqual(importedTweak?.filename, "TestTweak.dylib")
+        XCTAssertTrue(importedTweak?.isEnabled == true)
+        XCTAssertTrue(vm.tweaks.contains(where: { $0.id == importedTweak?.id }))
+    }
 }
+
 

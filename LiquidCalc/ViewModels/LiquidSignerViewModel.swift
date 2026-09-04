@@ -98,44 +98,82 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
     
     // MARK: - App Import & Management
     
-    public func importIPA(from url: URL) {
+    @discardableResult
+    public func importIPA(from url: URL) -> SignedApp? {
         SoundAndHapticManager.shared.triggerHaptic(.medium)
+        
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
         
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.temporaryDirectory
         let ipasDir = appSupport.appendingPathComponent("LiquidSigner/IPAs", isDirectory: true)
         try? fileManager.createDirectory(at: ipasDir, withIntermediateDirectories: true)
         
-        let destUrl = ipasDir.appendingPathComponent("\(UUID().uuidString)_\(url.lastPathComponent)")
+        let cleanFileName = url.lastPathComponent
+        let destUrl = ipasDir.appendingPathComponent("\(UUID().uuidString)_\(cleanFileName)")
+        try? fileManager.removeItem(at: destUrl)
         
         do {
-            if url.startAccessingSecurityScopedResource() {
-                defer { url.stopAccessingSecurityScopedResource() }
-                try fileManager.copyItem(at: url, to: destUrl)
-            } else {
-                try fileManager.copyItem(at: url, to: destUrl)
+            try fileManager.copyItem(at: url, to: destUrl)
+            
+            var name = url.deletingPathExtension().lastPathComponent
+            var bundleId = "com.custom.\(name.lowercased().replacingOccurrences(of: " ", with: ""))"
+            var version = "1.0"
+            
+            // Extract real Info.plist metadata from the IPA / ZIP
+            if let plist = ZipArchiveExtractor.shared.extractInfoPlist(from: destUrl) {
+                if let displayName = plist["CFBundleDisplayName"] as? String, !displayName.isEmpty {
+                    name = displayName
+                } else if let bundleName = plist["CFBundleName"] as? String, !bundleName.isEmpty {
+                    name = bundleName
+                }
+                
+                if let id = plist["CFBundleIdentifier"] as? String, !id.isEmpty {
+                    bundleId = id
+                }
+                
+                if let ver = plist["CFBundleShortVersionString"] as? String, !ver.isEmpty {
+                    version = ver
+                } else if let build = plist["CFBundleVersion"] as? String, !build.isEmpty {
+                    version = build
+                }
             }
             
-            let name = url.deletingPathExtension().lastPathComponent
             let size = (try? fileManager.attributesOfItem(atPath: destUrl.path)[.size] as? Int64) ?? 0
             
             let newApp = SignedApp(
                 name: name,
-                bundleIdentifier: "com.custom.\(name.lowercased().replacingOccurrences(of: " ", with: ""))",
-                version: "1.0",
+                bundleIdentifier: bundleId,
+                version: version,
                 originalIpaUrl: destUrl,
                 sizeBytes: size,
                 status: .readyToSign
             )
             
-            DispatchQueue.main.async {
+            let updateClosure = {
                 self.apps.append(newApp)
                 self.saveData()
-                self.appendLog("✓ Imported IPA: \(name) (\(newApp.formattedSize))", .success)
+                self.appendLog("✓ Imported IPA: \(name) (\(bundleId) v\(version) • \(newApp.formattedSize))", .success)
                 SoundAndHapticManager.shared.triggerHaptic(.success)
             }
+            
+            if Thread.isMainThread {
+                updateClosure()
+            } else {
+                DispatchQueue.main.sync {
+                    updateClosure()
+                }
+            }
+            
+            return newApp
         } catch {
             appendLog("Error importing IPA: \(error.localizedDescription)", .error)
             SoundAndHapticManager.shared.triggerHaptic(.error)
+            return nil
         }
     }
     
@@ -150,8 +188,16 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
     
     // MARK: - Tweak Import & Management
     
-    public func importDylib(from url: URL) {
+    @discardableResult
+    public func importDylib(from url: URL) -> DylibTweak? {
         SoundAndHapticManager.shared.triggerHaptic(.medium)
+        
+        let isAccessing = url.startAccessingSecurityScopedResource()
+        defer {
+            if isAccessing {
+                url.stopAccessingSecurityScopedResource()
+            }
+        }
         
         let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first ?? fileManager.temporaryDirectory
         let tweaksDir = appSupport.appendingPathComponent("LiquidSigner/Tweaks", isDirectory: true)
@@ -161,25 +207,31 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
         try? fileManager.removeItem(at: destUrl)
         
         do {
-            if url.startAccessingSecurityScopedResource() {
-                defer { url.stopAccessingSecurityScopedResource() }
-                try fileManager.copyItem(at: url, to: destUrl)
-            } else {
-                try fileManager.copyItem(at: url, to: destUrl)
-            }
+            try fileManager.copyItem(at: url, to: destUrl)
             
             let size = (try? fileManager.attributesOfItem(atPath: destUrl.path)[.size] as? Int64) ?? 0
             let tweak = DylibTweak(filename: url.lastPathComponent, fileUrl: destUrl, isEnabled: true, sizeBytes: size)
             
-            DispatchQueue.main.async {
+            let updateClosure = {
                 self.tweaks.append(tweak)
                 self.saveData()
                 self.appendLog("✓ Imported Dylib Tweak: \(tweak.filename) (\(tweak.formattedSize))", .success)
                 SoundAndHapticManager.shared.triggerHaptic(.success)
             }
+            
+            if Thread.isMainThread {
+                updateClosure()
+            } else {
+                DispatchQueue.main.sync {
+                    updateClosure()
+                }
+            }
+            
+            return tweak
         } catch {
             appendLog("Error importing Dylib: \(error.localizedDescription)", .error)
             SoundAndHapticManager.shared.triggerHaptic(.error)
+            return nil
         }
     }
     

@@ -26,6 +26,19 @@ struct LiquidCalcApp: App {
                         _ = await updateManager.checkForUpdates(manual: false)
                     }
                 }
+                .onOpenURL { url in
+                    let isAccessing = url.startAccessingSecurityScopedResource()
+                    defer { if isAccessing { url.stopAccessingSecurityScopedResource() } }
+                    
+                    let ext = url.pathExtension.lowercased()
+                    if ext == "ipa" || ext == "zip" {
+                        LiquidSignerViewModel.shared.importIPA(from: url)
+                    } else if ext == "dylib" {
+                        LiquidSignerViewModel.shared.importDylib(from: url)
+                    } else if ext == "mobileprovision" {
+                        _ = try? CertificateManager.shared.importProvisioningProfile(from: url)
+                    }
+                }
         }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
