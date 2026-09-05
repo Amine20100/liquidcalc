@@ -10,6 +10,7 @@ import SwiftUI
 
 public struct LaserSweepLineView: View {
     public let isScanning: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     @State private var sweepPhase: CGFloat = 0.0 // 0.0 (top) to 1.0 (bottom)
     @State private var sparkPhase: CGFloat = 0.0
@@ -23,7 +24,7 @@ public struct LaserSweepLineView: View {
             let width = geometry.size.width
             let height = geometry.size.height
             let verticalRange = max(height - 40, 60)
-            let currentY = 20 + (sweepPhase * verticalRange)
+            let currentY = 20 + ((reduceMotion ? 0.5 : sweepPhase) * verticalRange)
             
             ZStack(alignment: .top) {
                 // 1. Holographic Phosphor Chromatic Curtain
@@ -69,7 +70,7 @@ public struct LaserSweepLineView: View {
                     .shadow(color: .white, radius: 4)
                 
                 // 4. Shimmering Holographic Spark Particles along Laser Sweep
-                if isScanning {
+                if isScanning && !reduceMotion {
                     ForEach(0..<5, id: \.self) { idx in
                         let frac = (CGFloat(idx) * 0.22 + sparkPhase).truncatingRemainder(dividingBy: 1.0)
                         let sparkX = 24 + frac * max(width - 48, 10)
@@ -96,9 +97,23 @@ public struct LaserSweepLineView: View {
                 startSweep()
             }
         }
+        .onChange(of: reduceMotion) { _, shouldReduce in
+            if shouldReduce {
+                sweepPhase = 0.5
+                sparkPhase = 0.0
+            } else if isScanning {
+                startSweep()
+            }
+        }
     }
     
     private func startSweep() {
+        guard !reduceMotion else {
+            sweepPhase = 0.5
+            sparkPhase = 0.0
+            return
+        }
+        
         sweepPhase = 0.0
         withAnimation(
             .easeInOut(duration: 1.3)

@@ -74,7 +74,6 @@ public struct CalcIconView: View {
                 defaultTextLabel
             }
         }
-        .scaleEffect(isPressed ? 0.92 : 1.0)
         .animation(.spring(response: 0.22, dampingFraction: 0.65), value: isPressed)
     }
     
