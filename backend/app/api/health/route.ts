@@ -1,6 +1,9 @@
 import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
 import { historyStore } from "@/lib/storage";
+import { notesStore } from "@/lib/notes";
+import { telemetryStore } from "@/lib/telemetry";
+import { getActiveSessionsCount } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +12,10 @@ export async function OPTIONS() {
 }
 
 export async function GET(req: NextRequest) {
-  const stats = historyStore.getStats();
+  const historyStats = historyStore.getStats();
+  const notesStats = notesStore.getStats();
+  const telemetryStats = telemetryStore.getStats();
+  const activeSessions = await getActiveSessionsCount();
 
   const payload = {
     status: "operational",
@@ -38,8 +44,32 @@ export async function GET(req: NextRequest) {
       },
       history_sync: {
         status: "operational",
-        recordsCount: stats.totalCount,
-        lastUpdated: stats.lastUpdated,
+        recordsCount: historyStats.totalCount,
+        lastUpdated: historyStats.lastUpdated,
+      },
+      notes_sync: {
+        status: "operational",
+        notesCount: notesStats.totalCount,
+        tagsCount: notesStats.tagsCount,
+        lastUpdated: notesStats.lastUpdated,
+      },
+      auth_service: {
+        status: "operational",
+        jwtAlgorithm: "HS256",
+        features: ["bearer_jwt", "device_tokens", "api_keys", "session_management"],
+        activeSessions,
+      },
+      telemetry_analytics: {
+        status: "operational",
+        totalEvents: telemetryStats.totalEvents,
+        crashCount: telemetryStats.crashCount,
+        crashRatePct: telemetryStats.crashRatePct,
+      },
+      database_sqlite: {
+        status: "operational",
+        provider: "sqlite",
+        orm: "prisma",
+        location: "dev.db",
       },
     },
   };

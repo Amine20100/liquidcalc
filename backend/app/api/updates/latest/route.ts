@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
   const baseUrl = `${protocol}://${host}`;
 
   const payload = {
-    id: 260001,
-    tag_name: "v2.7.0",
-    name: "LiquidCalc v2.7.0 - Markdown Math Engine & Autonomous AI Agent",
-    body: "LiquidCalc v2.6.0 production release featuring zhlynn/zsign cross-platform C++ iOS code signing engine, live ZSign CLI command inspector, In-App Certificate Repository, Dylib Tweak Catalog, and Mach-O Architecture Inspector.",
-    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.7.0",
-    published_at: "2026-09-03T05:00:00Z",
+    id: 230001,
+    tag_name: "v2.3.0",
+    name: "LiquidCalc v2.3.0 - Serverless Suite & Gemini 2.5 Flash",
+    body: "LiquidCalc v2.3.0 production release featuring Gemini 2.5 Flash SSE streaming proxy, dynamic Apple itms-services OTA manifest generator, and real-time calculation history sync.",
+    html_url: "https://github.com/Amine20100/liquidcalc/releases/tag/v2.3.0",
+    published_at: "2026-09-02T05:00:00Z",
     prerelease: false,
     draft: false,
     assets: [
@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
         name: "LiquidCalc.ipa",
         size: 5782076,
         download_count: 2480,
-        browser_download_url: "https://github.com/Amine20100/liquidcalc/releases/download/v2.7.0/LiquidCalc.ipa",
+        browser_download_url: "https://github.com/Amine20100/liquidcalc/releases/download/v2.3.0/LiquidCalc.ipa",
         content_type: "application/octet-stream",
       },
     ],

@@ -1,0 +1,109 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String?
+  role         String        @default("user") // "user" or "admin"
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  devices      DeviceToken[]
+  apiKeys      ApiKey[]
+  calculations Calculation[]
+  notes        Note[]
+  sessions     Session[]
+}
+
+model DeviceToken {
+  id           String    @id @default(uuid())
+  token        String    @unique
+  deviceId     String    @unique
+  platform     String    @default("ios") // "ios", "macos", "web", etc.
+  name         String?
+  userId       String?
+  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastActiveAt DateTime  @default(now())
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  sessions     Session[]
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  name      String   @default("Default Key")
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model Session {
+  id        String       @id @default(uuid())
+  token     String       @unique
+  userId    String?
+  user      User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId  String?
+  device    DeviceToken? @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime     @default(now())
+}
+
+model Calculation {
+  id         String   @id
+  expression String
+  result     String
+  mode       String   @default("standard")
+  notes      String?
+  deviceId   String?  @default("unknown")
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientTime DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  deleted    Boolean  @default(false)
+
+  @@index([deviceId])
+  @@index([mode])
+  @@index([updatedAt])
+}
+
+model Note {
+  id          String   @id
+  title       String   @default("Untitled note")
+  markdown    String   @default("")
+  tags        String   @default("[]") // JSON string array of tags
+  attachments String   @default("[]") // JSON string array of attachments
+  deviceId    String?  @default("unknown")
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clientTime  DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deleted     Boolean  @default(false)
+
+  @@index([deviceId])
+  @@index([updatedAt])
+}
+
+model TelemetryEvent {
+  id         String   @id @default(uuid())
+  type       String   // "crash", "performance", "calculation", "usage"
+  name       String?  // event name or crash title
+  payload    String   @default("{}") // JSON string
+  deviceId   String?
+  appVersion String?  @default("2.3.0")
+  osVersion  String?
+  createdAt  DateTime @default(now())
+
+  @@index([type])
+  @@index([createdAt])
+}

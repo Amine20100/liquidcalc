@@ -4,10 +4,10 @@ import { buildItmsServicesUrl, DEFAULT_BUNDLE_ID, DEFAULT_IPA_URL } from "@/lib/
 
 export const dynamic = "force-dynamic";
 
-const LATEST_VERSION = "2.7.0";
-const LATEST_BUILD = "27";
-const RELEASE_DATE = "2026-09-03";
-const RELEASE_TITLE = "LiquidCalc v2.7.0 - Markdown Math Engine & Autonomous AI Agent";
+const LATEST_VERSION = "2.3.0";
+const LATEST_BUILD = "23";
+const RELEASE_DATE = "2026-09-02";
+const RELEASE_TITLE = "LiquidCalc v2.3.0 - Serverless Backend & Gemini 2.5 Flash";
 
 const CHANGELOG = [
   "Integrated full Markdown & LaTeX math rendering engine supporting inline/display formulas ($...$, $$...$$)",

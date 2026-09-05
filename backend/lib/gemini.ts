@@ -55,9 +55,21 @@ export function resolveGeminiApiKey(req?: Request): string {
     return process.env.GEMINI_API_KEY.trim();
   }
 
-  // 2. Request Headers (x-gemini-api-key)
+  // 2. Request Headers & URL query
   if (req) {
-    const customHeader = req.headers.get("x-gemini-api-key");
+    let queryKey: string | null = null;
+    try {
+      if (req.url) {
+        const parsed = new URL(req.url, "http://localhost");
+        queryKey =
+          parsed.searchParams.get("apiKey") ||
+          parsed.searchParams.get("key") ||
+          parsed.searchParams.get("geminiKey") ||
+          parsed.searchParams.get("x-gemini-api-key");
+      }
+    } catch {}
+
+    const customHeader = req.headers.get("x-gemini-api-key") || queryKey;
     if (customHeader && customHeader.trim().length > 0) {
       return customHeader.trim();
     }
