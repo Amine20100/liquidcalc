@@ -302,15 +302,13 @@ public struct LiquidMarkdownParser {
 
 // MARK: - LaTeX Math Parser & AST Models
 
-public enum MathToken: Identifiable, Sendable {
+public enum LaTeXRenderToken: Sendable {
     case text(String)
-    case fraction(numerator: [MathToken], denominator: [MathToken])
-    case radical(degree: String?, radicand: [MathToken])
-    case boxed(content: [MathToken])
+    case fraction(numerator: [LaTeXRenderToken], denominator: [LaTeXRenderToken])
+    case radical(degree: String?, radicand: [LaTeXRenderToken])
+    case boxed(content: [LaTeXRenderToken])
     case superscript(base: String, exp: String)
     case subscriptToken(base: String, sub: String)
-    
-    public var id: String { UUID().uuidString }
 }
 
 public struct LaTeXStep: Identifiable, Sendable {
@@ -318,10 +316,10 @@ public struct LaTeXStep: Identifiable, Sendable {
     public let stepNumber: Int
     public let label: String
     public let rawLatex: String
-    public let tokens: [MathToken]
+    public let tokens: [LaTeXRenderToken]
     public let isBoxed: Bool
     
-    public init(stepNumber: Int, label: String, rawLatex: String, tokens: [MathToken], isBoxed: Bool) {
+    public init(stepNumber: Int, label: String, rawLatex: String, tokens: [LaTeXRenderToken], isBoxed: Bool) {
         self.id = "step-\(stepNumber)-\(UUID().uuidString)"
         self.stepNumber = stepNumber
         self.label = label
@@ -539,8 +537,8 @@ public struct LaTeXMathEngine {
         return LaTeXDerivation(steps: steps)
     }
     
-    public static func parseTokens(_ latex: String) -> [MathToken] {
-        var tokens: [MathToken] = []
+    public static func parseTokens(_ latex: String) -> [LaTeXRenderToken] {
+        var tokens: [LaTeXRenderToken] = []
         let preprocessed = replaceSymbols(latex)
         var i = preprocessed.startIndex
         var textBuffer = ""
@@ -783,7 +781,7 @@ public struct LaTeXMathCardView: View {
             if derivation.isMultiStep {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(derivation.steps) { step in
-                        stepRow(step)
+                        LaTeXStepRowView(step: step)
                     }
                 }
                 .padding(.vertical, 4)
@@ -792,7 +790,7 @@ public struct LaTeXMathCardView: View {
                     HStack {
                         Spacer(minLength: 8)
                         if let firstStep = derivation.steps.first {
-                            mathTokensRow(firstStep.tokens)
+                            LaTeXTokensRowView(tokens: firstStep.tokens)
                         } else {
                             Text(formula)
                                 .font(.system(size: 16, weight: .semibold, design: .serif))
@@ -824,8 +822,30 @@ public struct LaTeXMathCardView: View {
         .padding(.vertical, 3)
     }
     
-    @ViewBuilder
-    private func stepRow(_ step: LaTeXStep) -> some View {
+    private func copyLatex() {
+        #if canImport(UIKit)
+        UIPasteboard.general.string = formula
+        #endif
+        SoundAndHapticManager.shared.triggerHaptic(.selection)
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            showCopiedBadge = true
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
+            withAnimation { showCopiedBadge = false }
+        }
+    }
+}
+
+// MARK: - LaTeX Token & Step Component Views
+
+public struct LaTeXStepRowView: View {
+    public let step: LaTeXStep
+    
+    public init(step: LaTeXStep) {
+        self.step = step
+    }
+    
+    public var body: some View {
         HStack(alignment: .center, spacing: 10) {
             Text(step.label)
                 .font(.system(size: 9, weight: .bold, design: .monospaced))
@@ -837,7 +857,7 @@ public struct LaTeXMathCardView: View {
                 .frame(width: 54, alignment: .leading)
             
             ScrollView(.horizontal, showsIndicators: false) {
-                mathTokensRow(step.tokens)
+                LaTeXTokensRowView(tokens: step.tokens)
             }
         }
         .padding(8)
@@ -848,18 +868,32 @@ public struct LaTeXMathCardView: View {
                 .stroke(step.isBoxed ? Color.cyan.opacity(0.4) : Color.white.opacity(0.04), lineWidth: 1)
         )
     }
+}
+
+public struct LaTeXTokensRowView: View {
+    public let tokens: [LaTeXRenderToken]
     
-    @ViewBuilder
-    private func mathTokensRow(_ tokens: [MathToken]) -> some View {
+    public init(tokens: [LaTeXRenderToken]) {
+        self.tokens = tokens
+    }
+    
+    public var body: some View {
         HStack(alignment: .center, spacing: 4) {
-            ForEach(Array(tokens.enumerated()), id: \.offset) { _, token in
-                renderToken(token)
+            ForEach(0..<tokens.count, id: \.self) { idx in
+                LaTeXTokenItemView(token: tokens[idx])
             }
         }
     }
+}
+
+public struct LaTeXTokenItemView: View {
+    public let token: LaTeXRenderToken
     
-    @ViewBuilder
-    private func renderToken(_ token: MathToken) -> some View {
+    public init(token: LaTeXRenderToken) {
+        self.token = token
+    }
+    
+    public var body: some View {
         switch token {
         case .text(let str):
             Text(str)
@@ -869,7 +903,9 @@ public struct LaTeXMathCardView: View {
         case .fraction(let num, let den):
             VStack(spacing: 3) {
                 HStack(spacing: 2) {
-                    ForEach(Array(num.enumerated()), id: \.offset) { _, t in renderToken(t) }
+                    ForEach(0..<num.count, id: \.self) { idx in
+                        LaTeXTokenItemView(token: num[idx])
+                    }
                 }
                 .font(.system(size: 13, weight: .medium, design: .serif))
                 .padding(.horizontal, 4)
@@ -885,7 +921,9 @@ public struct LaTeXMathCardView: View {
                     .frame(height: 1.5)
                 
                 HStack(spacing: 2) {
-                    ForEach(Array(den.enumerated()), id: \.offset) { _, t in renderToken(t) }
+                    ForEach(0..<den.count, id: \.self) { idx in
+                        LaTeXTokenItemView(token: den[idx])
+                    }
                 }
                 .font(.system(size: 13, weight: .medium, design: .serif))
                 .padding(.horizontal, 4)
@@ -895,7 +933,7 @@ public struct LaTeXMathCardView: View {
             
         case .radical(let degree, let radicand):
             HStack(alignment: .center, spacing: 1) {
-                if let degree {
+                if let degree = degree {
                     Text(degree)
                         .font(.system(size: 9, weight: .bold, design: .serif))
                         .foregroundColor(.cyan)
@@ -912,7 +950,9 @@ public struct LaTeXMathCardView: View {
                         .frame(height: 1.2)
                     
                     HStack(spacing: 2) {
-                        ForEach(Array(radicand.enumerated()), id: \.offset) { _, t in renderToken(t) }
+                        ForEach(0..<radicand.count, id: \.self) { idx in
+                            LaTeXTokenItemView(token: radicand[idx])
+                        }
                     }
                     .padding(.horizontal, 3)
                     .padding(.top, 2)
@@ -922,7 +962,9 @@ public struct LaTeXMathCardView: View {
             
         case .boxed(let content):
             HStack(spacing: 3) {
-                ForEach(Array(content.enumerated()), id: \.offset) { _, t in renderToken(t) }
+                ForEach(0..<content.count, id: \.self) { idx in
+                    LaTeXTokenItemView(token: content[idx])
+                }
             }
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
@@ -946,19 +988,6 @@ public struct LaTeXMathCardView: View {
                 Text(base).font(.system(size: 16, weight: .medium, design: .serif))
                 Text(sub).font(.system(size: 11, weight: .semibold, design: .serif)).foregroundColor(.white.opacity(0.8)).offset(y: 4)
             }
-        }
-    }
-    
-    private func copyLatex() {
-        #if canImport(UIKit)
-        UIPasteboard.general.string = formula
-        #endif
-        SoundAndHapticManager.shared.triggerHaptic(.selection)
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-            showCopiedBadge = true
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
-            withAnimation { showCopiedBadge = false }
         }
     }
 }
