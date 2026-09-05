@@ -37,7 +37,7 @@ public final class TelemetryManager: @unchecked Sendable {
         guard isEnabled else { return }
 
         let deviceId = DeviceSyncManager.shared.deviceId
-        var eventPayload: [String: Any] = [
+        let eventPayload: [String: Any] = [
             "name": name,
             "type": type,
             "deviceId": deviceId,
