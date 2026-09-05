@@ -348,9 +348,10 @@ public final class SubscriptionManager: @unchecked Sendable {
                     ))
                 }
 
-                if !loaded.isEmpty {
+                let finalPlans = loaded
+                if !finalPlans.isEmpty {
                     await MainActor.run {
-                        self.availablePlans = loaded
+                        self.availablePlans = finalPlans
                     }
                 }
             }
@@ -428,10 +429,13 @@ public final class SubscriptionManager: @unchecked Sendable {
                 )
             }
 
+            let finalEntitlements = newEntitlements
+            let finalUsage = usage
+
             await MainActor.run {
                 self.persistTier(tier, isActive: isActive)
-                self.entitlements = newEntitlements
-                self.syncUsage = usage
+                self.entitlements = finalEntitlements
+                self.syncUsage = finalUsage
                 self.lastStatusCheck = Date()
             }
             return true
