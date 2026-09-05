@@ -110,7 +110,7 @@ public struct MainCalculatorView: View {
             VStack(spacing: 8) {
                 // Mode Selector Bar with smooth matched geometry
                 ModeSwitcherView(selectedMode: $calculatorViewModel.currentMode)
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 16)
                 
                 LiquidDisplayView(viewModel: calculatorViewModel)
                 
@@ -228,7 +228,7 @@ public struct MainCalculatorView: View {
         }
         .padding(6).background(.black.opacity(0.42), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 22).stroke(.white.opacity(0.12), lineWidth: 1))
-        .padding(.horizontal, 12).padding(.bottom, 8)
+        .padding(.horizontal, 16).padding(.bottom, 8)
     }
 
     private var toolsSheet: some View {
@@ -241,6 +241,17 @@ public struct MainCalculatorView: View {
                     toolRow("Unit Converter", icon: "arrow.triangle.2.circlepath", mode: .converter)
                     toolRow("Programmer", icon: "chevron.left.forwardslash.chevron.right", mode: .programmer)
                     toolRow("Draw Calc", icon: "hand.draw.fill", mode: .mathDraw)
+                }
+                Section("Workspace & Notes") {
+                    Button {
+                        SoundAndHapticManager.shared.triggerHaptic(.selection)
+                        withAnimation(reduceMotion ? .default : .spring(response: 0.32, dampingFraction: 0.78)) {
+                            workspaceSurface = .notes
+                        }
+                        showToolsSheet = false
+                    } label: {
+                        Label("Engineer Markdown Notebook", systemImage: "note.text")
+                    }
                 }
                 Section("Advanced") {
                     Button { showToolsSheet = false; calculatorViewModel.showLiquidSigner = true } label: { Label("Signer Studio", systemImage: "signature") }

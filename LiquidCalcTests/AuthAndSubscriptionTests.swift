@@ -238,4 +238,54 @@ final class AuthAndSubscriptionTests: XCTestCase {
         XCTAssertEqual(proMonthly?.billingPeriod, "monthly")
         XCTAssertEqual(proMonthly?.priceUsd, 2.99)
     }
+
+    // =========================================================================
+    // MARK: - 10. Login, Registration & Network Error Diagnostics
+    // =========================================================================
+
+    func testLoginValidation() async {
+        let auth = AuthManager.shared
+
+        do {
+            try await auth.login(email: "bad_email", password: "validPassword123")
+            XCTFail("Should have thrown error for invalid email in login")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("valid email"))
+        }
+
+        do {
+            try await auth.login(email: "test@liquidcalc.local", password: "123")
+            XCTFail("Should have thrown error for short password in login")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("at least 6 characters"))
+        }
+    }
+
+    func testRegisterValidation() async {
+        let auth = AuthManager.shared
+
+        do {
+            try await auth.register(email: "invalid_email", password: "validPassword123")
+            XCTFail("Should have thrown error for invalid email in register")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("valid email"))
+        }
+
+        do {
+            try await auth.register(email: "user@liquidcalc.local", password: "12")
+            XCTFail("Should have thrown error for short password in register")
+        } catch {
+            XCTAssertTrue(error.localizedDescription.contains("at least 6 characters"))
+        }
+    }
+
+    func testNetworkErrorDiagnostics() {
+        let offlineErr = CryptoTransportError.networkError("Connection lost", isOffline: true)
+        XCTAssertTrue(offlineErr.localizedDescription.contains("Guest Mode"))
+        XCTAssertTrue(offlineErr.localizedDescription.contains("offline"))
+
+        let unreachableErr = CryptoTransportError.networkError("DNS failure", isOffline: false)
+        XCTAssertTrue(unreachableErr.localizedDescription.contains("Guest Mode"))
+        XCTAssertTrue(unreachableErr.localizedDescription.contains("uninterrupted"))
+    }
 }

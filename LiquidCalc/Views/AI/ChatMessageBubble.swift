@@ -26,7 +26,7 @@ public struct ChatMessageBubble: View {
                 Spacer(minLength: 40)
             }
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .scaleEffect(hasAppeared ? 1.0 : 0.88, anchor: message.role == .user ? .bottomTrailing : .bottomLeading)
         .opacity(hasAppeared ? 1.0 : 0.0)
         .animation(.spring(response: 0.32, dampingFraction: 0.74), value: hasAppeared)
@@ -112,12 +112,12 @@ public struct ChatMessageBubble: View {
                 }
             }
         }
-        .padding(14)
+        .padding(16)
         .background(
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(white: 0.12, opacity: 0.72))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
                         .stroke(
                             LinearGradient(
                                 colors: isStreaming

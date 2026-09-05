@@ -4,7 +4,7 @@ export const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS, PATCH",
   "Access-Control-Allow-Headers":
-    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-gemini-api-key, x-api-key, x-device-token, x-signature, x-timestamp, x-nonce, x-encrypted",
+    "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version, Authorization, x-gemini-api-key, x-api-key, x-device-token, x-signature, x-timestamp, x-nonce, x-encrypted, x-admin-key, x-admin-secret",
   "Access-Control-Expose-Headers":
     "X-Signature, X-Timestamp, X-Nonce, X-Encrypted, Content-Type",
   "Access-Control-Max-Age": "86400",

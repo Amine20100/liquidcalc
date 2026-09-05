@@ -88,6 +88,167 @@ final class MarkdownAndAgentTests: XCTestCase {
         }
     }
     
+    func testMarkdownParserCalloutBlocks() {
+        let md = """
+        > [!NOTE]
+        > This is a standard note callout.
+        
+        > [!TIP] Pro Tip
+        > Always simplify fractions first.
+        
+        > [!WARNING]
+        > Avoid division by zero.
+        
+        > [!IMPORTANT]
+        > Set your angle unit to radians.
+        """
+        let elements = LiquidMarkdownParser.parse(md)
+        XCTAssertEqual(elements.count, 4)
+        
+        if case .callout(let type, let title, let content) = elements[0] {
+            XCTAssertEqual(type, .note)
+            XCTAssertEqual(title, "Note")
+            XCTAssertTrue(content.contains("standard note"))
+        } else {
+            XCTFail("Expected NOTE callout")
+        }
+        
+        if case .callout(let type, let title, let content) = elements[1] {
+            XCTAssertEqual(type, .tip)
+            XCTAssertEqual(title, "Pro Tip")
+            XCTAssertTrue(content.contains("simplify fractions"))
+        } else {
+            XCTFail("Expected TIP callout with custom title")
+        }
+        
+        if case .callout(let type, _, _) = elements[2] {
+            XCTAssertEqual(type, .warning)
+        } else {
+            XCTFail("Expected WARNING callout")
+        }
+        
+        if case .callout(let type, _, _) = elements[3] {
+            XCTAssertEqual(type, .important)
+        } else {
+            XCTFail("Expected IMPORTANT callout")
+        }
+    }
+    
+    func testMarkdownParserTaskItems() {
+        let md = """
+        - [ ] Calculate matrix determinant
+        - [x] Prove divergence theorem
+        * [X] Solve harmonic oscillator
+        """
+        let elements = LiquidMarkdownParser.parse(md)
+        XCTAssertEqual(elements.count, 3)
+        
+        if case .taskItem(let item1) = elements[0] {
+            XCTAssertFalse(item1.isChecked)
+            XCTAssertEqual(item1.text, "Calculate matrix determinant")
+        } else {
+            XCTFail("Expected unchecked task item")
+        }
+        
+        if case .taskItem(let item2) = elements[1] {
+            XCTAssertTrue(item2.isChecked)
+            XCTAssertEqual(item2.text, "Prove divergence theorem")
+        } else {
+            XCTFail("Expected checked task item")
+        }
+        
+        if case .taskItem(let item3) = elements[2] {
+            XCTAssertTrue(item3.isChecked)
+            XCTAssertEqual(item3.text, "Solve harmonic oscillator")
+        } else {
+            XCTFail("Expected checked task item with asterisk")
+        }
+    }
+    
+    func testLaTeXMathEngineGreekAndOperators() {
+        let raw = "\\nabla \\cdot \\mathbf{E} = \\alpha + \\beta - \\int f(x) dx \\pm \\infty \\approx 0 \\neq 1"
+        let replaced = LaTeXMathEngine.replaceSymbols(raw)
+        XCTAssertTrue(replaced.contains("∇"))
+        XCTAssertTrue(replaced.contains("α"))
+        XCTAssertTrue(replaced.contains("β"))
+        XCTAssertTrue(replaced.contains("∫"))
+        XCTAssertTrue(replaced.contains("±"))
+        XCTAssertTrue(replaced.contains("∞"))
+        XCTAssertTrue(replaced.contains("≈"))
+        XCTAssertTrue(replaced.contains("≠"))
+    }
+    
+    func testLaTeXMathEngineDerivationAndBoxed() {
+        let derivationFormula = """
+        f(x) &= 2x^2 + 4x \\\\
+        &= 2x(x + 2) \\\\
+        \\boxed{x = 0, -2}
+        """
+        let derivation = LaTeXMathEngine.parseDerivation(derivationFormula)
+        XCTAssertTrue(derivation.isMultiStep)
+        XCTAssertEqual(derivation.steps.count, 3)
+        XCTAssertFalse(derivation.steps[0].isBoxed)
+        XCTAssertTrue(derivation.steps[2].isBoxed)
+        XCTAssertEqual(derivation.steps[2].label, "Result")
+    }
+    
+    func testLaTeXMathEngineFractionsAndRadicals() {
+        let formula = "\\frac{a + b}{\\sqrt{c^2 + d^2}}"
+        let tokens = LaTeXMathEngine.parseTokens(formula)
+        XCTAssertEqual(tokens.count, 1)
+        
+        if case .fraction(let num, let den) = tokens[0] {
+            XCTAssertFalse(num.isEmpty)
+            XCTAssertFalse(den.isEmpty)
+            
+            // Check radical in denominator
+            let hasRadical = den.contains {
+                if case .radical = $0 { return true }
+                return false
+            }
+            XCTAssertTrue(hasRadical, "Denominator should contain a radical token")
+        } else {
+            XCTFail("Expected fraction token")
+        }
+    }
+    
+    func testLaTeXMathEngineNonDestructiveSanitization() {
+        let codeText = "Use C++ with --verbose and --flag"
+        let sanitized = LaTeXMathEngine.sanitizeMathSigns(codeText)
+        XCTAssertTrue(sanitized.contains("C++"), "C++ should not be converted to C+ ")
+        XCTAssertTrue(sanitized.contains("--verbose"), "-- flags should not be converted to + ")
+    }
+    
+    func testLaTeXMathEngineFractionVariantsAndRadicalDegree() {
+        let dfracTokens = LaTeXMathEngine.parseTokens("\\dfrac{1}{2}")
+        XCTAssertEqual(dfracTokens.count, 1)
+        if case .fraction(let num, let den) = dfracTokens[0] {
+            XCTAssertFalse(num.isEmpty)
+            XCTAssertFalse(den.isEmpty)
+        } else {
+            XCTFail("Expected dfrac to be parsed as fraction")
+        }
+        
+        let inlineCubeRoot = LaTeXMathEngine.convertInlineRadicals("\\sqrt[3]{x}")
+        XCTAssertTrue(inlineCubeRoot.contains("³√"), "Cube root degree should be formatted as superscript ³√")
+        
+        let inlineFrac = LaTeXMathEngine.convertInlineFractions("\\frac{1}{2}")
+        XCTAssertEqual(inlineFrac, "½")
+    }
+    
+    func testLaTeXMathEngineAlignStarDerivation() {
+        let alignStar = """
+        \\begin{align*}
+        \\nabla \\times \\mathbf{B} &= \\mu_0 \\mathbf{J} \\\\
+        \\boxed{\\mathbf{J} = \\sigma \\mathbf{E}}
+        \\end{align*}
+        """
+        let derivation = LaTeXMathEngine.parseDerivation(alignStar)
+        XCTAssertTrue(derivation.isMultiStep)
+        XCTAssertEqual(derivation.steps.count, 2)
+        XCTAssertTrue(derivation.steps[1].isBoxed)
+    }
+    
     // MARK: - AI Agent Autonomous Tools Tests
     
     func testAgentToolsRegistry() {
@@ -153,5 +314,60 @@ final class MarkdownAndAgentTests: XCTestCase {
         let repository = WorkspaceRepository(directoryURL: directory)
         let document = repository.saveContext(context)
         XCTAssertEqual(document.attachments.first?.kind, .scan)
+    }
+
+    // MARK: - Advanced Typesetting & Math Sanitization Tests
+
+    func testSanitizeMathSignsAndOperators() {
+        let raw1 = "x - + y"
+        let sanitized1 = LaTeXMathEngine.sanitizeMathSigns(raw1)
+        XCTAssertEqual(sanitized1, "x - y")
+
+        let raw2 = "a + - b"
+        let sanitized2 = LaTeXMathEngine.sanitizeMathSigns(raw2)
+        XCTAssertEqual(sanitized2, "a - b")
+
+        let raw3 = "u - - v"
+        let sanitized3 = LaTeXMathEngine.sanitizeMathSigns(raw3)
+        XCTAssertEqual(sanitized3, "u + v")
+
+        let raw4 = "3 +/- 5"
+        let sanitized4 = LaTeXMathEngine.sanitizeMathSigns(raw4)
+        XCTAssertEqual(sanitized4, "3 ± 5")
+    }
+
+    func testInlineFractionsAndRadicalsConversion() {
+        let rawFrac = "\\frac{3x^2 - 6}{2}"
+        let convertedFrac = LaTeXMathEngine.convertInlineFractions(rawFrac)
+        XCTAssertTrue(convertedFrac.contains("/"))
+        XCTAssertFalse(convertedFrac.contains("\\frac"))
+
+        let rawRad = "\\sqrt{x^2 + 1}"
+        let convertedRad = LaTeXMathEngine.convertInlineRadicals(rawRad)
+        XCTAssertTrue(convertedRad.contains("√"))
+        XCTAssertFalse(convertedRad.contains("\\sqrt"))
+
+        let rawCombined = "\\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}"
+        let formatted = LaTeXMathEngine.formatInlineMathExpression(rawCombined)
+        XCTAssertTrue(formatted.contains("√"))
+        XCTAssertTrue(formatted.contains("±"))
+        XCTAssertTrue(formatted.contains("/"))
+        XCTAssertFalse(formatted.contains("\\frac"))
+        XCTAssertFalse(formatted.contains("\\sqrt"))
+        XCTAssertFalse(formatted.contains("\\pm"))
+    }
+
+    func testExpandedSuperscriptsAndSubscripts() {
+        let expr = "x^2 + y^3 = z^n"
+        let converted = LaTeXMathEngine.convertSubAndSuperscripts(expr)
+        XCTAssertTrue(converted.contains("x²"))
+        XCTAssertTrue(converted.contains("y³"))
+        XCTAssertTrue(converted.contains("zⁿ"))
+
+        let subExpr = "x_1 + x_2 = a_0"
+        let subConverted = LaTeXMathEngine.convertSubAndSuperscripts(subExpr)
+        XCTAssertTrue(subConverted.contains("x₁"))
+        XCTAssertTrue(subConverted.contains("x₂"))
+        XCTAssertTrue(subConverted.contains("a₀"))
     }
 }

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, signAccessToken, signRefreshToken, createSession } from "@/lib/auth";
+import { parseFlexibleRequest, createFlexibleResponse } from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -10,12 +11,18 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: any = {};
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON request body" }, 400);
+  const parsed = await parseFlexibleRequest<{
+    email?: string;
+    password?: string;
+    name?: string;
+  }>(req);
+
+  if (!parsed.success) {
+    return jsonResponse({ error: parsed.error }, parsed.status);
   }
+
+  const body = parsed.data || {};
+  const isEncrypted = parsed.isEncrypted;
 
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "").trim();
@@ -23,16 +30,18 @@ export async function POST(req: NextRequest) {
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!email || !emailRegex.test(email)) {
-    return jsonResponse(
+    return createFlexibleResponse(
       { error: "A valid email address is required" },
-      400
+      400,
+      isEncrypted
     );
   }
 
   if (!password || password.length < 6) {
-    return jsonResponse(
+    return createFlexibleResponse(
       { error: "Password must be at least 6 characters long" },
-      400
+      400,
+      isEncrypted
     );
   }
 
@@ -42,9 +51,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (existing) {
-      return jsonResponse(
+      return createFlexibleResponse(
         { error: "User with this email already exists" },
-        409
+        409,
+        isEncrypted
       );
     }
 
@@ -75,7 +85,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
     });
 
-    return jsonResponse(
+    return createFlexibleResponse(
       {
         success: true,
         message: "User registered successfully",
@@ -84,6 +94,7 @@ export async function POST(req: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
+          tier: (user as any).tier || "FREE",
           createdAt: user.createdAt,
         },
         tokens: {
@@ -93,12 +104,14 @@ export async function POST(req: NextRequest) {
           expiresIn: 604800, // 7 days in seconds
         },
       },
-      201
+      201,
+      isEncrypted
     );
   } catch (err: any) {
-    return jsonResponse(
+    return createFlexibleResponse(
       { error: "Failed to create user account", details: err.message },
-      500
+      500,
+      isEncrypted
     );
   }
 }

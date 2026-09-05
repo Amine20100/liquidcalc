@@ -307,6 +307,13 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
         where: { id: payload.sub },
       });
       if (user) {
+        if (user.role === "banned") {
+          return {
+            authenticated: false,
+            type: null,
+            error: "Account has been suspended or banned",
+          };
+        }
         return {
           authenticated: true,
           type: "user",
@@ -320,6 +327,14 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
       }
     } catch {
       // Fallback to payload data if DB is temporarily unreachable
+    }
+
+    if (payload.role === "banned") {
+      return {
+        authenticated: false,
+        type: null,
+        error: "Account has been suspended or banned",
+      };
     }
 
     return {
@@ -507,5 +522,38 @@ export async function revokeSession(identifier: string): Promise<boolean> {
     return true;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Revokes all active sessions for a specific user ID.
+ */
+export async function revokeAllUserSessions(userId: string): Promise<number> {
+  try {
+    const res = await prisma.session.deleteMany({
+      where: { userId },
+    });
+    return res.count;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Revokes all active sessions for a specific device ID.
+ */
+export async function revokeAllDeviceSessions(deviceId: string): Promise<number> {
+  try {
+    const res = await prisma.session.deleteMany({
+      where: {
+        OR: [
+          { deviceId },
+          { device: { deviceId } },
+        ],
+      },
+    });
+    return res.count;
+  } catch {
+    return 0;
   }
 }

@@ -47,7 +47,8 @@ public struct LiquidAIAgentView: View {
                                 finalResultCard(markdown: result)
                             }
                         }
-                        .padding(14)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
                     }
                 }
             }
@@ -116,7 +117,7 @@ public struct LiquidAIAgentView: View {
             .background(Color.white.opacity(0.06))
             .clipShape(Capsule())
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .background(Color.black.opacity(0.4))
         .onAppear {
@@ -133,35 +134,48 @@ public struct LiquidAIAgentView: View {
     
     private var presetPromptsSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("STARTER MISSIONS")
+            Text("QUICK PROMPT CHIPS")
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.cyan)
             
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    presetChip("Integrate x^3 from 0 to 4 & convert 25 mi to km")
-                    presetChip("Solve quadratic equation 3x^2 - 6x + 2 = 0")
-                    presetChip("Generate ZSign CLI command for cloned app with flex.dylib")
+                    presetChip("Calculus", icon: "function", prompt: "Integrate x^3 from 0 to 4 & differentiate 3x^2 - 6x + 2")
+                    presetChip("Algebra", icon: "x.squareroot", prompt: "Solve quadratic equation 3x^2 - 6x + 2 = 0 step-by-step")
+                    presetChip("Units", icon: "scalemass.fill", prompt: "Convert 25 mi to km, 72 F to C, and 500 psi to bar")
+                    presetChip("Matrix", icon: "square.grid.3x3.fill", prompt: "Compute eigenvalues and determinant of [[4, 1], [2, 3]]")
+                    presetChip("OTA Signer", icon: "signature", prompt: "Generate ZSign CLI command for cloned app with flex.dylib")
                 }
             }
         }
     }
     
-    private func presetChip(_ title: String) -> some View {
+    private func presetChip(_ category: String, icon: String, prompt: String) -> some View {
         Button(action: {
-            inputPrompt = title
+            inputPrompt = prompt
             Task {
-                await agent.execute(query: title)
+                await agent.execute(query: prompt)
             }
         }) {
-            Text(title)
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(.white.opacity(0.85))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color.white.opacity(0.05))
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.white.opacity(0.1), lineWidth: 0.8))
+            HStack(spacing: 5) {
+                Image(systemName: icon)
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.cyan)
+                Text(category)
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.white)
+                Text("•")
+                    .foregroundColor(.white.opacity(0.3))
+                Text(prompt)
+                    .font(.system(size: 10.5, weight: .regular))
+                    .foregroundColor(.white.opacity(0.75))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 7)
+            .background(Color(white: 0.12, opacity: 0.7))
+            .clipShape(Capsule())
+            .overlay(Capsule().stroke(Color.cyan.opacity(0.3), lineWidth: 0.9))
         }
         .disabled(agent.isExecuting)
     }
@@ -205,14 +219,14 @@ public struct LiquidAIAgentView: View {
                 }
             }
             .padding(10)
-            .background(Color.white.opacity(0.05))
+            .background(Color.white.opacity(0.06))
             .clipShape(RoundedRectangle(cornerRadius: 10))
         }
-        .padding(14)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.08), lineWidth: 0.8))
+                .fill(Color(white: 0.12, opacity: 0.72))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 1))
         )
     }
     
@@ -243,11 +257,11 @@ public struct LiquidAIAgentView: View {
             }
             .animation(.spring(response: 0.35, dampingFraction: 0.68), value: agent.steps.count)
         }
-        .padding(14)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(Color.white.opacity(0.04))
-                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.08), lineWidth: 0.8))
+                .fill(Color(white: 0.12, opacity: 0.72))
+                .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(Color.white.opacity(0.1), lineWidth: 1))
         )
     }
     
@@ -374,11 +388,11 @@ public struct LiquidAIAgentView: View {
             }
             
             LiquidMarkdownView(text: markdown)
-                .padding(10)
-                .background(Color.black.opacity(0.3))
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .padding(12)
+                .background(Color.black.opacity(0.35))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(14)
+        .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(Color(white: 0.08, opacity: 0.94))
