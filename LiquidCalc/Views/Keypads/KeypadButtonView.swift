@@ -209,7 +209,7 @@ public struct KeypadPressStyle: ButtonStyle {
     
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.91 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
             .animation(.spring(response: 0.20, dampingFraction: 0.54), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, newValue in
                 if hasBinding {

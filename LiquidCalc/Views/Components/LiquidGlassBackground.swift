@@ -117,6 +117,8 @@ public struct LiquidGlassBackground: View {
                         .frame(width: 440, height: 440)
                         .position(x: w * 0.15, y: h * 0.12)
                         .offset(x: isDrifting ? 22 : -16, y: isDrifting ? 14 : -12)
+                        .scaleEffect(isBreathing ? 1.07 : 0.94)
+                        .opacity(isBreathing ? 1.0 : 0.85)
                     
                     // Accent 2: Vibrant Indigo / Purple Glow (Center-Right)
                     Circle()
@@ -135,6 +137,8 @@ public struct LiquidGlassBackground: View {
                         .frame(width: 520, height: 520)
                         .position(x: w * 0.85, y: h * 0.42)
                         .offset(x: isDrifting ? -24 : 18, y: isDrifting ? -18 : 14)
+                        .scaleEffect(isBreathing ? 0.94 : 1.07)
+                        .opacity(isBreathing ? 0.85 : 1.0)
                     
                     // Accent 3: Emerald Mint Glow (Bottom-Left)
                     Circle()
@@ -153,6 +157,8 @@ public struct LiquidGlassBackground: View {
                         .frame(width: 400, height: 400)
                         .position(x: w * 0.10, y: h * 0.78)
                         .offset(x: isDrifting ? 16 : -14, y: isDrifting ? -20 : 16)
+                        .scaleEffect(isBreathing ? 1.06 : 0.93)
+                        .opacity(isBreathing ? 1.0 : 0.82)
                     
                     // Accent 4: Subtle Warm Amber Glow (Bottom-Right)
                     Circle()
@@ -171,10 +177,16 @@ public struct LiquidGlassBackground: View {
                         .frame(width: 360, height: 360)
                         .position(x: w * 0.80, y: h * 0.82)
                         .offset(x: isDrifting ? -14 : 18, y: isDrifting ? 16 : -14)
+                        .scaleEffect(isBreathing ? 0.95 : 1.08)
+                        .opacity(isBreathing ? 0.85 : 1.0)
                 }
                 .animation(
                     reduceMotion ? .default : .easeInOut(duration: 8.5).repeatForever(autoreverses: true),
                     value: isDrifting
+                )
+                .animation(
+                    reduceMotion ? .default : .easeInOut(duration: 6.8).repeatForever(autoreverses: true),
+                    value: isBreathing
                 )
             }
             .drawingGroup() // Metal hardware accelerated rasterization

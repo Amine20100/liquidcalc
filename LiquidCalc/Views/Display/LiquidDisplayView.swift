@@ -110,13 +110,15 @@ public struct LiquidDisplayView: View {
                     Text(viewModel.expression.isEmpty ? " " : viewModel.expression)
                         .font(.system(size: 22, weight: .light, design: .monospaced))
                         .foregroundColor(.white.opacity(0.65))
+                        .shadow(color: Color.cyan.opacity(cursorBlink ? 0.35 : 0.08), radius: cursorBlink ? 5 : 2)
                         .lineLimit(1)
                     
-                    // Clean Cyan Expression Cursor Dot
+                    // Clean Cyan Expression Cursor Dot with Breathing Halo
                     if !viewModel.expression.isEmpty {
                         Circle()
                             .fill(Color.cyan.opacity(0.85))
                             .frame(width: 4, height: 4)
+                            .shadow(color: Color.cyan.opacity(cursorBlink ? 0.85 : 0.25), radius: cursorBlink ? 4 : 1)
                             .scaleEffect(cursorBlink ? 1.0 : 0.45)
                             .opacity(cursorBlink ? 1.0 : 0.35)
                             .animation(
