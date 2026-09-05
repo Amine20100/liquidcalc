@@ -352,6 +352,7 @@ public struct SignerStudioView: View {
                     Image(systemName: isReadyToSign ? "checkmark.shield.fill" : "shield.lefthalf.filled")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundColor(isReadyToSign ? Color(red: 0.0, green: 1.0, blue: 0.64) : .orange)
+                        .shadow(color: (isReadyToSign ? Color(red: 0.0, green: 1.0, blue: 0.64) : .orange).opacity(0.7), radius: 6)
                         .scaleEffect(isReadyToSign ? 1.08 : 1.0)
                         .animation(.spring(response: 0.30, dampingFraction: 0.60), value: isReadyToSign)
                 }
@@ -406,7 +407,9 @@ public struct SignerStudioView: View {
                     RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke((isReadyToSign ? Color.green : Color.orange).opacity(0.28), lineWidth: 1)
                 )
+                .shadow(color: (isReadyToSign ? Color(red: 0.0, green: 1.0, blue: 0.64) : Color.orange).opacity(0.18), radius: 10)
         )
+        .animation(.spring(response: 0.36, dampingFraction: 0.72), value: isReadyToSign)
         .accessibilityElement(children: .contain)
     }
     
@@ -1039,10 +1042,11 @@ public struct SignerStudioView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Image(systemName: "checkmark.seal.fill")
-                    .foregroundColor(.green)
+                    .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                    .shadow(color: Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.7), radius: 6)
                 Text("READY FOR DEPLOYMENT")
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.green)
+                    .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
                 Spacer()
                 Text("1-Tap Install Available")
                     .font(.system(size: 10))

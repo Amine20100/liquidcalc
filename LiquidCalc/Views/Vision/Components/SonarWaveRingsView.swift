@@ -17,7 +17,7 @@ public struct SonarWaveRingsView: View {
     
     public init(isScanning: Bool = true, ringCount: Int = 3) {
         self.isScanning = isScanning
-        self.ringCount = ringCount
+        self.ringCount = max(1, ringCount)
     }
     
     public var body: some View {

@@ -115,35 +115,38 @@ public struct MainCalculatorView: View {
                 .padding(.horizontal, 16)
                 
                 ZStack {
-                    switch calculatorViewModel.currentMode {
-                    case .standard:
-                        StandardKeypadView(viewModel: calculatorViewModel)
-                    case .scientific:
-                        ScientificKeypadView(viewModel: calculatorViewModel)
-                    case .programmer:
-                        ProgrammerKeypadView(viewModel: programmerViewModel)
-                    case .converter:
-                        UnitConverterView(viewModel: converterViewModel)
-                    case .vision:
-                        SmartVisionView(
-                            calculatorViewModel: calculatorViewModel,
-                            onSendToAI: { presentCopilot($0) },
-                            onSaveToNotes: { WorkspaceRepository.shared.saveContext($0); workspaceSurface = .notes }
-                        )
-                    case .geminiAI:
-                        GeminiAIView(calculatorViewModel: calculatorViewModel, initialContext: copilotContext)
-                    case .advancedMath:
-                        AdvancedMathView()
-                    case .graphing:
-                        FunctionGrapherView()
-                    case .mathDraw:
-                        MathDrawCanvasView()
+                    Group {
+                        switch calculatorViewModel.currentMode {
+                        case .standard:
+                            StandardKeypadView(viewModel: calculatorViewModel)
+                        case .scientific:
+                            ScientificKeypadView(viewModel: calculatorViewModel)
+                        case .programmer:
+                            ProgrammerKeypadView(viewModel: programmerViewModel)
+                        case .converter:
+                            UnitConverterView(viewModel: converterViewModel)
+                        case .vision:
+                            SmartVisionView(
+                                calculatorViewModel: calculatorViewModel,
+                                onSendToAI: { presentCopilot($0) },
+                                onSaveToNotes: { WorkspaceRepository.shared.saveContext($0); workspaceSurface = .notes }
+                            )
+                        case .geminiAI:
+                            GeminiAIView(calculatorViewModel: calculatorViewModel, initialContext: copilotContext)
+                        case .advancedMath:
+                            AdvancedMathView()
+                        case .graphing:
+                            FunctionGrapherView()
+                        case .mathDraw:
+                            MathDrawCanvasView()
+                        }
                     }
+                    .id(calculatorViewModel.currentMode)
+                    .transition(reduceMotion ? .opacity : .asymmetric(
+                        insertion: .scale(scale: 0.96).combined(with: .opacity).combined(with: .offset(y: 8)),
+                        removal: .scale(scale: 0.98).combined(with: .opacity)
+                    ))
                 }
-                .transition(reduceMotion ? .opacity : .asymmetric(
-                    insertion: .scale(scale: 0.96).combined(with: .opacity).combined(with: .offset(y: 8)),
-                    removal: .scale(scale: 0.98).combined(with: .opacity)
-                ))
                 .animation(reduceMotion ? .default : .spring(response: 0.34, dampingFraction: 0.78), value: calculatorViewModel.currentMode)
                 
                 Spacer(minLength: 4)
