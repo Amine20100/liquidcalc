@@ -38,7 +38,7 @@ public final class DeviceSyncManager: @unchecked Sendable {
     @discardableResult
     public func bootstrapDeviceToken() async throws -> String {
         #if canImport(UIKit)
-        let deviceName = UIDevice.current.name
+        let deviceName = await MainActor.run { UIDevice.current.name }
         #else
         let deviceName = "Apple Client Device"
         #endif
