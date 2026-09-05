@@ -13,10 +13,12 @@ public struct HistorySheetView: View {
     private let onAskAI: ((WorkspaceContext) -> Void)?
     private let onSaveToNotes: ((WorkspaceContext) -> Void)?
     private var historyManager = HistoryManager.shared
+    @Bindable private var subscriptionManager = SubscriptionManager.shared
     
     @State private var searchText = ""
     @State private var showClearConfirmation = false
     @State private var copiedItemId: UUID? = nil
+    @State private var showCloudSyncSheet = false
     
     public init(calculatorViewModel: CalculatorViewModel, onAskAI: ((WorkspaceContext) -> Void)? = nil, onSaveToNotes: ((WorkspaceContext) -> Void)? = nil) {
         self.calculatorViewModel = calculatorViewModel
@@ -42,40 +44,75 @@ public struct HistorySheetView: View {
                 Color(red: 0.07, green: 0.08, blue: 0.12)
                     .ignoresSafeArea()
                 
-                if historyManager.items.isEmpty {
-                    VStack(spacing: 12) {
-                        Image(systemName: "clock.arrow.circlepath")
-                            .font(.system(size: 48, weight: .light))
-                            .foregroundColor(.white.opacity(0.3))
-                        Text("No Calculations Yet")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(.white.opacity(0.6))
-                        Text("Your calculations will automatically appear here as a tape history.")
-                            .font(.system(size: 14))
-                            .foregroundColor(.white.opacity(0.35))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
-                    }
-                } else {
-                    List {
-                        ForEach(filteredItems) { item in
-                            historyCard(for: item)
-                                .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
-                                .listRowBackground(Color.clear)
-                                .listRowSeparator(.hidden)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        historyManager.removeItem(id: item.id)
-                                    } label: {
-                                        Label("Delete", systemImage: "trash")
-                                    }
-                                }
+                VStack(spacing: 0) {
+                    // Subtle Cloud Sync Status Pill
+                    HStack {
+                        Button(action: { showCloudSyncSheet = true }) {
+                            HStack(spacing: 5) {
+                                Image(systemName: subscriptionManager.isPaid ? "cloud.sun.fill" : "icloud.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(subscriptionManager.isPaid ? .purple : .cyan)
+                                Text(subscriptionManager.cloudSyncStatusPillText)
+                                    .font(.system(size: 11, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.white.opacity(0.85))
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 8, weight: .bold))
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.white.opacity(0.08))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 0.8))
                         }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Cloud Sync Status: \(subscriptionManager.cloudSyncStatusPillText)")
+
+                        Spacer()
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .searchable(text: $searchText, prompt: "Search history...")
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+
+                    if historyManager.items.isEmpty {
+                        VStack(spacing: 12) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 48, weight: .light))
+                                .foregroundColor(.white.opacity(0.3))
+                            Text("No Calculations Yet")
+                                .font(.system(size: 18, weight: .medium))
+                                .foregroundColor(.white.opacity(0.6))
+                            Text("Your calculations will automatically appear here as a tape history.")
+                                .font(.system(size: 14))
+                                .foregroundColor(.white.opacity(0.35))
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                        .frame(maxHeight: .infinity)
+                    } else {
+                        List {
+                            ForEach(filteredItems) { item in
+                                historyCard(for: item)
+                                    .listRowInsets(EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 12))
+                                    .listRowBackground(Color.clear)
+                                    .listRowSeparator(.hidden)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            historyManager.removeItem(id: item.id)
+                                        } label: {
+                                            Label("Delete", systemImage: "trash")
+                                        }
+                                    }
+                            }
+                        }
+                        .listStyle(.plain)
+                        .scrollContentBackground(.hidden)
+                        .searchable(text: $searchText, prompt: "Search history...")
+                    }
                 }
+            }
+            .sheet(isPresented: $showCloudSyncSheet) {
+                CloudSyncSheetView()
+                    .presentationDetents([.medium, .large])
             }
             .navigationTitle("Calculation Tape")
             .navigationBarTitleDisplayMode(.inline)

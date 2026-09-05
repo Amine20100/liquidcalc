@@ -5,6 +5,11 @@ import {
   buildGeminiPayload,
   StreamRequestPayload,
 } from "@/lib/gemini";
+import {
+  decryptAndVerifyRequest,
+  cryptoErrorResponse,
+  encryptStreamChunk,
+} from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -13,15 +18,13 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: any = {};
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse(
-      { error: "Invalid JSON request body" },
-      { status: 400 }
-    );
+  // Enforce strict transport obfuscation & dynamic signature verification
+  const decrypted = await decryptAndVerifyRequest<any>(req);
+  if (!decrypted.success) {
+    return cryptoErrorResponse(decrypted);
   }
+
+  const body = decrypted.data;
 
   if (!body || typeof body !== "object" || Array.isArray(body)) {
     return jsonResponse({ error: "Invalid JSON payload" }, 400);
@@ -52,12 +55,12 @@ export async function POST(req: NextRequest) {
 
   const encoder = new TextEncoder();
 
-  // Create standard SSE stream
+  // Create encrypted SSE stream
   const customStream = new ReadableStream({
     async start(controller) {
       const sendEvent = (text: string, done: boolean) => {
-        const dataStr = JSON.stringify({ text, done });
-        controller.enqueue(encoder.encode(`data: ${dataStr}\n\n`));
+        const encryptedChunk = encryptStreamChunk(text, done);
+        controller.enqueue(encoder.encode(`data: ${encryptedChunk}\n\n`));
       };
 
       try {
@@ -143,6 +146,7 @@ export async function POST(req: NextRequest) {
         sendEvent(`\n\n[Analysis complete for: ${prompt}]`, false);
       } finally {
         sendEvent("", true);
+        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
         controller.close();
       }
     },
@@ -153,6 +157,7 @@ export async function POST(req: NextRequest) {
   headers.set("Cache-Control", "no-cache, no-transform");
   headers.set("Connection", "keep-alive");
   headers.set("X-Accel-Buffering", "no");
+  headers.set("X-Encrypted", "1");
 
   return new Response(customStream, {
     status: 200,

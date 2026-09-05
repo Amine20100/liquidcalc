@@ -104,11 +104,6 @@ public final class GeminiService: @unchecked Sendable {
             }
         }
         
-        let endpoint = "https://liquidcalc-backend.vercel.app/api/ai/stream"
-        guard let url = URL(string: endpoint) else {
-            throw NSError(domain: "GeminiService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
-        }
-        
         let history = chatHistory.dropLast().map { ["role": $0.role.rawValue, "text": $0.text] }
         var payload: [String: Any] = [
             "prompt": prompt,
@@ -120,33 +115,20 @@ public final class GeminiService: @unchecked Sendable {
             payload["image"] = imageData.base64EncodedString()
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty { request.setValue(apiKey, forHTTPHeaderField: "x-gemini-api-key") }
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        request.timeoutInterval = 45
+        var headers: [String: String] = [:]
+        if !apiKey.isEmpty { headers["x-gemini-api-key"] = apiKey }
         
-        let (bytes, response) = try await URLSession.shared.bytes(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "GeminiService", code: -3, userInfo: [NSLocalizedDescriptionKey: "No response from Gemini"])
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "Gemini Error (HTTP \(httpResponse.statusCode))"])
-        }
+        let (bytes, _) = try await CryptoTransport.shared.performEncryptedStream(
+            endpoint: "/api/ai/stream",
+            jsonPayload: payload,
+            headers: headers
+        )
         
         var tickCounter = 0
         
         for try await line in bytes.lines {
             if line.hasPrefix("data: ") {
-                let jsonString = String(line.dropFirst(6)).trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !jsonString.isEmpty, let data = jsonString.data(using: .utf8) else { continue }
-                
-                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                   let text = json["text"] as? String, !text.isEmpty {
-                    
+                if let text = CryptoTransport.shared.decryptStreamChunk(rawLine: line), !text.isEmpty {
                     await MainActor.run {
                         if !self.chatHistory.isEmpty {
                             let lastIndex = self.chatHistory.count - 1
@@ -250,11 +232,6 @@ public final class GeminiService: @unchecked Sendable {
     // MARK: - Core Gemini HTTP Request
     
     private func executeGeminiRequest(prompt: String, image: UIImage? = nil, additionalText: String? = nil, mode: String) async throws -> String {
-        let endpoint = "https://liquidcalc-backend.vercel.app/api/ai/solve"
-        guard let url = URL(string: endpoint) else {
-            throw NSError(domain: "GeminiService", code: -2, userInfo: [NSLocalizedDescriptionKey: "Invalid API URL"])
-        }
-        
         var combinedText = prompt
         if let extra = additionalText, !extra.isEmpty {
             combinedText += "\nContext expression: \(extra)"
@@ -262,28 +239,16 @@ public final class GeminiService: @unchecked Sendable {
         var payload: [String: Any] = ["mode": mode, "prompt": combinedText, "model": selectedModel]
         if let jpegData = image?.jpegData(compressionQuality: 0.8) { payload["image"] = jpegData.base64EncodedString() }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if !apiKey.isEmpty { request.setValue(apiKey, forHTTPHeaderField: "x-gemini-api-key") }
-        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-        request.timeoutInterval = 30
+        var headers: [String: String] = [:]
+        if !apiKey.isEmpty { headers["x-gemini-api-key"] = apiKey }
         
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, _) = try await CryptoTransport.shared.performEncryptedRequest(
+            endpoint: "/api/ai/solve",
+            method: "POST",
+            jsonPayload: payload,
+            headers: headers
+        )
         
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw NSError(domain: "GeminiService", code: -3, userInfo: [NSLocalizedDescriptionKey: "No response from server"])
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            if let errorJson = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let errorObj = errorJson["error"] as? [String: Any],
-               let msg = errorObj["message"] as? String {
-                throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: msg])
-            }
-            throw NSError(domain: "GeminiService", code: httpResponse.statusCode, userInfo: [NSLocalizedDescriptionKey: "AI service error (Status \(httpResponse.statusCode))"])
-        }
-
         guard let text = String(data: data, encoding: .utf8) else {
             throw NSError(domain: "GeminiService", code: -4, userInfo: [NSLocalizedDescriptionKey: "Unreadable AI response"])
         }

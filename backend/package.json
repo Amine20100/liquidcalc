@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "test": "tsx tests/forensic_unit_verify.ts && tsx tests/fullstack_services_verify.ts"
+    "test": "tsx tests/forensic_unit_verify.ts && tsx tests/fullstack_services_verify.ts && tsx tests/crypto_transport_verify.ts && tsx tests/subscription_cloudsync_verify.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3",

@@ -12,6 +12,11 @@ public struct SettingsSheetView: View {
     @Bindable private var feedbackManager = SoundAndHapticManager.shared
     @Bindable private var updateManager = AppUpdateManager.shared
     @Bindable private var hotUpdateManager = HotUpdateManager.shared
+    @Bindable private var authManager = AuthManager.shared
+    @Bindable private var subscriptionManager = SubscriptionManager.shared
+    
+    @State private var showAccountSettings = false
+    @State private var showPaywall = false
     
     public init() {}
     
@@ -22,6 +27,47 @@ public struct SettingsSheetView: View {
                     .ignoresSafeArea()
                 
                 Form {
+                    Section("Account & Cloud Sync") {
+                        HStack(spacing: 12) {
+                            Image(systemName: subscriptionManager.isPaid ? "cloud.sun.fill" : "icloud.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(subscriptionManager.isPaid ? .purple : .cyan)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(authManager.isGuest ? "Guest Device (Anonymous)" : (authManager.currentUser?.email ?? "Active Account"))
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                Text(subscriptionManager.cloudSyncStatusPillText)
+                                    .font(.system(size: 11))
+                                    .foregroundColor(subscriptionManager.isPaid ? .purple : .cyan)
+                            }
+                            Spacer()
+                            Button("Manage") {
+                                showAccountSettings = true
+                            }
+                            .font(.system(size: 12, weight: .semibold))
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 4)
+                            .background(Color.cyan.opacity(0.18))
+                            .foregroundColor(.cyan)
+                            .clipShape(Capsule())
+                        }
+                        
+                        Button(action: { showPaywall = true }) {
+                            HStack {
+                                Image(systemName: "crown.fill")
+                                    .foregroundColor(subscriptionManager.isPaid ? .yellow : .purple)
+                                Text(subscriptionManager.isPaid ? "Current Plan: \(subscriptionManager.currentTier.displayName) Active" : "Upgrade to Pro or Ultra")
+                                    .foregroundColor(.white)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .listRowBackground(Color(white: 0.15, opacity: 0.5))
+
                     Section("Feedback & Interactions") {
                         Toggle("Haptic Feedback", isOn: $feedbackManager.isHapticsEnabled)
                         Toggle("Key Sounds", isOn: $feedbackManager.isSoundEnabled)
@@ -249,6 +295,12 @@ public struct SettingsSheetView: View {
                 if let release = updateManager.latestRelease {
                     UpdateAvailableView(release: release, updateManager: updateManager)
                 }
+            }
+            .sheet(isPresented: $showAccountSettings) {
+                AccountSettingsView()
+            }
+            .sheet(isPresented: $showPaywall) {
+                PaidPlansPaywallView()
             }
             .alert("LiquidCalc is Up to Date", isPresented: $updateManager.showNoUpdateAlert) {
                 Button("OK", role: .cancel) {

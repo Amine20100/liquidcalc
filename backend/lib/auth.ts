@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 import { prisma } from "./prisma";
 
 const JWT_SECRET_STRING =
@@ -62,6 +63,7 @@ export async function signAccessToken(payload: AuthUserPayload): Promise<string>
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("7d")
+    .setJti(crypto.randomUUID())
     .sign(JWT_SECRET);
 }
 
@@ -76,6 +78,7 @@ export async function signRefreshToken(payload: {
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime("30d")
+    .setJti(crypto.randomUUID())
     .sign(JWT_SECRET);
 }
 
@@ -99,7 +102,7 @@ export async function issueDeviceToken(params: {
   platform?: string;
   name?: string;
   userId?: string;
-}): Promise<{ token: string; device: any }> {
+}): Promise<{ token: string; device: any; deviceId: string }> {
   const deviceId = params.deviceId.trim();
   const platform = (params.platform || "ios").toLowerCase().trim();
   const name = params.name?.trim() || null;
@@ -147,7 +150,7 @@ export async function issueDeviceToken(params: {
     };
   }
 
-  return { token, device };
+  return { token, device, deviceId };
 }
 
 /**
@@ -223,49 +226,7 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
     }
   }
 
-  // 2. Check Device Token Header directly
-  if (deviceTokenHeader) {
-    const rawToken = deviceTokenHeader.trim();
-    if (rawToken.length > 0) {
-      // First try JWT verify
-      const verified = await verifyJwt(rawToken);
-      if (verified && verified.type === "device" && verified.deviceId) {
-        return {
-          authenticated: true,
-          type: "device",
-          device: {
-            id: verified.sub,
-            deviceId: verified.deviceId,
-            platform: "ios",
-            name: "Mobile Device",
-          },
-        };
-      }
-
-      // Second try DB lookup
-      try {
-        const device = await prisma.deviceToken.findUnique({
-          where: { token: rawToken },
-        });
-        if (device) {
-          return {
-            authenticated: true,
-            type: "device",
-            device: {
-              id: device.id,
-              deviceId: device.deviceId,
-              platform: device.platform,
-              name: device.name,
-            },
-          };
-        }
-      } catch {
-        // DB fallback
-      }
-    }
-  }
-
-  // 3. Check Authorization Bearer Header or query token
+  // 2. Check Authorization Bearer Header or query token (User authentication has highest priority)
   const bearerToken =
     authHeader && /^Bearer\s+/i.test(authHeader)
       ? authHeader.replace(/^Bearer\s+/i, "").trim()
@@ -372,6 +333,79 @@ export async function authenticateRequest(req: Request): Promise<AuthResult> {
     };
   }
 
+  // 3. Check Device Token Header directly (Guest mode / device identity)
+  if (deviceTokenHeader) {
+    const rawToken = deviceTokenHeader.trim();
+    if (rawToken.length > 0) {
+      // First try JWT verify
+      const verified = await verifyJwt(rawToken);
+      if (verified && verified.type === "device" && verified.deviceId) {
+        return {
+          authenticated: true,
+          type: "device",
+          device: {
+            id: verified.sub,
+            deviceId: verified.deviceId,
+            platform: "ios",
+            name: "Mobile Device",
+          },
+        };
+      }
+
+      // Second try DB token lookup
+      try {
+        const device = await prisma.deviceToken.findUnique({
+          where: { token: rawToken },
+        });
+        if (device) {
+          return {
+            authenticated: true,
+            type: "device",
+            device: {
+              id: device.id,
+              deviceId: device.deviceId,
+              platform: device.platform,
+              name: device.name,
+            },
+          };
+        }
+
+        // Third try DB deviceId lookup
+        const deviceById = await prisma.deviceToken.findUnique({
+          where: { deviceId: rawToken },
+        });
+        if (deviceById) {
+          return {
+            authenticated: true,
+            type: "device",
+            device: {
+              id: deviceById.id,
+              deviceId: deviceById.deviceId,
+              platform: deviceById.platform,
+              name: deviceById.name,
+            },
+          };
+        }
+      } catch {
+        // DB fallback
+      }
+
+      // Fallback for un-bootstrapped guest deviceId
+      if (rawToken.startsWith("ios_") || rawToken.startsWith("dev_")) {
+        return {
+          authenticated: true,
+          type: "device",
+          device: {
+            id: rawToken,
+            deviceId: rawToken,
+            platform: "ios",
+            name: "Mobile Device",
+          },
+        };
+      }
+    }
+  }
+
   return { authenticated: false, type: null };
 }
 
@@ -401,8 +435,14 @@ export async function createSession(params: {
       }
     }
 
-    return await prisma.session.create({
-      data: {
+    return await prisma.session.upsert({
+      where: { token: params.token },
+      update: {
+        userId: params.userId || undefined,
+        deviceId: deviceRecordId || undefined,
+        expiresAt,
+      },
+      create: {
         token: params.token,
         userId: params.userId || undefined,
         deviceId: deviceRecordId || undefined,

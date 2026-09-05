@@ -15,6 +15,7 @@ import UIKit
 public struct MarkdownNotebookView: View {
     @Environment(\.dismiss) private var dismiss
     @Bindable private var workspace = WorkspaceRepository.shared
+    @Bindable private var subscriptionManager = SubscriptionManager.shared
     private let isEmbedded: Bool
     
     @State private var markdownContent: String = ""
@@ -22,6 +23,7 @@ public struct MarkdownNotebookView: View {
     @State private var tagText: String = ""
     @State private var selectedDocumentID: UUID?
     @State private var searchText: String = ""
+    @State private var showCloudSyncSheet: Bool = false
     
     enum EditorMode: String, CaseIterable {
         case edit = "Editor"
@@ -93,6 +95,10 @@ public struct MarkdownNotebookView: View {
                     }
                 }
             }
+            .sheet(isPresented: $showCloudSyncSheet) {
+                CloudSyncSheetView()
+                    .presentationDetents([.medium, .large])
+            }
         }
         .onAppear(perform: loadInitialDocument)
         .onChange(of: markdownContent) { _, _ in saveCurrentDocument() }
@@ -121,6 +127,24 @@ public struct MarkdownNotebookView: View {
             HStack(spacing: 8) {
                 TextField("Search notes", text: $searchText).font(.system(size: 11)).foregroundStyle(.white).padding(.horizontal, 9).frame(height: 32).background(.white.opacity(0.06), in: Capsule())
                 TextField("tags, comma separated", text: $tagText).font(.system(size: 11)).foregroundStyle(.white).padding(.horizontal, 9).frame(height: 32).background(.white.opacity(0.06), in: Capsule())
+
+                Button(action: { showCloudSyncSheet = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: subscriptionManager.isPaid ? "cloud.sun.fill" : "icloud.fill")
+                            .font(.system(size: 10))
+                            .foregroundColor(subscriptionManager.isPaid ? .purple : .cyan)
+                        Text(subscriptionManager.cloudSyncStatusPillText)
+                            .font(.system(size: 10, weight: .semibold, design: .rounded))
+                            .lineLimit(1)
+                            .foregroundColor(.white.opacity(0.85))
+                    }
+                    .padding(.horizontal, 8)
+                    .frame(height: 32)
+                    .background(Color.white.opacity(0.06), in: Capsule())
+                    .overlay(Capsule().stroke(Color.white.opacity(0.12), lineWidth: 0.8))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Cloud Sync: \(subscriptionManager.cloudSyncStatusPillText)")
             }
         }
         .padding(.horizontal, 14).padding(.vertical, 8).background(.black.opacity(0.22))

@@ -2,6 +2,12 @@ import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
 import { historyStore, HistoryItem } from "@/lib/storage";
 import { authenticateRequest } from "@/lib/auth";
+import { checkCloudSyncQuota } from "@/lib/subscription";
+import {
+  decryptAndVerifyRequest,
+  createEncryptedResponse,
+  cryptoErrorResponse,
+} from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +16,18 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: {
+  // Enforce strict transport obfuscation & dynamic signature verification
+  const decrypted = await decryptAndVerifyRequest<{
     deviceId?: string;
     items?: HistoryItem[];
     since?: string;
-  } = {};
+  }>(req);
 
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse(
-      { error: "Invalid JSON request body" },
-      { status: 400 }
-    );
+  if (!decrypted.success) {
+    return cryptoErrorResponse(decrypted);
   }
+
+  const body = decrypted.data;
 
   if (!body || typeof body !== "object" || !Array.isArray(body.items)) {
     return jsonResponse(
@@ -33,7 +37,7 @@ export async function POST(req: NextRequest) {
   }
 
   const items = body.items;
-  const deviceId = body.deviceId || "web-client";
+  const deviceId = body.deviceId || "ios-device";
   const since =
     (typeof body.since === "string" && body.since.trim()) ||
     req.nextUrl.searchParams.get("since") ||
@@ -45,7 +49,30 @@ export async function POST(req: NextRequest) {
       ? auth.user.id
       : undefined;
 
+  // Enforce Cloud Sync tier limits for Free vs Pro/Ultra
+  const newItems = items.filter((item) => !item.deleted && !historyStore.get(item.id));
+  const quota = await checkCloudSyncQuota({
+    userId,
+    deviceId,
+    incomingCount: newItems.length,
+  });
+
+  if (!quota.allowed) {
+    return createEncryptedResponse(
+      {
+        success: false,
+        error: quota.error,
+        code: "SYNC_QUOTA_EXCEEDED",
+        tier: quota.tier,
+        quotaLimit: quota.maxAllowed,
+        currentUsage: quota.currentCount,
+        upgradeRequired: true,
+      },
+      403
+    );
+  }
+
   const result = historyStore.sync(items, deviceId, since, userId);
 
-  return jsonResponse(result, { status: 200 });
+  return createEncryptedResponse(result, 200);
 }
