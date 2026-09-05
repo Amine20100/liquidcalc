@@ -31,6 +31,15 @@ public enum CryptoTransportError: Error, LocalizedError, Sendable {
         case .expiredTimestamp:
             return "Transport request timestamp outside valid tolerance window"
         case .invalidResponse(let code, let msg):
+            if code == 401 {
+                return msg.lowercased().contains("invalid") || msg.lowercased().contains("password") || msg.lowercased().contains("email")
+                    ? msg
+                    : "Incorrect email or password. Please double check your credentials."
+            } else if code == 409 {
+                return "An account with this email address already exists. Please sign in instead."
+            } else if code == 404 {
+                return "Requested service endpoint was not found on the server."
+            }
             return "Server responded with error (\(code)): \(msg)"
         case .serializationError(let msg):
             return "Data serialization error: \(msg)"
@@ -78,8 +87,25 @@ extension Data {
 public final class CryptoTransport: @unchecked Sendable {
     public static let shared = CryptoTransport()
 
-    /// Default base backend URL for production requests
-    public var baseURL: String = "https://liquidcalc-backend.vercel.app"
+    public static let customURLKey = "LiquidCalc_CustomBackendURL"
+    public static let defaultProductionURL = "https://liquidcalc-backend.vercel.app"
+    public static let defaultLocalURL = "http://127.0.0.1:3000"
+
+    /// Base backend URL for requests with persistent configuration support
+    public var baseURL: String {
+        get {
+            if let custom = UserDefaults.standard.string(forKey: Self.customURLKey), !custom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return custom.trimmingCharacters(in: .whitespacesAndNewlines)
+            }
+            if let envURL = ProcessInfo.processInfo.environment["LIQUIDCALC_BACKEND_URL"], !envURL.isEmpty {
+                return envURL
+            }
+            return Self.defaultProductionURL
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: Self.customURLKey)
+        }
+    }
 
     /// Master secret seed for transport key derivation
     public let masterSecret: String
@@ -249,7 +275,7 @@ public final class CryptoTransport: @unchecked Sendable {
         do {
             (rawData, rawResponse) = try await URLSession.shared.data(for: request)
         } catch let urlError as URLError {
-            let isOffline = (urlError.code == .notConnectedToInternet || urlError.code == .networkConnectionLost)
+            let isOffline = Self.isOfflineURLError(urlError)
             throw CryptoTransportError.networkError(urlError.localizedDescription, isOffline: isOffline)
         } catch {
             throw CryptoTransportError.networkError(error.localizedDescription, isOffline: false)
@@ -348,7 +374,7 @@ public final class CryptoTransport: @unchecked Sendable {
         do {
             (rawData, rawResponse) = try await URLSession.shared.data(for: request)
         } catch let urlError as URLError {
-            let isOffline = (urlError.code == .notConnectedToInternet || urlError.code == .networkConnectionLost)
+            let isOffline = Self.isOfflineURLError(urlError)
             throw CryptoTransportError.networkError(urlError.localizedDescription, isOffline: isOffline)
         } catch {
             throw CryptoTransportError.networkError(error.localizedDescription, isOffline: false)

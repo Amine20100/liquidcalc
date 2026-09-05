@@ -371,7 +371,7 @@ public struct LiquidAIAgentView: View {
                 }
 
                 Button(action: {
-                    WorkspaceRepository.shared.saveContext(.ai(markdown: markdown))
+                    _ = WorkspaceRepository.shared.saveContext(.ai(markdown: markdown))
                     SoundAndHapticManager.shared.triggerHaptic(.success)
                 }) {
                     HStack(spacing: 3) {

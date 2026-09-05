@@ -26,6 +26,13 @@
 	<true/>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>LiquidCalc uses your camera for Smart Vision scanning of handwritten and printed math equations, notes, and receipts.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
