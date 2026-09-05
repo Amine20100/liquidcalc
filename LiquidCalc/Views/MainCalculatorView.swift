@@ -34,6 +34,7 @@ public struct MainCalculatorView: View {
                     .padding(.top, 4)
                 
                 workspaceContent
+                    .id(workspaceSurface)
                     .frame(maxWidth: 760, maxHeight: .infinity)
                     .frame(maxWidth: .infinity)
                     .transition(reduceMotion ? .opacity : .asymmetric(insertion: .opacity.combined(with: .offset(y: 10)), removal: .opacity))

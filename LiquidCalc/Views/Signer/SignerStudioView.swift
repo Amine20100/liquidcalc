@@ -48,6 +48,7 @@ public struct SignerStudioView: View {
     @State private var showCertStore: Bool = false
     @State private var showReadinessDetails: Bool = false
     @State private var cardsAppeared: Bool = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /// A signing session should feel safe before it feels powerful. These checks make
     /// the primary action deterministic instead of leaving users to discover failures
@@ -73,58 +74,46 @@ public struct SignerStudioView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 studioHeader
-                    .offset(y: cardsAppeared ? 0 : 16)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 0, appeared: cardsAppeared, reduceMotion: reduceMotion))
 
                 signingReadinessCard
-                    .offset(y: cardsAppeared ? 0 : 20)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 1, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 engineSelectorCard
-                    .offset(y: cardsAppeared ? 0 : 24)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 2, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 sourceAppCard
-                    .offset(y: cardsAppeared ? 0 : 28)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 3, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 customizationCard
-                    .offset(y: cardsAppeared ? 0 : 32)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 4, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 certificateSelectionCard
-                    .offset(y: cardsAppeared ? 0 : 36)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 5, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 dylibInjectionCard
-                    .offset(y: cardsAppeared ? 0 : 40)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 6, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 compatibilityCard
-                    .offset(y: cardsAppeared ? 0 : 44)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 7, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 zsignCommandCard
-                    .offset(y: cardsAppeared ? 0 : 48)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 8, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 signActionButton
-                    .offset(y: cardsAppeared ? 0 : 52)
-                    .opacity(cardsAppeared ? 1 : 0)
+                    .modifier(StaggeredCardModifier(index: 9, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 
                 if let lastSigned = signerViewModel.apps.first(where: { $0.status == .signed }) {
                     recentSignedCard(lastSigned)
-                        .offset(y: cardsAppeared ? 0 : 56)
-                        .opacity(cardsAppeared ? 1 : 0)
+                        .modifier(StaggeredCardModifier(index: 10, appeared: cardsAppeared, reduceMotion: reduceMotion))
                 }
             }
             .padding(.horizontal, 16)
             .padding(.top, 10)
             .padding(.bottom, 32)
-            .animation(.spring(response: 0.42, dampingFraction: 0.78), value: cardsAppeared)
         }
         .onAppear {
-            withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+            withAnimation(reduceMotion ? .default : .spring(response: 0.42, dampingFraction: 0.78)) {
                 cardsAppeared = true
             }
             if selectedApp == nil {
@@ -1131,5 +1120,23 @@ public struct SignerStudioView: View {
         )
         
         signerViewModel.signAppWithSelectedEngine(app: app, config: config)
+    }
+}
+
+// MARK: - Staggered Card Reveal Modifier
+
+private struct StaggeredCardModifier: ViewModifier {
+    let index: Int
+    let appeared: Bool
+    let reduceMotion: Bool
+    
+    func body(content: Content) -> some View {
+        content
+            .offset(y: reduceMotion ? 0 : (appeared ? 0 : CGFloat(16 + index * 3)))
+            .opacity(appeared ? 1 : 0)
+            .animation(
+                reduceMotion ? .default : .spring(response: 0.44, dampingFraction: 0.78).delay(0.035 * Double(index)),
+                value: appeared
+            )
     }
 }

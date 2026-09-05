@@ -50,6 +50,7 @@ public struct LiquidDisplayView: View {
     @State private var sparkles: [DisplaySparkle] = []
     @State private var rippleScale: CGFloat = 0.85
     @State private var rippleOpacity: Double = 0.0
+    @State private var evaluationFXId: UUID = UUID()
     
     public init(viewModel: CalculatorViewModel) {
         self.viewModel = viewModel
@@ -111,6 +112,10 @@ public struct LiquidDisplayView: View {
                         .font(.system(size: 22, weight: .light, design: .monospaced))
                         .foregroundColor(.white.opacity(0.65))
                         .shadow(color: Color.cyan.opacity(cursorBlink ? 0.35 : 0.08), radius: cursorBlink ? 5 : 2)
+                        .animation(
+                            reduceMotion ? .default : .easeInOut(duration: 0.78).repeatForever(autoreverses: true),
+                            value: cursorBlink
+                        )
                         .lineLimit(1)
                     
                     // Clean Cyan Expression Cursor Dot with Breathing Halo
@@ -303,12 +308,22 @@ public struct LiquidDisplayView: View {
     private func triggerEvaluationFX() {
         guard !reduceMotion else { return }
         
-        // 1. Smooth Ripple Animation across Display
-        rippleScale = 0.85
-        rippleOpacity = 0.80
-        withAnimation(.easeOut(duration: 0.65)) {
-            rippleScale = 1.18
-            rippleOpacity = 0.0
+        let fxId = UUID()
+        self.evaluationFXId = fxId
+        
+        // 1. Smooth Ripple Animation across Display (un-coalesced state cycle)
+        var resetTx = Transaction()
+        resetTx.disablesAnimations = true
+        withTransaction(resetTx) {
+            rippleScale = 0.88
+            rippleOpacity = 0.82
+        }
+        
+        DispatchQueue.main.async {
+            withAnimation(.easeOut(duration: 0.65)) {
+                rippleScale = 1.18
+                rippleOpacity = 0.0
+            }
         }
         
         // 2. Floating Particle Sparkles Burst
@@ -345,16 +360,18 @@ public struct LiquidDisplayView: View {
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+            guard self.evaluationFXId == fxId else { return }
             withAnimation(.easeOut(duration: 0.38)) {
-                for i in sparkles.indices {
-                    sparkles[i].opacity = 0.0
-                    sparkles[i].scale = 0.1
+                for i in self.sparkles.indices {
+                    self.sparkles[i].opacity = 0.0
+                    self.sparkles[i].scale = 0.1
                 }
             }
         }
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-            sparkles.removeAll()
+            guard self.evaluationFXId == fxId else { return }
+            self.sparkles.removeAll()
         }
     }
     

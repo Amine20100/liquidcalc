@@ -18,6 +18,7 @@ public struct ReticleOverlayView: View {
     public let isScanning: Bool
     public let hasTarget: Bool
     public let targetBoundingBox: CGRect?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     // Animation States
     @State private var idleBreathingPhase: CGFloat = 0.0
@@ -120,13 +121,26 @@ public struct ReticleOverlayView: View {
         .onChange(of: isScanning) { _, _ in
             startAnimations()
         }
+        .onChange(of: reduceMotion) { _, shouldReduce in
+            if shouldReduce {
+                idleBreathingPhase = 0.5
+                scanPulsePhase = 0.0
+                lockOnPulsePhase = 0.5
+            } else {
+                startAnimations()
+            }
+        }
         .onChange(of: hasTarget) { _, isLocked in
             if isLocked {
-                withAnimation(.spring(response: 0.32, dampingFraction: 0.60)) {
-                    lockOnPulsePhase = 1.0
-                }
-                withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
-                    lockOnPulsePhase = 0.4
+                if !reduceMotion {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.60)) {
+                        lockOnPulsePhase = 1.0
+                    }
+                    withAnimation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true)) {
+                        lockOnPulsePhase = 0.4
+                    }
+                } else {
+                    lockOnPulsePhase = 0.5
                 }
             }
         }
@@ -158,6 +172,12 @@ public struct ReticleOverlayView: View {
     }
     
     private func startAnimations() {
+        guard !reduceMotion else {
+            idleBreathingPhase = 0.5
+            scanPulsePhase = 0.0
+            return
+        }
+        
         // Idle Ambient Breathing
         withAnimation(.easeInOut(duration: 1.8).repeatForever(autoreverses: true)) {
             idleBreathingPhase = 1.0

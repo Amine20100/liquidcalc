@@ -38,20 +38,37 @@ public struct KeypadButtonView: View {
                 SoundAndHapticManager.shared.playKeySound()
             }
             if !reduceMotion {
-                sheenOffset = -140
-                glowWaveScale = 0.9
-                glowWaveOpacity = 0.8
+                var resetTx = Transaction()
+                resetTx.disablesAnimations = true
+                withTransaction(resetTx) {
+                    sheenOffset = -140
+                    glowWaveScale = 0.9
+                    glowWaveOpacity = 0.8
+                }
+                
                 withAnimation(.easeOut(duration: 0.12)) {
                     tapPulse = true
                     glowWaveScale = 1.36
                 }
-                withAnimation(.easeInOut(duration: 0.36)) {
-                    sheenOffset = 140
+                
+                DispatchQueue.main.async {
+                    withAnimation(.easeInOut(duration: 0.36)) {
+                        sheenOffset = 140
+                    }
                 }
+                
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.14) {
                     withAnimation(.easeOut(duration: 0.20)) {
                         tapPulse = false
                         glowWaveOpacity = 0.0
+                    }
+                }
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.40) {
+                    var cleanupTx = Transaction()
+                    cleanupTx.disablesAnimations = true
+                    withTransaction(cleanupTx) {
+                        sheenOffset = -140
                     }
                 }
             }
@@ -196,6 +213,7 @@ public struct KeypadButtonView: View {
 public struct KeypadPressStyle: ButtonStyle {
     @Binding private var isPressedBinding: Bool
     private let hasBinding: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     
     public init(isPressed: Binding<Bool>) {
         self._isPressedBinding = isPressed
@@ -209,8 +227,8 @@ public struct KeypadPressStyle: ButtonStyle {
     
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.92 : 1.0)
-            .animation(.spring(response: 0.20, dampingFraction: 0.54), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.92 : 1.0)
+            .animation(reduceMotion ? .default : .spring(response: 0.20, dampingFraction: 0.54), value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, newValue in
                 if hasBinding {
                     isPressedBinding = newValue
