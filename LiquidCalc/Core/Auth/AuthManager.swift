@@ -160,6 +160,187 @@ public final class AuthManager: @unchecked Sendable {
         return headers
     }
 
+    // MARK: - Standard Account Authentication (Login & Register)
+
+    /// Authenticates with an existing email and password.
+    @discardableResult
+    public func login(
+        email: String,
+        password: String
+    ) async throws -> UserProfile {
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleanPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanEmail.isEmpty, cleanEmail.contains("@"), cleanEmail.contains(".") else {
+            throw CryptoTransportError.serializationError("Please enter a valid email address.")
+        }
+        guard cleanPassword.count >= 6 else {
+            throw CryptoTransportError.serializationError("Password must be at least 6 characters.")
+        }
+
+        await MainActor.run {
+            self.isLoading = true
+            self.lastErrorMessage = nil
+        }
+
+        defer {
+            Task { @MainActor in
+                self.isLoading = false
+            }
+        }
+
+        let payload: [String: Any] = [
+            "email": cleanEmail,
+            "password": cleanPassword
+        ]
+
+        do {
+            let (data, _) = try await CryptoTransport.shared.performEncryptedRequest(
+                endpoint: "/api/auth/login",
+                method: "POST",
+                jsonPayload: payload,
+                headers: authHeaders()
+            )
+
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw CryptoTransportError.serializationError("Invalid response received from auth server")
+            }
+
+            guard let userJson = json["user"] as? [String: Any],
+                  let userId = userJson["id"] as? String,
+                  let userEmail = userJson["email"] as? String else {
+                let err = json["error"] as? String ?? "Failed to log in"
+                throw CryptoTransportError.invalidResponse(400, err)
+            }
+
+            let userName = userJson["name"] as? String
+            let userRole = userJson["role"] as? String ?? "user"
+            let userTier = userJson["tier"] as? String ?? "FREE"
+
+            let user = UserProfile(
+                id: userId,
+                email: userEmail,
+                name: userName,
+                role: userRole,
+                tier: userTier
+            )
+
+            var newTokens = AuthTokens(accessToken: "login_token_\(userId)")
+            if let tokensJson = json["tokens"] as? [String: Any],
+               let access = tokensJson["accessToken"] as? String {
+                let refresh = tokensJson["refreshToken"] as? String
+                let tokenType = tokensJson["tokenType"] as? String ?? "Bearer"
+                let expires = tokensJson["expiresIn"] as? Int ?? 604800
+                newTokens = AuthTokens(accessToken: access, refreshToken: refresh, tokenType: tokenType, expiresIn: expires)
+            }
+
+            let finalTokens = newTokens
+            await MainActor.run {
+                self.persistSession(user: user, tokens: finalTokens)
+            }
+
+            await SubscriptionManager.shared.syncWithAuth(user: user)
+            return user
+        } catch {
+            await MainActor.run {
+                self.lastErrorMessage = error.localizedDescription
+            }
+            throw error
+        }
+    }
+
+    /// Registers a new permanent user account.
+    @discardableResult
+    public func register(
+        email: String,
+        password: String,
+        name: String? = nil
+    ) async throws -> UserProfile {
+        let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleanPassword = password.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanName = name?.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleanEmail.isEmpty, cleanEmail.contains("@"), cleanEmail.contains(".") else {
+            throw CryptoTransportError.serializationError("Please enter a valid email address.")
+        }
+        guard cleanPassword.count >= 6 else {
+            throw CryptoTransportError.serializationError("Password must be at least 6 characters.")
+        }
+
+        await MainActor.run {
+            self.isLoading = true
+            self.lastErrorMessage = nil
+        }
+
+        defer {
+            Task { @MainActor in
+                self.isLoading = false
+            }
+        }
+
+        var payload: [String: Any] = [
+            "email": cleanEmail,
+            "password": cleanPassword
+        ]
+        if let name = cleanName, !name.isEmpty {
+            payload["name"] = name
+        }
+
+        do {
+            let (data, _) = try await CryptoTransport.shared.performEncryptedRequest(
+                endpoint: "/api/auth/register",
+                method: "POST",
+                jsonPayload: payload,
+                headers: authHeaders()
+            )
+
+            guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                throw CryptoTransportError.serializationError("Invalid response received from auth server")
+            }
+
+            guard let userJson = json["user"] as? [String: Any],
+                  let userId = userJson["id"] as? String,
+                  let userEmail = userJson["email"] as? String else {
+                let err = json["error"] as? String ?? "Failed to register account"
+                throw CryptoTransportError.invalidResponse(400, err)
+            }
+
+            let userName = userJson["name"] as? String
+            let userRole = userJson["role"] as? String ?? "user"
+            let userTier = userJson["tier"] as? String ?? "FREE"
+
+            let user = UserProfile(
+                id: userId,
+                email: userEmail,
+                name: userName,
+                role: userRole,
+                tier: userTier
+            )
+
+            var newTokens = AuthTokens(accessToken: "register_token_\(userId)")
+            if let tokensJson = json["tokens"] as? [String: Any],
+               let access = tokensJson["accessToken"] as? String {
+                let refresh = tokensJson["refreshToken"] as? String
+                let tokenType = tokensJson["tokenType"] as? String ?? "Bearer"
+                let expires = tokensJson["expiresIn"] as? Int ?? 604800
+                newTokens = AuthTokens(accessToken: access, refreshToken: refresh, tokenType: tokenType, expiresIn: expires)
+            }
+
+            let finalTokens = newTokens
+            await MainActor.run {
+                self.persistSession(user: user, tokens: finalTokens)
+            }
+
+            await SubscriptionManager.shared.syncWithAuth(user: user)
+            return user
+        } catch {
+            await MainActor.run {
+                self.lastErrorMessage = error.localizedDescription
+            }
+            throw error
+        }
+    }
+
     // MARK: - Guest Account Linking (Seamless Data Migration)
 
     /// Links the current anonymous guest device to a permanent registered account.

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
 import { prisma } from "@/lib/prisma";
 import { comparePassword, signAccessToken, signRefreshToken, createSession } from "@/lib/auth";
+import { parseFlexibleRequest, createFlexibleResponse } from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -10,20 +11,26 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: any = {};
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON request body" }, 400);
+  const parsed = await parseFlexibleRequest<{
+    email?: string;
+    password?: string;
+  }>(req);
+
+  if (!parsed.success) {
+    return jsonResponse({ error: parsed.error }, parsed.status);
   }
+
+  const body = parsed.data || {};
+  const isEncrypted = parsed.isEncrypted;
 
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "").trim();
 
   if (!email || !password) {
-    return jsonResponse(
+    return createFlexibleResponse(
       { error: "Email and password are required" },
-      400
+      400,
+      isEncrypted
     );
   }
 
@@ -33,17 +40,19 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      return jsonResponse(
+      return createFlexibleResponse(
         { error: "Invalid email or password" },
-        401
+        401,
+        isEncrypted
       );
     }
 
     const matches = await comparePassword(password, user.passwordHash);
     if (!matches) {
-      return jsonResponse(
+      return createFlexibleResponse(
         { error: "Invalid email or password" },
-        401
+        401,
+        isEncrypted
       );
     }
 
@@ -64,7 +73,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
     });
 
-    return jsonResponse(
+    return createFlexibleResponse(
       {
         success: true,
         message: "Login successful",
@@ -73,6 +82,7 @@ export async function POST(req: NextRequest) {
           email: user.email,
           name: user.name,
           role: user.role,
+          tier: (user as any).tier || "FREE",
           createdAt: user.createdAt,
         },
         tokens: {
@@ -82,12 +92,14 @@ export async function POST(req: NextRequest) {
           expiresIn: 604800,
         },
       },
-      200
+      200,
+      isEncrypted
     );
   } catch (err: any) {
-    return jsonResponse(
+    return createFlexibleResponse(
       { error: "Authentication failed", details: err.message },
-      500
+      500,
+      isEncrypted
     );
   }
 }

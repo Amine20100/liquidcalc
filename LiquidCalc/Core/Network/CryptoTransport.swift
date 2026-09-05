@@ -18,6 +18,7 @@ public enum CryptoTransportError: Error, LocalizedError, Sendable {
     case invalidResponse(Int, String)
     case serializationError(String)
     case invalidURL
+    case networkError(String, isOffline: Bool)
 
     public var errorDescription: String? {
         switch self {
@@ -35,6 +36,12 @@ public enum CryptoTransportError: Error, LocalizedError, Sendable {
             return "Data serialization error: \(msg)"
         case .invalidURL:
             return "Invalid target URL"
+        case .networkError(let msg, let isOffline):
+            if isOffline {
+                return "Network connection offline. LiquidCalc is running in 100% Guest Mode — all calculations and notes are saved locally."
+            } else {
+                return "Unable to reach server (\(msg)). Offline Guest Mode is active so you can continue using all features uninterrupted."
+            }
         }
     }
 }
@@ -237,9 +244,26 @@ public final class CryptoTransport: @unchecked Sendable {
             request.setValue(v, forHTTPHeaderField: k)
         }
 
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse else {
+        let rawData: Data
+        let rawResponse: URLResponse
+        do {
+            (rawData, rawResponse) = try await URLSession.shared.data(for: request)
+        } catch let urlError as URLError {
+            let isOffline = (urlError.code == .notConnectedToInternet || urlError.code == .networkConnectionLost)
+            throw CryptoTransportError.networkError(urlError.localizedDescription, isOffline: isOffline)
+        } catch {
+            throw CryptoTransportError.networkError(error.localizedDescription, isOffline: false)
+        }
+
+        guard let httpResponse = rawResponse as? HTTPURLResponse else {
             throw CryptoTransportError.invalidResponse(-1, "Non-HTTP response")
+        }
+
+        // If encrypted request fails with 400, 403, or 415, attempt transparent standard JSON fallback
+        if (httpResponse.statusCode == 400 || httpResponse.statusCode == 403 || httpResponse.statusCode == 415) && jsonPayload != nil {
+            if let standardResult = try? await performStandardRequest(endpoint: endpoint, method: method, jsonPayload: jsonPayload, headers: headers) {
+                return standardResult
+            }
         }
 
         // Check if response has encrypted transport headers
@@ -247,8 +271,8 @@ public final class CryptoTransport: @unchecked Sendable {
             httpResponse.value(forHTTPHeaderField: "x-encrypted") == "1" ||
             httpResponse.value(forHTTPHeaderField: "Content-Type")?.contains("application/octet-stream") == true
 
-        var processedData = data
-        if let bodyStr = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
+        var processedData = rawData
+        if let bodyStr = String(data: rawData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) {
             // Verify mutual signature if response headers are present
             let respSig = httpResponse.value(forHTTPHeaderField: "X-Signature") ?? httpResponse.value(forHTTPHeaderField: "x-signature")
             let respTs = httpResponse.value(forHTTPHeaderField: "X-Timestamp") ?? httpResponse.value(forHTTPHeaderField: "x-timestamp")
@@ -283,6 +307,72 @@ public final class CryptoTransport: @unchecked Sendable {
         }
 
         return (processedData, httpResponse)
+    }
+
+    // MARK: - Standard JSON HTTP Request (Clear Diagnostics & Direct Transport Fallback)
+
+    public func performStandardRequest(
+        endpoint: String,
+        method: String = "POST",
+        jsonPayload: Any? = nil,
+        headers: [String: String] = [:]
+    ) async throws -> (data: Data, response: HTTPURLResponse) {
+        let urlString = endpoint.hasPrefix("http://") || endpoint.hasPrefix("https://")
+            ? endpoint
+            : "\(baseURL)\(endpoint.hasPrefix("/") ? "" : "/")\(endpoint)"
+
+        guard let url = URL(string: urlString) else {
+            throw CryptoTransportError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = method
+        request.timeoutInterval = 30
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        if let jsonPayload = jsonPayload {
+            if let directData = jsonPayload as? Data {
+                request.httpBody = directData
+            } else {
+                request.httpBody = try JSONSerialization.data(withJSONObject: jsonPayload)
+            }
+        }
+
+        for (k, v) in headers {
+            request.setValue(v, forHTTPHeaderField: k)
+        }
+
+        let rawData: Data
+        let rawResponse: URLResponse
+        do {
+            (rawData, rawResponse) = try await URLSession.shared.data(for: request)
+        } catch let urlError as URLError {
+            let isOffline = (urlError.code == .notConnectedToInternet || urlError.code == .networkConnectionLost)
+            throw CryptoTransportError.networkError(urlError.localizedDescription, isOffline: isOffline)
+        } catch {
+            throw CryptoTransportError.networkError(error.localizedDescription, isOffline: false)
+        }
+
+        guard let httpResponse = rawResponse as? HTTPURLResponse else {
+            throw CryptoTransportError.invalidResponse(-1, "Non-HTTP response")
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            var rawError = "Server responded with status \(httpResponse.statusCode)"
+            if let json = try? JSONSerialization.jsonObject(with: rawData) as? [String: Any] {
+                if let msg = json["error"] as? String {
+                    rawError = msg
+                } else if let msg = json["message"] as? String {
+                    rawError = msg
+                }
+            } else if let str = String(data: rawData, encoding: .utf8), !str.isEmpty {
+                rawError = str
+            }
+            throw CryptoTransportError.invalidResponse(httpResponse.statusCode, rawError)
+        }
+
+        return (rawData, httpResponse)
     }
 
     // MARK: - Transparent Encrypted SSE Stream

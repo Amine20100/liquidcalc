@@ -16,12 +16,20 @@ public struct AccountSettingsView: View {
     @Bindable private var subscriptionManager = SubscriptionManager.shared
     @Bindable private var syncManager = DeviceSyncManager.shared
 
-    // Form inputs for Guest Account Linking
+    public enum AuthMode: String, CaseIterable, Sendable {
+        case link = "Link Device"
+        case login = "Sign In"
+        case register = "Create Account"
+    }
+
+    // Form inputs for Authentication & Guest Account Linking
+    @State private var authMode: AuthMode = .link
     @State private var emailInput: String = ""
     @State private var passwordInput: String = ""
     @State private var nameInput: String = ""
     @State private var linkSuccessMessage: String? = nil
     @State private var linkErrorMessage: String? = nil
+    @State private var diagnosticDetails: String? = nil
     @State private var showPaywall: Bool = false
     @State private var isSyncingNow: Bool = false
     @State private var syncStatusBanner: String? = nil
@@ -235,31 +243,43 @@ public struct AccountSettingsView: View {
         )
     }
 
-    // MARK: - Link Guest Account Section (Zero Data Loss)
+    // MARK: - Authentication & Guest Account Linking Section (Unforced Guest Mode)
 
     private var linkGuestAccountSection: some View {
         VStack(alignment: .leading, spacing: 14) {
+            // Mode Selector: Link Device / Sign In / Create Account
+            Picker("Authentication Mode", selection: $authMode) {
+                ForEach(AuthMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.bottom, 2)
+
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Image(systemName: "link.badge.plus")
+                    Image(systemName: authMode == .link ? "link.badge.plus" : (authMode == .login ? "person.crop.circle.badge.checkmark" : "person.badge.plus"))
                         .foregroundColor(.cyan)
-                    Text("Link to Permanent Account")
+                    Text(authMode == .link ? "Link to Permanent Account" : (authMode == .login ? "Sign In with Existing Account" : "Create Permanent Account"))
                         .font(.system(size: 15, weight: .bold, design: .rounded))
                         .foregroundColor(.white)
                 }
 
-                Text("Sync your calculations & notes to your other devices. All current data is seamlessly preserved.")
+                Text(authModeDescription)
                     .font(.system(size: 12))
-                    .foregroundColor(.white.opacity(0.65))
+                    .foregroundColor(.white.opacity(0.68))
+                    .lineSpacing(2)
             }
 
             VStack(spacing: 10) {
-                TextField("Your Name (optional)", text: $nameInput)
-                    .font(.system(size: 13))
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 12)
-                    .frame(height: 40)
-                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                if authMode != .login {
+                    TextField("Your Name (optional)", text: $nameInput)
+                        .font(.system(size: 13))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 12)
+                        .frame(height: 40)
+                        .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                }
 
                 TextField("Email Address", text: $emailInput)
                     .keyboardType(.emailAddress)
@@ -280,14 +300,34 @@ public struct AccountSettingsView: View {
             }
 
             if let error = linkErrorMessage {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundColor(.orange)
-                        .font(.system(size: 12))
-                    Text(error)
-                        .font(.system(size: 12))
-                        .foregroundColor(.orange)
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .top, spacing: 8) {
+                        Image(systemName: error.lowercased().contains("network") || error.lowercased().contains("offline") || error.lowercased().contains("reach") ? "wifi.exclamationmark" : "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                            .font(.system(size: 14))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Connection Diagnostic")
+                                .font(.system(size: 12, weight: .bold, design: .rounded))
+                                .foregroundColor(.orange)
+                            Text(error)
+                                .font(.system(size: 11))
+                                .foregroundColor(.white.opacity(0.85))
+                        }
+                    }
+                    
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.shield.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 11))
+                        Text("Guest Mode Active: All math, notes & local data remain 100% saved on this device.")
+                            .font(.system(size: 10.5, weight: .medium))
+                            .foregroundColor(.green.opacity(0.9))
+                    }
+                    .padding(.top, 2)
                 }
+                .padding(10)
+                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.35), lineWidth: 1))
             }
 
             if let success = linkSuccessMessage {
@@ -299,15 +339,17 @@ public struct AccountSettingsView: View {
                         .font(.system(size: 12))
                         .foregroundColor(.green)
                 }
+                .padding(8)
+                .background(Color.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
             }
 
-            Button(action: handleLinkAccount) {
-                HStack {
+            Button(action: handleSubmitAuth) {
+                HStack(spacing: 6) {
                     if authManager.isLoading {
                         ProgressView().tint(.black)
                     } else {
-                        Image(systemName: "arrow.triangle.merge")
-                        Text("Link Account & Preserve All Data")
+                        Image(systemName: authMode == .link ? "arrow.triangle.merge" : (authMode == .login ? "arrow.right.circle.fill" : "person.badge.plus"))
+                        Text(authSubmitButtonTitle)
                     }
                 }
                 .font(.system(size: 13, weight: .bold))
@@ -318,6 +360,18 @@ public struct AccountSettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
             .disabled(authManager.isLoading || emailInput.isEmpty || passwordInput.count < 6)
+
+            // Unforced Guest Mode reassurance
+            HStack(spacing: 5) {
+                Image(systemName: "hand.raised.fill")
+                    .foregroundColor(.white.opacity(0.4))
+                    .font(.system(size: 10))
+                Text("Login is never forced: LiquidCalc works fully anonymously.")
+                    .font(.system(size: 10.5))
+                    .foregroundColor(.white.opacity(0.5))
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .padding(.top, 2)
         }
         .padding(16)
         .background(
@@ -325,6 +379,28 @@ public struct AccountSettingsView: View {
                 .fill(Color(white: 0.12, opacity: 0.7))
                 .overlay(RoundedRectangle(cornerRadius: 18).stroke(Color.cyan.opacity(0.3), lineWidth: 1))
         )
+    }
+
+    private var authModeDescription: String {
+        switch authMode {
+        case .link:
+            return "Sync your calculations & notes to your other devices. All current data is seamlessly preserved with zero loss."
+        case .login:
+            return "Access your existing account, restored entitlements, and cloud history across all your signed devices."
+        case .register:
+            return "Create a new free permanent account for unlimited multi-device cloud backup and synchronization."
+        }
+    }
+
+    private var authSubmitButtonTitle: String {
+        switch authMode {
+        case .link:
+            return "Link Device & Preserve All Data"
+        case .login:
+            return "Sign In to Account"
+        case .register:
+            return "Create Free Account"
+        }
     }
 
     // MARK: - Authenticated User Section
@@ -464,6 +540,60 @@ public struct AccountSettingsView: View {
     }
 
     // MARK: - Actions
+
+    private func handleSubmitAuth() {
+        linkErrorMessage = nil
+        linkSuccessMessage = nil
+
+        switch authMode {
+        case .link:
+            handleLinkAccount()
+        case .login:
+            handleSignIn()
+        case .register:
+            handleRegister()
+        }
+    }
+
+    private func handleSignIn() {
+        Task {
+            do {
+                let user = try await authManager.login(
+                    email: emailInput,
+                    password: passwordInput
+                )
+                _ = try? await HistoryManager.shared.syncWithBackend()
+                _ = try? await WorkspaceRepository.shared.syncWithBackend()
+                await subscriptionManager.fetchSubscriptionStatus()
+                linkSuccessMessage = "Welcome back, \(user.name ?? user.email)! Cloud sync and entitlements restored."
+                emailInput = ""
+                passwordInput = ""
+            } catch {
+                linkErrorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func handleRegister() {
+        Task {
+            do {
+                let user = try await authManager.register(
+                    email: emailInput,
+                    password: passwordInput,
+                    name: nameInput.isEmpty ? nil : nameInput
+                )
+                _ = try? await HistoryManager.shared.syncWithBackend()
+                _ = try? await WorkspaceRepository.shared.syncWithBackend()
+                await subscriptionManager.fetchSubscriptionStatus()
+                linkSuccessMessage = "Account created successfully for \(user.email)! Free multi-device cloud sync active."
+                emailInput = ""
+                passwordInput = ""
+                nameInput = ""
+            } catch {
+                linkErrorMessage = error.localizedDescription
+            }
+        }
+    }
 
     private func handleLinkAccount() {
         linkErrorMessage = nil
