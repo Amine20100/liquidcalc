@@ -61,6 +61,6 @@ public struct StandardKeypadView: View {
                 }
             }
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
     }
 }

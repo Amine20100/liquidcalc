@@ -270,7 +270,7 @@ public struct LiquidDisplayView: View {
                         )
                 )
         )
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .onAppear {
             cursorBlink = true
         }

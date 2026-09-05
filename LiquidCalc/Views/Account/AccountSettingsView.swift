@@ -33,6 +33,9 @@ public struct AccountSettingsView: View {
     @State private var showPaywall: Bool = false
     @State private var isSyncingNow: Bool = false
     @State private var syncStatusBanner: String? = nil
+    @State private var isPingingServer: Bool = false
+    @State private var serverPingResult: (isReachable: Bool, latencyMs: Int, message: String)? = nil
+    @State private var activeBackendURL: String = CryptoTransport.shared.baseURL
 
     public init() {}
 
@@ -324,6 +327,29 @@ public struct AccountSettingsView: View {
                             .foregroundColor(.green.opacity(0.9))
                     }
                     .padding(.top, 2)
+
+                    if error.lowercased().contains("network") || error.lowercased().contains("offline") || error.lowercased().contains("reach") || error.lowercased().contains("server") {
+                        Button(action: handleTestConnection) {
+                            HStack(spacing: 5) {
+                                if isPingingServer {
+                                    ProgressView().scaleEffect(0.65).tint(.orange)
+                                } else {
+                                    Image(systemName: "antenna.radiowaves.left.and.right")
+                                        .font(.system(size: 10))
+                                }
+                                Text(isPingingServer ? "Pinging Server..." : "Test Server Connection")
+                                    .font(.system(size: 11, weight: .semibold))
+                            }
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 4.5)
+                            .background(Color.orange.opacity(0.18))
+                            .clipShape(Capsule())
+                            .overlay(Capsule().stroke(Color.orange.opacity(0.4), lineWidth: 0.8))
+                        }
+                        .disabled(isPingingServer)
+                        .padding(.top, 2)
+                    }
                 }
                 .padding(10)
                 .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
@@ -498,10 +524,78 @@ public struct AccountSettingsView: View {
     // MARK: - Device Diagnostics
 
     private var deviceDiagnosticsCard: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Device Diagnostics")
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundColor(.white.opacity(0.6))
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Server & Device Diagnostics")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.white.opacity(0.7))
+                Spacer()
+                Button(action: handleTestConnection) {
+                    HStack(spacing: 4) {
+                        if isPingingServer {
+                            ProgressView().scaleEffect(0.65).tint(.cyan)
+                        } else {
+                            Image(systemName: "antenna.radiowaves.left.and.right")
+                                .font(.system(size: 10))
+                        }
+                        Text(isPingingServer ? "Pinging..." : "Test Connection")
+                            .font(.system(size: 10.5, weight: .semibold))
+                    }
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3.5)
+                    .background(Color.cyan.opacity(0.15))
+                    .clipShape(Capsule())
+                }
+                .disabled(isPingingServer)
+            }
+
+            // Active Server URL
+            detailRow("Active Server", value: activeBackendURL.replacingOccurrences(of: "https://", with: "").replacingOccurrences(of: "http://", with: ""))
+
+            if let result = serverPingResult {
+                HStack(spacing: 6) {
+                    Circle()
+                        .fill(result.isReachable ? Color.green : Color.orange)
+                        .frame(width: 7, height: 7)
+                    Text(result.message)
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundColor(result.isReachable ? .green : .orange)
+                    Spacer()
+                    if result.isReachable {
+                        Text("\(result.latencyMs)ms")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(.green)
+                            .padding(.horizontal, 5)
+                            .padding(.vertical, 1.5)
+                            .background(Color.green.opacity(0.15), in: Capsule())
+                    }
+                }
+                .padding(8)
+                .background(
+                    (result.isReachable ? Color.green : Color.orange).opacity(0.08),
+                    in: RoundedRectangle(cornerRadius: 8)
+                )
+            }
+
+            // Quick toggle between Production and Local Server
+            HStack(spacing: 8) {
+                Button(action: toggleServerEnvironment) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.system(size: 10))
+                        Text(activeBackendURL.contains("127.0.0.1") || activeBackendURL.contains("localhost") ? "Switch to Cloud (Vercel)" : "Switch to Localhost (127.0.0.1:3000)")
+                            .font(.system(size: 10.5, weight: .medium))
+                    }
+                    .foregroundColor(.white.opacity(0.8))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.white.opacity(0.08), in: RoundedRectangle(cornerRadius: 6))
+                }
+                Spacer()
+            }
+
+            Divider().background(Color.white.opacity(0.1))
 
             detailRow("Device ID", value: String(syncManager.deviceId.prefix(16)) + "...")
             detailRow("Device Verified", value: syncManager.isVerified ? "Yes (Secure Pipe)" : "Pending")
@@ -513,6 +607,10 @@ public struct AccountSettingsView: View {
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
                 .fill(Color(white: 0.08, opacity: 0.5))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
         )
     }
 
@@ -633,5 +731,27 @@ public struct AccountSettingsView: View {
                 self.syncStatusBanner = "Cloud state refreshed successfully at \(Date().formatted(date: .omitted, time: .standard))"
             }
         }
+    }
+
+    private func handleTestConnection() {
+        isPingingServer = true
+        serverPingResult = nil
+        Task {
+            let res = await CryptoTransport.shared.checkServerConnectivity()
+            await MainActor.run {
+                self.serverPingResult = res
+                self.isPingingServer = false
+            }
+        }
+    }
+
+    private func toggleServerEnvironment() {
+        if CryptoTransport.shared.baseURL.contains("127.0.0.1") || CryptoTransport.shared.baseURL.contains("localhost") {
+            CryptoTransport.shared.baseURL = CryptoTransport.defaultProductionURL
+        } else {
+            CryptoTransport.shared.baseURL = CryptoTransport.defaultLocalURL
+        }
+        activeBackendURL = CryptoTransport.shared.baseURL
+        handleTestConnection()
     }
 }

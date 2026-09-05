@@ -375,13 +375,61 @@ public struct LaTeXMathEngine {
     
     public static func sanitizeMathSigns(_ input: String) -> String {
         var str = input.replacingOccurrences(of: "−", with: "-")
-        // Clean glitchy spaced operator pairs e.g. "x - + y" -> "x - y", "x + - y" -> "x - y"
-        str = str.replacingOccurrences(of: "- +", with: "- ")
-        str = str.replacingOccurrences(of: "+ -", with: "- ")
-        str = str.replacingOccurrences(of: "- -", with: "+ ")
-        str = str.replacingOccurrences(of: "+ +", with: "+ ")
-        str = str.replacingOccurrences(of: "+/-", with: "±")
-        str = str.replacingOccurrences(of: "-/+", with: "∓")
+        
+        // Protect non-math code tokens
+        let protectedCpp = "__LC_PROTECTED_CPP__"
+        str = str.replacingOccurrences(of: "C++", with: protectedCpp)
+        
+        // Protect CLI flags: e.g. --verbose, --flag
+        if let flagRegex = try? NSRegularExpression(pattern: "(?<=\\s|^)--([a-zA-Z0-9_-]+)") {
+            str = flagRegex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "__LC_FLAG_$1__")
+        }
+        
+        // 1. Spaced & unspaced consecutive operators:
+        // "- +" or "-+" or "-  +" -> "- "
+        if let regex = try? NSRegularExpression(pattern: "-\\s*\\+") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "- ")
+        }
+        // "+ -" or "+-" or "+  -" -> "- "
+        if let regex = try? NSRegularExpression(pattern: "\\+\\s*-") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "- ")
+        }
+        // "- -" -> "+ "
+        if let regex = try? NSRegularExpression(pattern: "-\\s*-") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "+ ")
+        }
+        // "+ +" -> "+ "
+        if let regex = try? NSRegularExpression(pattern: "\\+\\s*\\+") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "+ ")
+        }
+        // "+/-" -> "±", "-/+" -> "∓"
+        if let regex = try? NSRegularExpression(pattern: "\\+\\s*/\\s*-") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "±")
+        }
+        if let regex = try? NSRegularExpression(pattern: "-\\s*/\\s*\\+") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "∓")
+        }
+        
+        // 2. Parenthesized signs: e.g. "x - (+y)" -> "x - y", "x + (-y)" -> "x - y", "x - (-y)" -> "x + y"
+        if let regex = try? NSRegularExpression(pattern: "-\\s*\\(\\s*\\+\\s*([^()]+?)\\s*\\)") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "- $1")
+        }
+        if let regex = try? NSRegularExpression(pattern: "\\+\\s*\\(\\s*-\\s*([^()]+?)\\s*\\)") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "- $1")
+        }
+        if let regex = try? NSRegularExpression(pattern: "-\\s*\\(\\s*-\\s*([^()]+?)\\s*\\)") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "+ $1")
+        }
+        if let regex = try? NSRegularExpression(pattern: "\\+\\s*\\(\\s*\\+\\s*([^()]+?)\\s*\\)") {
+            str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "+ $1")
+        }
+        
+        // Restore protected tokens
+        str = str.replacingOccurrences(of: protectedCpp, with: "C++")
+        if let restoreRegex = try? NSRegularExpression(pattern: "__LC_FLAG_([a-zA-Z0-9_-]+)__") {
+            str = restoreRegex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: "--$1")
+        }
+        
         return str
     }
     
@@ -395,27 +443,14 @@ public struct LaTeXMathEngine {
                 let denClean = den.trimmingCharacters(in: .whitespaces)
                 
                 // Common Unicode fractions for simple numbers
-                if numClean == "1" && denClean == "2" {
-                    str.replaceSubrange(range.lowerBound..<endIdx, with: "½")
-                    continue
-                } else if numClean == "1" && denClean == "3" {
-                    str.replaceSubrange(range.lowerBound..<endIdx, with: "⅓")
-                    continue
-                } else if numClean == "2" && denClean == "3" {
-                    str.replaceSubrange(range.lowerBound..<endIdx, with: "⅔")
-                    continue
-                } else if numClean == "1" && denClean == "4" {
-                    str.replaceSubrange(range.lowerBound..<endIdx, with: "¼")
-                    continue
-                } else if numClean == "3" && denClean == "4" {
-                    str.replaceSubrange(range.lowerBound..<endIdx, with: "¾")
+                if let unicodeFrac = commonUnicodeFraction(num: numClean, den: denClean) {
+                    str.replaceSubrange(range.lowerBound..<endIdx, with: unicodeFrac)
                     continue
                 }
                 
                 let numFormatted = convertInlineFractions(convertSubAndSuperscripts(replaceSymbols(numClean)))
                 let denFormatted = convertInlineFractions(convertSubAndSuperscripts(replaceSymbols(denClean)))
                 
-                // If single identifier/number, avoid unnecessary wrapping parens
                 let isNumSimple = !numFormatted.contains(" ") && !numFormatted.contains("+") && !numFormatted.contains("-")
                 let isDenSimple = !denFormatted.contains(" ") && !denFormatted.contains("+") && !denFormatted.contains("-")
                 
@@ -427,11 +462,55 @@ public struct LaTeXMathEngine {
                 break
             }
         }
+        
+        // Also convert standalone plaintext fractions (e.g. 1/2, 3/4)
+        str = convertPlaintextFractions(str)
+        return str
+    }
+    
+    public static func commonUnicodeFraction(num: String, den: String) -> String? {
+        let n = num.trimmingCharacters(in: .whitespaces)
+        let d = den.trimmingCharacters(in: .whitespaces)
+        switch (n, d) {
+        case ("1", "2"): return "½"
+        case ("1", "3"): return "⅓"
+        case ("2", "3"): return "⅔"
+        case ("1", "4"): return "¼"
+        case ("3", "4"): return "¾"
+        case ("1", "5"): return "⅕"
+        case ("2", "5"): return "⅖"
+        case ("3", "5"): return "⅗"
+        case ("4", "5"): return "⅘"
+        case ("1", "6"): return "⅙"
+        case ("5", "6"): return "⅚"
+        case ("1", "8"): return "⅛"
+        case ("3", "8"): return "⅜"
+        case ("5", "8"): return "⅝"
+        case ("7", "8"): return "⅞"
+        default: return nil
+        }
+    }
+    
+    public static func convertPlaintextFractions(_ input: String) -> String {
+        var str = input
+        let fracMap: [(String, String)] = [
+            ("1/2", "½"), ("1/3", "⅓"), ("2/3", "⅔"),
+            ("1/4", "¼"), ("3/4", "¾"), ("1/5", "⅕"),
+            ("2/5", "⅖"), ("3/5", "⅗"), ("4/5", "⅘"),
+            ("1/6", "⅙"), ("5/6", "⅚"), ("1/8", "⅛"),
+            ("3/8", "⅜"), ("5/8", "⅝"), ("7/8", "⅞")
+        ]
+        for (pattern, replacement) in fracMap {
+            if let regex = try? NSRegularExpression(pattern: "(?<!/)(?<=\\b|\\s|\\()\(NSRegularExpression.escapedPattern(for: pattern))(?=\\b|\\s|\\)|$)(?!/)") {
+                str = regex.stringByReplacingMatches(in: str, range: NSRange(location: 0, length: str.utf16.count), withTemplate: replacement)
+            }
+        }
         return str
     }
     
     public static func convertInlineRadicals(_ input: String) -> String {
         var str = input
+        // 1. LaTeX \sqrt[degree]{radicand} or \sqrt{radicand}
         while let range = str.range(of: "\\sqrt") {
             var after = range.upperBound
             var degree: String? = nil
@@ -451,6 +530,21 @@ public struct LaTeXMathEngine {
                 break
             }
         }
+        
+        // 2. Raw plaintext sqrt(...) e.g. sqrt(x^2 + 1) -> √(x² + 1)
+        if let sqrtRegex = try? NSRegularExpression(pattern: "(?<![a-zA-Z0-9_\\\\])sqrt\\(([^)]+)\\)") {
+            let nsStr = str as NSString
+            let matches = sqrtRegex.matches(in: str, range: NSRange(location: 0, length: nsStr.length))
+            for match in matches.reversed() {
+                if let innerRange = Range(match.range(at: 1), in: str),
+                   let fullRange = Range(match.range(at: 0), in: str) {
+                    let inner = String(str[innerRange])
+                    let formatted = convertSubAndSuperscripts(replaceSymbols(inner))
+                    str.replaceSubrange(fullRange, with: "√(\(formatted))")
+                }
+            }
+        }
+        
         return str
     }
     
@@ -675,6 +769,7 @@ public struct LaTeXMathEngine {
             if ch == "^" {
                 let nextIdx = text.index(after: i)
                 if nextIdx < text.endIndex {
+                    // 1. Braced ^{...}
                     if text[nextIdx] == "{" {
                         if let closeBrace = text[nextIdx...].firstIndex(of: "}") {
                             let exp = text[text.index(after: nextIdx)..<closeBrace]
@@ -684,7 +779,38 @@ public struct LaTeXMathEngine {
                             i = text.index(after: closeBrace)
                             continue
                         }
-                    } else {
+                    }
+                    // 2. Parenthesized ^(...) e.g. x^(n+1) -> xⁿ⁺¹, e^(-x) -> e⁻ˣ, x^(2) -> x²
+                    else if text[nextIdx] == "(" {
+                        if let closeParen = text[nextIdx...].firstIndex(of: ")") {
+                            let exp = text[text.index(after: nextIdx)..<closeParen]
+                            for c in exp {
+                                result.append(supMap[c] ?? c)
+                            }
+                            i = text.index(after: closeParen)
+                            continue
+                        }
+                    }
+                    // 3. Negative exponent or multi-digit: e.g. ^-3, ^-12, ^10, ^2026
+                    else if text[nextIdx] == "-" || text[nextIdx].isNumber {
+                        var endScan = nextIdx
+                        if text[endScan] == "-" {
+                            endScan = text.index(after: endScan)
+                        }
+                        while endScan < text.endIndex && text[endScan].isNumber {
+                            endScan = text.index(after: endScan)
+                        }
+                        if endScan > nextIdx {
+                            let token = text[nextIdx..<endScan]
+                            for c in token {
+                                result.append(supMap[c] ?? c)
+                            }
+                            i = endScan
+                            continue
+                        }
+                    }
+                    // 4. Single character or symbol
+                    else {
                         let expChar = text[nextIdx]
                         result.append(supMap[expChar] ?? expChar)
                         i = text.index(after: nextIdx)
@@ -697,6 +823,7 @@ public struct LaTeXMathEngine {
             if ch == "_" {
                 let nextIdx = text.index(after: i)
                 if nextIdx < text.endIndex {
+                    // 1. Braced _{...}
                     if text[nextIdx] == "{" {
                         if let closeBrace = text[nextIdx...].firstIndex(of: "}") {
                             let sub = text[text.index(after: nextIdx)..<closeBrace]
@@ -706,7 +833,38 @@ public struct LaTeXMathEngine {
                             i = text.index(after: closeBrace)
                             continue
                         }
-                    } else {
+                    }
+                    // 2. Parenthesized _(...) e.g. x_(i+1) -> xᵢ₊₁
+                    else if text[nextIdx] == "(" {
+                        if let closeParen = text[nextIdx...].firstIndex(of: ")") {
+                            let sub = text[text.index(after: nextIdx)..<closeParen]
+                            for c in sub {
+                                result.append(subMap[c] ?? c)
+                            }
+                            i = text.index(after: closeParen)
+                            continue
+                        }
+                    }
+                    // 3. Multi-digit or signed subscript: e.g. _10, _-1
+                    else if text[nextIdx] == "-" || text[nextIdx].isNumber {
+                        var endScan = nextIdx
+                        if text[endScan] == "-" {
+                            endScan = text.index(after: endScan)
+                        }
+                        while endScan < text.endIndex && text[endScan].isNumber {
+                            endScan = text.index(after: endScan)
+                        }
+                        if endScan > nextIdx {
+                            let token = text[nextIdx..<endScan]
+                            for c in token {
+                                result.append(subMap[c] ?? c)
+                            }
+                            i = endScan
+                            continue
+                        }
+                    }
+                    // 4. Single character or symbol
+                    else {
                         let subChar = text[nextIdx]
                         result.append(subMap[subChar] ?? subChar)
                         i = text.index(after: nextIdx)
@@ -1240,12 +1398,54 @@ public struct LiquidMarkdownView: View {
         .padding(.vertical, 2)
     }
     
+    @ViewBuilder
     private func inlineMathParagraphView(text: String) -> some View {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        if trimmed.hasPrefix("**Solution:**") || trimmed.hasPrefix("**Result:**") || trimmed.hasPrefix("**Final Answer:**") || trimmed.hasPrefix("Result:") {
+            styledMathSolutionCard(text: trimmed)
+        } else {
+            let formatted = formatInlineMath(text)
+            Text(LocalizedStringKey(formatted))
+                .font(.system(size: 14))
+                .foregroundColor(.white.opacity(0.92))
+                .lineSpacing(5)
+        }
+    }
+    
+    private func styledMathSolutionCard(text: String) -> some View {
         let formatted = formatInlineMath(text)
-        return Text(LocalizedStringKey(formatted))
-            .font(.system(size: 14))
-            .foregroundColor(.white.opacity(0.92))
-            .lineSpacing(5)
+        let isResult = text.contains("Result:") || text.contains("Final Answer:")
+        return HStack(spacing: 10) {
+            Image(systemName: isResult ? "checkmark.circle.fill" : "sparkles")
+                .foregroundColor(isResult ? .green : .cyan)
+                .font(.system(size: 15, weight: .bold))
+            
+            Text(LocalizedStringKey(formatted))
+                .font(.system(size: 14, weight: isResult ? .semibold : .regular))
+                .foregroundColor(.white)
+                .lineSpacing(4)
+            
+            Spacer()
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(red: 0.08, green: 0.10, blue: 0.16).opacity(0.85))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(
+                            LinearGradient(
+                                colors: isResult
+                                    ? [Color.green.opacity(0.6), Color.cyan.opacity(0.4)]
+                                    : [Color.cyan.opacity(0.5), Color.purple.opacity(0.4)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            lineWidth: 1.2
+                        )
+                )
+        )
+        .padding(.vertical, 2)
     }
     
     private func taskItemView(item: TaskItem) -> some View {
