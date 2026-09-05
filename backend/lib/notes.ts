@@ -377,6 +377,42 @@ class NotesStore {
     return true;
   }
 
+  public linkDeviceToUser(deviceId: string, userId: string): number {
+    let count = 0;
+    const now = new Date().toISOString();
+    for (const [id, note] of this.notesMap.entries()) {
+      if (note.deviceId === deviceId && !note.userId) {
+        note.userId = userId;
+        note.updatedAt = now;
+        this.notesMap.set(id, note);
+        count++;
+        prisma.note
+          .updateMany({
+            where: { id },
+            data: { userId, updatedAt: new Date(now) },
+          })
+          .catch(() => {});
+      }
+    }
+    if (count > 0) {
+      this.lastUpdated = now;
+    }
+    return count;
+  }
+
+  public countForOwner(params: { userId?: string; deviceId?: string }): number {
+    let count = 0;
+    for (const note of this.notesMap.values()) {
+      if (note.deleted) continue;
+      if (params.userId && note.userId === params.userId) {
+        count++;
+      } else if (params.deviceId && note.deviceId === params.deviceId && !note.userId) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   public getStats() {
     const active = Array.from(this.notesMap.values()).filter((n) => !n.deleted);
     const allTags = new Set<string>();

@@ -1,8 +1,13 @@
 import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
 import { notesStore, NoteItem } from "@/lib/notes";
-
 import { authenticateRequest } from "@/lib/auth";
+import { checkCloudSyncQuota } from "@/lib/subscription";
+import {
+  decryptAndVerifyRequest,
+  createEncryptedResponse,
+  cryptoErrorResponse,
+} from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -11,23 +16,21 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: {
+  // Enforce strict transport obfuscation & dynamic signature verification
+  const decrypted = await decryptAndVerifyRequest<{
     deviceId?: string;
     notes?: NoteItem[];
-    items?: NoteItem[]; // alias for compatibility
+    items?: NoteItem[];
     since?: string;
-  } = {};
+  }>(req);
 
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse(
-      { error: "Invalid JSON request body" },
-      { status: 400 }
-    );
+  if (!decrypted.success) {
+    return cryptoErrorResponse(decrypted);
   }
 
-  const rawList = body.notes || body.items;
+  const body = decrypted.data;
+
+  const rawList = body?.notes || body?.items;
   if (!body || typeof body !== "object" || !Array.isArray(rawList)) {
     return jsonResponse(
       { error: "Missing or invalid required field 'notes' (must be an array)" },
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
   }
 
   const notes = rawList;
-  const deviceId = body.deviceId || "web-client";
+  const deviceId = body.deviceId || "ios-device";
   const since =
     (typeof body.since === "string" && body.since.trim()) ||
     req.nextUrl.searchParams.get("since") ||
@@ -48,7 +51,30 @@ export async function POST(req: NextRequest) {
       ? auth.user.id
       : undefined;
 
+  // Enforce Cloud Sync tier limits for Free vs Pro/Ultra
+  const newNotes = notes.filter((n) => !n.deleted && !notesStore.get(n.id));
+  const quota = await checkCloudSyncQuota({
+    userId,
+    deviceId,
+    incomingCount: newNotes.length,
+  });
+
+  if (!quota.allowed) {
+    return createEncryptedResponse(
+      {
+        success: false,
+        error: quota.error,
+        code: "SYNC_QUOTA_EXCEEDED",
+        tier: quota.tier,
+        quotaLimit: quota.maxAllowed,
+        currentUsage: quota.currentCount,
+        upgradeRequired: true,
+      },
+      403
+    );
+  }
+
   const result = await notesStore.sync(notes, deviceId, since, userId);
 
-  return jsonResponse(result, { status: 200 });
+  return createEncryptedResponse(result, 200);
 }

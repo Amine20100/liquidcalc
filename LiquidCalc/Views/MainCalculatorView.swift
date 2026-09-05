@@ -12,8 +12,10 @@ public struct MainCalculatorView: View {
     @State private var programmerViewModel = ProgrammerViewModel()
     @State private var converterViewModel = ConverterViewModel()
     @Bindable private var updateManager = AppUpdateManager.shared
+    @Bindable private var subscriptionManager = SubscriptionManager.shared
     @State private var showHistorySheet = false
     @State private var showSettingsSheet = false
+    @State private var showAccountSheet = false
     @State private var workspaceSurface: WorkspaceDestination = .calculator
     @State private var showToolsSheet = false
     @State private var showCopilot = false
@@ -56,6 +58,11 @@ public struct MainCalculatorView: View {
         .sheet(isPresented: $showSettingsSheet) {
             SettingsSheetView()
                 .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showAccountSheet) {
+            AccountSettingsView()
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showToolsSheet) { toolsSheet }
@@ -357,6 +364,22 @@ public struct MainCalculatorView: View {
             }
             .buttonStyle(HeaderActionPressStyle())
             
+            // Cloud Sync / Account Button
+            Button(action: {
+                SoundAndHapticManager.shared.triggerHaptic(.light)
+                showAccountSheet = true
+            }) {
+                Image(systemName: subscriptionManager.isPaid ? "cloud.sun.fill" : "icloud.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(subscriptionManager.isPaid ? .purple : .cyan)
+                    .frame(width: 32, height: 32)
+                    .background(Color.white.opacity(0.1))
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.white.opacity(0.15), lineWidth: 0.8))
+            }
+            .buttonStyle(HeaderActionPressStyle())
+            .accessibilityLabel("Account & Cloud Sync")
+
             // Preferences / Settings Button
             Button(action: {
                 SoundAndHapticManager.shared.triggerHaptic(.light)

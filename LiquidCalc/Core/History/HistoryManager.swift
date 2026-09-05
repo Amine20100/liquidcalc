@@ -54,6 +54,65 @@ public final class HistoryManager {
             .joined(separator: "\n")
     }
     
+    // MARK: - Backend Obfuscated Cloud Sync
+
+    public func syncWithBackend() async throws {
+        let deviceId = DeviceSyncManager.shared.deviceId
+        let isoFormatter = ISO8601DateFormatter()
+        
+        let itemsPayload: [[String: Any]] = items.map { item in
+            return [
+                "id": item.id.uuidString,
+                "timestamp": isoFormatter.string(from: item.timestamp),
+                "expression": item.expression,
+                "result": item.result,
+                "mode": item.mode,
+                "deviceId": deviceId
+            ]
+        }
+        
+        let payload: [String: Any] = [
+            "deviceId": deviceId,
+            "items": itemsPayload
+        ]
+
+        let headers = AuthManager.shared.authHeaders()
+
+        let (data, _) = try await CryptoTransport.shared.performEncryptedRequest(
+            endpoint: "/api/history/sync",
+            method: "POST",
+            jsonPayload: payload,
+            headers: headers
+        )
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let remoteItems = json["items"] as? [[String: Any]] {
+            await MainActor.run {
+                for rItem in remoteItems {
+                    guard let idStr = rItem["id"] as? String,
+                          let id = UUID(uuidString: idStr),
+                          let expr = rItem["expression"] as? String,
+                          let res = rItem["result"] as? String,
+                          let m = rItem["mode"] as? String else { continue }
+                    
+                    let date: Date
+                    if let tsStr = rItem["timestamp"] as? String, let parsed = isoFormatter.date(from: tsStr) {
+                        date = parsed
+                    } else {
+                        date = Date()
+                    }
+
+                    if !self.items.contains(where: { $0.id == id }) {
+                        let newItem = HistoryItem(id: id, timestamp: date, expression: expr, result: res, mode: m)
+                        self.items.append(newItem)
+                    }
+                }
+                self.items.sort { $0.timestamp > $1.timestamp }
+                self.saveHistory()
+            }
+        }
+    }
+
     private func saveHistory() {
         if let encoded = try? JSONEncoder().encode(items) {
             UserDefaults.standard.set(encoded, forKey: storageKey)
@@ -225,6 +284,69 @@ public final class WorkspaceRepository {
 
     private func title(for context: WorkspaceContext) -> String {
         switch context { case .calculation: return "Calculation"; case .scan: return "Scanned problem"; case .ai: return "AI study note"; case .graph: return "Graph study note"; case .drawing: return "Handwritten work"; case .note: return "Study note" }
+    }
+
+    // MARK: - Backend Obfuscated Notes Sync
+
+    public func syncWithBackend() async throws {
+        let deviceId = DeviceSyncManager.shared.deviceId
+        let isoFormatter = ISO8601DateFormatter()
+
+        let notesPayload: [[String: Any]] = documents.map { doc in
+            return [
+                "id": doc.id.uuidString,
+                "title": doc.title,
+                "markdown": doc.markdown,
+                "tags": doc.tags,
+                "createdAt": isoFormatter.string(from: doc.createdAt),
+                "updatedAt": isoFormatter.string(from: doc.updatedAt),
+                "deviceId": deviceId
+            ]
+        }
+
+        let payload: [String: Any] = [
+            "deviceId": deviceId,
+            "notes": notesPayload
+        ]
+
+        let headers = AuthManager.shared.authHeaders()
+
+        let (data, _) = try await CryptoTransport.shared.performEncryptedRequest(
+            endpoint: "/api/notes/sync",
+            method: "POST",
+            jsonPayload: payload,
+            headers: headers
+        )
+
+        if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let remoteNotes = json["notes"] as? [[String: Any]] {
+            await MainActor.run {
+                for rNote in remoteNotes {
+                    guard let idStr = rNote["id"] as? String,
+                          let id = UUID(uuidString: idStr),
+                          let title = rNote["title"] as? String,
+                          let markdown = rNote["markdown"] as? String else { continue }
+                    
+                    let tags = (rNote["tags"] as? [String]) ?? []
+                    let createdAt = (rNote["createdAt"] as? String).flatMap { isoFormatter.date(from: $0) } ?? Date()
+                    let updatedAt = (rNote["updatedAt"] as? String).flatMap { isoFormatter.date(from: $0) } ?? Date()
+
+                    if let idx = self.documents.firstIndex(where: { $0.id == id }) {
+                        if updatedAt > self.documents[idx].updatedAt {
+                            self.documents[idx].title = title
+                            self.documents[idx].markdown = markdown
+                            self.documents[idx].tags = tags
+                            self.documents[idx].updatedAt = updatedAt
+                        }
+                    } else {
+                        let newDoc = WorkspaceDocument(id: id, title: title, markdown: markdown, tags: tags, attachments: [], createdAt: createdAt, updatedAt: updatedAt)
+                        self.documents.append(newDoc)
+                    }
+                }
+                self.documents.sort { $0.updatedAt > $1.updatedAt }
+                self.save()
+            }
+        }
     }
 
     private func normalized(_ tags: [String]) -> [String] {

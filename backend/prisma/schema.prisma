@@ -20,20 +20,24 @@ model User {
   calculations Calculation[]
   notes        Note[]
   sessions     Session[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
 }
 
 model DeviceToken {
-  id           String    @id @default(uuid())
-  token        String    @unique
-  deviceId     String    @unique
-  platform     String    @default("ios") // "ios", "macos", "web", etc.
+  id           String        @id @default(uuid())
+  token        String        @unique
+  deviceId     String        @unique
+  platform     String        @default("ios") // "ios", "macos", "web", etc.
   name         String?
   userId       String?
-  user         User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lastActiveAt DateTime  @default(now())
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lastActiveAt DateTime      @default(now())
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
   sessions     Session[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
 }
 
 model ApiKey {
@@ -107,3 +111,97 @@ model TelemetryEvent {
   @@index([type])
   @@index([createdAt])
 }
+
+model Plan {
+  id            String         @id
+  name          String
+  tier          String         @default("FREE") // "FREE", "PRO", "ULTRA"
+  priceUsd      Float          @default(0.0)
+  billingPeriod String         @default("monthly") // "monthly", "yearly", "lifetime"
+  features      String         @default("[]") // JSON string of feature bullet points
+  description   String?
+  active        Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id                 String           @id @default(uuid())
+  userId             String?
+  user               User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId           String?
+  device             DeviceToken?     @relation(fields: [deviceId], references: [deviceId], onDelete: SetNull)
+  planId             String
+  plan               Plan             @relation(fields: [planId], references: [id])
+  tier               String           @default("FREE") // "FREE", "PRO", "ULTRA"
+  status             String           @default("active") // "active", "trialing", "canceled", "expired"
+  provider           String           @default("mock") // "stripe", "apple_storekit", "promo", "mock"
+  providerSubId      String?
+  receipt            String?
+  currentPeriodStart DateTime         @default(now())
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean          @default(false)
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+  paymentWebhooks    PaymentWebhook[]
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([tier])
+  @@index([status])
+}
+
+model Entitlement {
+  id                String       @id @default(uuid())
+  userId            String?
+  user              User?        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceId          String?
+  device            DeviceToken? @relation(fields: [deviceId], references: [deviceId], onDelete: SetNull)
+  tier              String       @default("FREE") // "FREE", "PRO", "ULTRA"
+  maxCloudSyncItems Int          @default(50) // 50 for FREE, -1 for unlimited
+  canOtaSign        Boolean      @default(false) // Pro gets basic, Ultra gets unlimited
+  priorityAi        Boolean      @default(false) // Ultra gets priority AI
+  customThemes      Boolean      @default(false)
+  exportFormats     String       @default("[\"txt\", \"csv\"]") // JSON array of allowed export formats
+  validUntil        DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@index([userId])
+  @@index([deviceId])
+  @@index([tier])
+}
+
+model PromoCode {
+  id           String    @id @default(uuid())
+  code         String    @unique
+  tier         String    @default("PRO") // "PRO" or "ULTRA"
+  durationDays Int       @default(30)
+  maxUses      Int       @default(100)
+  currentUses  Int       @default(0)
+  active       Boolean   @default(true)
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([code])
+}
+
+model PaymentWebhook {
+  id             String        @id @default(uuid())
+  provider       String        // "stripe", "apple_storekit"
+  eventType      String        // e.g. "invoice.paid", "customer.subscription.updated", "SUBSCRIBED", "DID_RENEW"
+  eventId        String?
+  payload        String        @default("{}") // JSON string
+  processed      Boolean       @default(false)
+  error          String?
+  subscriptionId String?
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+
+  @@index([provider])
+  @@index([eventType])
+  @@index([createdAt])
+}
+

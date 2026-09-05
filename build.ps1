@@ -27,11 +27,26 @@ if (Get-Command xcodebuild -ErrorAction SilentlyContinue) {
 
 # 3. Project File Structure Verification
 Write-Host "[3/3] Verifying Native iOS Project Integrity..." -ForegroundColor Yellow
-$swiftFiles = (Get-ChildItem -Path LiquidCalc -Recurse -Filter *.swift).Count
-$testFiles = (Get-ChildItem -Path LiquidCalcTests -Recurse -Filter *.swift).Count
-Write-Host "  [OK] Swift Source Files: $swiftFiles files" -ForegroundColor Green
-Write-Host "  [OK] Swift Test Files:   $testFiles files" -ForegroundColor Green
-Write-Host "  [OK] Xcode Project:      LiquidCalc.xcodeproj (iOS 18+ Deployment Target)" -ForegroundColor Green
+$swiftFiles = @(Get-ChildItem -Path LiquidCalc -Recurse -Filter *.swift)
+$testFiles = @(Get-ChildItem -Path LiquidCalcTests -Recurse -Filter *.swift)
+$pbxContent = Get-Content -Path "LiquidCalc.xcodeproj/project.pbxproj" -Raw
+
+$missing = @()
+foreach ($file in ($swiftFiles + $testFiles)) {
+    if (-not $pbxContent.Contains($file.Name)) {
+        $missing += $file.FullName
+    }
+}
+
+if ($missing.Count -gt 0) {
+    Write-Host "  [FAIL] Found $($missing.Count) unregistered Swift files in project.pbxproj:" -ForegroundColor Red
+    foreach ($m in $missing) { Write-Host "    - $m" -ForegroundColor Red }
+    exit 1
+} else {
+    Write-Host "  [OK] Swift Source Files: $($swiftFiles.Count) files (100% registered in Xcode project)" -ForegroundColor Green
+    Write-Host "  [OK] Swift Test Files:   $($testFiles.Count) files (100% registered in Xcode project)" -ForegroundColor Green
+    Write-Host "  [OK] Xcode Project:      LiquidCalc.xcodeproj (iOS 18+ Deployment Target)" -ForegroundColor Green
+}
 
 Write-Host "=================================================" -ForegroundColor Cyan
 Write-Host "Ready to build on macOS or in GitHub Actions CI!" -ForegroundColor Cyan

@@ -103,6 +103,16 @@
 		AA3000492C85000100000001 /* MarkdownAndAgentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */; };
 		AA3000512C85000100000001 /* CalcIconView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000522C85000100000001 /* CalcIconView.swift */; };
 		AA3000532C85000100000001 /* ZipArchiveExtractor.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA3000542C85000100000001 /* ZipArchiveExtractor.swift */; };
+		AA1000A12C85000100000001 /* CryptoTransport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000A22C85000100000001 /* CryptoTransport.swift */; };
+		AA1000A32C85000100000001 /* DeviceSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000A42C85000100000001 /* DeviceSyncManager.swift */; };
+		AA1000A52C85000100000001 /* TelemetryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000A62C85000100000001 /* TelemetryManager.swift */; };
+		AA2000212C85000100000001 /* CryptoTransportTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000222C85000100000001 /* CryptoTransportTests.swift */; };
+		AA1000B12C85000100000001 /* AuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000B22C85000100000001 /* AuthManager.swift */; };
+		AA1000B32C85000100000001 /* SubscriptionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000B42C85000100000001 /* SubscriptionManager.swift */; };
+		AA1000B52C85000100000001 /* AccountSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000B62C85000100000001 /* AccountSettingsView.swift */; };
+		AA1000B72C85000100000001 /* PaidPlansPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000B82C85000100000001 /* PaidPlansPaywallView.swift */; };
+		AA1000B92C85000100000001 /* CloudSyncSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000BA2C85000100000001 /* CloudSyncSheetView.swift */; };
+		AA2000312C85000100000001 /* AuthAndSubscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000322C85000100000001 /* AuthAndSubscriptionTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -205,6 +215,16 @@
 		AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownAndAgentTests.swift; sourceTree = "<group>"; };
 		AA3000522C85000100000001 /* CalcIconView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Keypads/CalcIconView.swift"; sourceTree = "<group>"; };
 		AA3000542C85000100000001 /* ZipArchiveExtractor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Signer/ZipArchiveExtractor.swift"; sourceTree = "<group>"; };
+		AA1000A22C85000100000001 /* CryptoTransport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Network/CryptoTransport.swift"; sourceTree = "<group>"; };
+		AA1000A42C85000100000001 /* DeviceSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Network/DeviceSyncManager.swift"; sourceTree = "<group>"; };
+		AA1000A62C85000100000001 /* TelemetryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Network/TelemetryManager.swift"; sourceTree = "<group>"; };
+		AA2000222C85000100000001 /* CryptoTransportTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CryptoTransportTests.swift; sourceTree = "<group>"; };
+		AA1000B22C85000100000001 /* AuthManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Auth/AuthManager.swift"; sourceTree = "<group>"; };
+		AA1000B42C85000100000001 /* SubscriptionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Auth/SubscriptionManager.swift"; sourceTree = "<group>"; };
+		AA1000B62C85000100000001 /* AccountSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Account/AccountSettingsView.swift"; sourceTree = "<group>"; };
+		AA1000B82C85000100000001 /* PaidPlansPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Account/PaidPlansPaywallView.swift"; sourceTree = "<group>"; };
+		AA1000BA2C85000100000001 /* CloudSyncSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Account/CloudSyncSheetView.swift"; sourceTree = "<group>"; };
+		AA2000322C85000100000001 /* AuthAndSubscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAndSubscriptionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -303,6 +323,11 @@
 				AA3000322C85000100000001 /* TweakCatalogManager.swift */,
 				AA3000462C85000100000001 /* LiquidAIAgent.swift */,
 				AA3000542C85000100000001 /* ZipArchiveExtractor.swift */,
+				AA1000A22C85000100000001 /* CryptoTransport.swift */,
+				AA1000A42C85000100000001 /* DeviceSyncManager.swift */,
+				AA1000A62C85000100000001 /* TelemetryManager.swift */,
+				AA1000B22C85000100000001 /* AuthManager.swift */,
+				AA1000B42C85000100000001 /* SubscriptionManager.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -362,6 +387,9 @@
 				AA3000442C85000100000001 /* MarkdownNotebookView.swift */,
 				AA3000482C85000100000001 /* LiquidAIAgentView.swift */,
 				AA3000522C85000100000001 /* CalcIconView.swift */,
+				AA1000B62C85000100000001 /* AccountSettingsView.swift */,
+				AA1000B82C85000100000001 /* PaidPlansPaywallView.swift */,
+				AA1000BA2C85000100000001 /* CloudSyncSheetView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -389,6 +417,8 @@
 				AA2000122C85000100000001 /* HandwritingMathRecognizerTests.swift */,
 				AA3000222C85000100000001 /* LiquidSignerTests.swift */,
 				AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */,
+				AA2000222C85000100000001 /* CryptoTransportTests.swift */,
+				AA2000322C85000100000001 /* AuthAndSubscriptionTests.swift */,
 			);
 			path = LiquidCalcTests;
 			sourceTree = "<group>";
@@ -577,6 +607,14 @@
 				AA3000472C85000100000001 /* LiquidAIAgentView.swift in Sources */,
 				AA3000512C85000100000001 /* CalcIconView.swift in Sources */,
 				AA3000532C85000100000001 /* ZipArchiveExtractor.swift in Sources */,
+				AA1000A12C85000100000001 /* CryptoTransport.swift in Sources */,
+				AA1000A32C85000100000001 /* DeviceSyncManager.swift in Sources */,
+				AA1000A52C85000100000001 /* TelemetryManager.swift in Sources */,
+				AA1000B12C85000100000001 /* AuthManager.swift in Sources */,
+				AA1000B32C85000100000001 /* SubscriptionManager.swift in Sources */,
+				AA1000B52C85000100000001 /* AccountSettingsView.swift in Sources */,
+				AA1000B72C85000100000001 /* PaidPlansPaywallView.swift in Sources */,
+				AA1000B92C85000100000001 /* CloudSyncSheetView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -595,6 +633,8 @@
 				AA2000112C85000100000001 /* HandwritingMathRecognizerTests.swift in Sources */,
 				AA3000212C85000100000001 /* LiquidSignerTests.swift in Sources */,
 				AA3000492C85000100000001 /* MarkdownAndAgentTests.swift in Sources */,
+				AA2000212C85000100000001 /* CryptoTransportTests.swift in Sources */,
+				AA2000312C85000100000001 /* AuthAndSubscriptionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

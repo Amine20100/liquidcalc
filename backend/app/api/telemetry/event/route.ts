@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
-import { jsonResponse, handleOptions } from "@/lib/cors";
+import { handleOptions } from "@/lib/cors";
 import { telemetryStore } from "@/lib/telemetry";
+import {
+  decryptAndVerifyRequest,
+  createEncryptedResponse,
+  cryptoErrorResponse,
+} from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +14,13 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: any = {};
-  try {
-    body = await req.json();
-  } catch {
-    return jsonResponse({ error: "Invalid JSON request body" }, 400);
+  // Enforce strict transport obfuscation & dynamic signature verification
+  const decrypted = await decryptAndVerifyRequest<any>(req);
+  if (!decrypted.success) {
+    return cryptoErrorResponse(decrypted);
   }
+
+  const body = decrypted.data || {};
 
   const rawType = String(body.type || "usage").toLowerCase();
   const validTypes = ["crash", "performance", "calculation", "usage"];
@@ -39,7 +45,7 @@ export async function POST(req: NextRequest) {
     osVersion,
   });
 
-  return jsonResponse(
+  return createEncryptedResponse(
     {
       success: true,
       message: "Telemetry event recorded",

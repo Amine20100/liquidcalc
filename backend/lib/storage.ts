@@ -453,6 +453,42 @@ class HistoryStore {
     this.lastUpdated = new Date().toISOString();
   }
 
+  public linkDeviceToUser(deviceId: string, userId: string): number {
+    let count = 0;
+    const now = new Date().toISOString();
+    for (const [id, item] of this.itemsMap.entries()) {
+      if (item.deviceId === deviceId && !item.userId) {
+        item.userId = userId;
+        item.updatedAt = now;
+        this.itemsMap.set(id, item);
+        count++;
+        prisma.calculation
+          .updateMany({
+            where: { id },
+            data: { userId, updatedAt: new Date(now) },
+          })
+          .catch(() => {});
+      }
+    }
+    if (count > 0) {
+      this.lastUpdated = now;
+    }
+    return count;
+  }
+
+  public countForOwner(params: { userId?: string; deviceId?: string }): number {
+    let count = 0;
+    for (const item of this.itemsMap.values()) {
+      if (item.deleted) continue;
+      if (params.userId && item.userId === params.userId) {
+        count++;
+      } else if (params.deviceId && item.deviceId === params.deviceId && !item.userId) {
+        count++;
+      }
+    }
+    return count;
+  }
+
   public getStats() {
     const active = Array.from(this.itemsMap.values()).filter((i) => !i.deleted);
     const modes: Record<string, number> = {};

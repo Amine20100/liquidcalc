@@ -1,6 +1,11 @@
 import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
 import { issueDeviceToken, authenticateRequest, createSession } from "@/lib/auth";
+import {
+  decryptAndVerifyRequest,
+  createEncryptedResponse,
+  cryptoErrorResponse,
+} from "@/lib/crypto-transport";
 
 export const dynamic = "force-dynamic";
 
@@ -9,12 +14,13 @@ export async function OPTIONS() {
 }
 
 export async function POST(req: NextRequest) {
-  let body: any = {};
-  try {
-    body = await req.json();
-  } catch {
-    body = {};
+  // Enforce strict transport obfuscation & dynamic signature verification
+  const decrypted = await decryptAndVerifyRequest<any>(req);
+  if (!decrypted.success) {
+    return cryptoErrorResponse(decrypted);
   }
+
+  const body = decrypted.data || {};
 
   // Device ID can be provided or auto-generated for initial device bootstrap
   const deviceId =
@@ -42,7 +48,7 @@ export async function POST(req: NextRequest) {
       expiresInDays: 365,
     });
 
-    return jsonResponse(
+    return createEncryptedResponse(
       {
         success: true,
         message: "Mobile device token issued successfully",
@@ -58,7 +64,7 @@ export async function POST(req: NextRequest) {
       200
     );
   } catch (err: any) {
-    return jsonResponse(
+    return createEncryptedResponse(
       { error: "Failed to issue device token", details: err.message },
       500
     );
