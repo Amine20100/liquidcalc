@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
-import { historyStore } from "@/lib/storage";
+import { telemetryStore } from "@/lib/telemetry";
 
 export const dynamic = "force-dynamic";
 
@@ -11,20 +11,14 @@ export async function OPTIONS() {
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;
 
-  const mode = searchParams.get("mode") || undefined;
+  const type = searchParams.get("type") || undefined;
   const deviceId = searchParams.get("deviceId") || undefined;
-  const userId = searchParams.get("userId") || undefined;
-  const search = searchParams.get("search") || searchParams.get("q") || undefined;
-  const since = searchParams.get("since") || undefined;
-  const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 50;
+  const limit = searchParams.get("limit") ? parseInt(searchParams.get("limit")!, 10) : 25;
   const offset = searchParams.get("offset") ? parseInt(searchParams.get("offset")!, 10) : 0;
 
-  const result = historyStore.list({
-    mode,
+  const result = telemetryStore.list({
+    type,
     deviceId,
-    userId,
-    search,
-    since,
     limit,
     offset,
   });
