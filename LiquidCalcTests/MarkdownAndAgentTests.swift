@@ -370,4 +370,96 @@ final class MarkdownAndAgentTests: XCTestCase {
         XCTAssertTrue(subConverted.contains("x₂"))
         XCTAssertTrue(subConverted.contains("a₀"))
     }
+
+    func testParenthesizedAndNegativeExponents() {
+        let exp1 = LaTeXMathEngine.convertSubAndSuperscripts("x^(n+1)")
+        XCTAssertEqual(exp1, "xⁿ⁺¹")
+
+        let exp2 = LaTeXMathEngine.convertSubAndSuperscripts("10^-3")
+        XCTAssertEqual(exp2, "10⁻³")
+
+        let exp3 = LaTeXMathEngine.convertSubAndSuperscripts("2^10")
+        XCTAssertEqual(exp3, "2¹⁰")
+
+        let exp4 = LaTeXMathEngine.convertSubAndSuperscripts("e^(-x)")
+        XCTAssertEqual(exp4, "e⁻ˣ")
+
+        let exp5 = LaTeXMathEngine.convertSubAndSuperscripts("x^(2)")
+        XCTAssertEqual(exp5, "x²")
+
+        let sub1 = LaTeXMathEngine.convertSubAndSuperscripts("x_(i+1)")
+        XCTAssertEqual(sub1, "xᵢ₊₁")
+
+        let sub2 = LaTeXMathEngine.convertSubAndSuperscripts("a_10")
+        XCTAssertEqual(sub2, "a₁₀")
+    }
+
+    func testSanitizeComplexParenthesizedMathSigns() {
+        let testCases: [(String, String)] = [
+            ("x - (+y)", "x - y"),
+            ("x + (-y)", "x - y"),
+            ("x - (-y)", "x + y"),
+            ("x + (+y)", "x + y"),
+            ("x - (+y^2)", "x - y^2"),
+            ("x - (+5)", "x - 5"),
+            ("x -+ y", "x - y"),
+            ("x +- y", "x - y"),
+            ("x -- y", "x + y"),
+            ("x ++ y", "x + y"),
+            ("5 +/- 2", "5 ± 2"),
+            ("5 -/+ 2", "5 ∓ 2")
+        ]
+        for (input, expected) in testCases {
+            let actual = LaTeXMathEngine.sanitizeMathSigns(input)
+            XCTAssertEqual(actual, expected, "Failed for input: \(input)")
+        }
+    }
+
+    func testPlaintextRadicalAndFractionConversion() {
+        let rad1 = LaTeXMathEngine.convertInlineRadicals("sqrt(16)")
+        XCTAssertEqual(rad1, "√(16)")
+
+        let rad2 = LaTeXMathEngine.convertInlineRadicals("sqrt(x^2 + 1)")
+        XCTAssertEqual(rad2, "√(x² + 1)")
+
+        let frac1 = LaTeXMathEngine.convertPlaintextFractions("Calculate 3/4 + 1/2")
+        XCTAssertTrue(frac1.contains("¾"))
+        XCTAssertTrue(frac1.contains("½"))
+
+        let safeUrl = LaTeXMathEngine.convertPlaintextFractions("https://example.com/1/2/test")
+        XCTAssertTrue(safeUrl.contains("/1/2/"), "URL slashes should not be converted to unicode fractions")
+    }
+
+    func testServerConnectivityDiagnosticDetection() {
+        let offlineErr = URLError(.notConnectedToInternet)
+        XCTAssertTrue(CryptoTransport.isOfflineURLError(offlineErr))
+
+        let lostErr = URLError(.networkConnectionLost)
+        XCTAssertTrue(CryptoTransport.isOfflineURLError(lostErr))
+
+        let cannotConnectErr = URLError(.cannotConnectToHost)
+        XCTAssertTrue(CryptoTransport.isOfflineURLError(cannotConnectErr))
+
+        let timeoutErr = URLError(.timedOut)
+        XCTAssertTrue(CryptoTransport.isOfflineURLError(timeoutErr))
+
+        let dnsErr = URLError(.dnsLookupFailed)
+        XCTAssertTrue(CryptoTransport.isOfflineURLError(dnsErr))
+
+        let badUrlErr = URLError(.badURL)
+        XCTAssertFalse(CryptoTransport.isOfflineURLError(badUrlErr))
+
+        // Check human-friendly diagnostic messages
+        let err401 = CryptoTransportError.invalidResponse(401, "Unauthorized")
+        XCTAssertTrue(err401.errorDescription?.contains("credentials") ?? false)
+
+        let err409 = CryptoTransportError.invalidResponse(409, "User exists")
+        XCTAssertTrue(err409.errorDescription?.contains("already exists") ?? false)
+
+        let err404 = CryptoTransportError.invalidResponse(404, "Not found")
+        XCTAssertTrue(err404.errorDescription?.contains("endpoint") ?? false)
+
+        let offlineNet = CryptoTransportError.networkError("The Internet connection appears to be offline.", isOffline: true)
+        XCTAssertTrue(offlineNet.errorDescription?.contains("Guest Mode") ?? false)
+    }
 }

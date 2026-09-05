@@ -157,7 +157,7 @@ public struct MarkdownNotebookView: View {
                 .accessibilityLabel("Cloud Sync: \(subscriptionManager.cloudSyncStatusPillText)")
             }
         }
-        .padding(.horizontal, 14).padding(.vertical, 8).background(.black.opacity(0.22))
+        .padding(.horizontal, 16).padding(.vertical, 8).background(.black.opacity(0.22))
     }
     
     private var modePickerToolbar: some View {
@@ -186,7 +186,7 @@ public struct MarkdownNotebookView: View {
             .buttonStyle(.plain)
             .accessibilityLabel(mode == .preview ? "Switch to Source Markdown Editor" : "Switch to Live Rendered View")
         }
-        .padding(.horizontal, 14)
+        .padding(.horizontal, 16)
         .padding(.vertical, 7)
         .background(Color.white.opacity(0.03))
     }
@@ -234,7 +234,7 @@ public struct MarkdownNotebookView: View {
                 )
                 .shadow(color: Color.black.opacity(0.55), radius: 10, x: 0, y: 5)
         )
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
         .padding(.bottom, 8)
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }

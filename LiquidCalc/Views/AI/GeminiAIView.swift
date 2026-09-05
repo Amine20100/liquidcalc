@@ -144,6 +144,7 @@ public struct GeminiAIView: View {
                                     suggestionChip("Draw a flowchart of cellular respiration")
                                     suggestionChip("Calculate moon gravitational escape velocity")
                                 }
+                                .padding(.horizontal, 16)
                                 .padding(.top, 16)
                             }
                         } else {
@@ -198,7 +199,7 @@ public struct GeminiAIView: View {
                 .padding(.horizontal, 14)
                 .padding(.vertical, 6)
                 .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.08)))
-                .padding(.horizontal, 14)
+                .padding(.horizontal, 16)
             }
             
             // Bottom Input Bar
@@ -244,7 +245,7 @@ public struct GeminiAIView: View {
                 }
                 .disabled(geminiService.isStreaming || geminiService.isAnalyzing || (promptText.isEmpty && selectedImage == nil))
             }
-            .padding(.horizontal, 14)
+            .padding(.horizontal, 16)
             .padding(.bottom, 8)
         }
         .onChange(of: selectedPhotoItem) { _, newItem in

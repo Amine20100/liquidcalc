@@ -70,7 +70,7 @@ public struct ProgrammerKeypadView: View {
             // Programmer Keypad Grid
             programmerKeypadGrid
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 16)
     }
     
     @ViewBuilder

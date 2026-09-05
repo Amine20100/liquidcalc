@@ -98,6 +98,6 @@ public struct ScientificKeypadView: View {
                 }
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 16)
     }
 }

@@ -48,7 +48,7 @@ public struct UnitConverterView: View {
                         .buttonStyle(.plain)
                     }
                 }
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 16)
             }
             
             // Conversion Display Cards
@@ -90,7 +90,7 @@ public struct UnitConverterView: View {
                     viewModel.recalculate()
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, 16)
             
             // Numeric Input Pad for Converter
             converterNumericPad
@@ -217,6 +217,6 @@ public struct UnitConverterView: View {
             }
             .buttonStyle(.plain)
         }
-        .padding(.horizontal, 12)
+        .padding(.horizontal, 16)
     }
 }
