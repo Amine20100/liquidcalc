@@ -275,7 +275,7 @@ public final class CryptoTransport: @unchecked Sendable {
         do {
             (rawData, rawResponse) = try await URLSession.shared.data(for: request)
         } catch let urlError as URLError {
-            let isOffline = Self.isOfflineURLError(urlError)
+            let isOffline = CryptoTransport.isOfflineURLError(urlError)
             throw CryptoTransportError.networkError(urlError.localizedDescription, isOffline: isOffline)
         } catch {
             throw CryptoTransportError.networkError(error.localizedDescription, isOffline: false)
@@ -374,7 +374,7 @@ public final class CryptoTransport: @unchecked Sendable {
         do {
             (rawData, rawResponse) = try await URLSession.shared.data(for: request)
         } catch let urlError as URLError {
-            let isOffline = Self.isOfflineURLError(urlError)
+            let isOffline = CryptoTransport.isOfflineURLError(urlError)
             throw CryptoTransportError.networkError(urlError.localizedDescription, isOffline: isOffline)
         } catch {
             throw CryptoTransportError.networkError(error.localizedDescription, isOffline: false)
@@ -485,4 +485,42 @@ public final class CryptoTransport: @unchecked Sendable {
         }
         return combined.base64URLEncodedString()
     }
+
+    // MARK: - Server Diagnostics & Connectivity Check
+
+    public static func isOfflineURLError(_ error: URLError) -> Bool {
+        return error.code == .notConnectedToInternet ||
+            error.code == .networkConnectionLost ||
+            error.code == .cannotConnectToHost ||
+            error.code == .cannotFindHost ||
+            error.code == .timedOut ||
+            error.code == .dnsLookupFailed
+    }
+
+    /// Checks connectivity to the backend server with latency measurement
+    public func checkServerConnectivity() async -> (isReachable: Bool, latencyMs: Int, message: String) {
+        let start = Date()
+        let pingEndpoint = "/api/plans"
+        let urlString = "\(baseURL)\(pingEndpoint)"
+        guard let url = URL(string: urlString) else {
+            return (false, 0, "Invalid server URL")
+        }
+        var req = URLRequest(url: url)
+        req.httpMethod = "GET"
+        req.timeoutInterval = 5.0
+        do {
+            let (_, response) = try await URLSession.shared.data(for: req)
+            let elapsed = Int(Date().timeIntervalSince(start) * 1000)
+            if let http = response as? HTTPURLResponse, (200...399).contains(http.statusCode) {
+                return (true, elapsed, "Connected to server (\(elapsed)ms)")
+            } else {
+                return (false, elapsed, "Server responded with status \((response as? HTTPURLResponse)?.statusCode ?? -1)")
+            }
+        } catch let urlError as URLError {
+            return (false, 0, urlError.localizedDescription)
+        } catch {
+            return (false, 0, error.localizedDescription)
+        }
+    }
 }
+
