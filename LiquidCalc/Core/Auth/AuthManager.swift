@@ -254,8 +254,10 @@ public final class AuthManager: @unchecked Sendable {
 
             let msg = json["message"] as? String ?? "Device successfully linked to account"
 
+            let finalTokens = newTokens
+
             await MainActor.run {
-                self.persistSession(user: user, tokens: newTokens)
+                self.persistSession(user: user, tokens: finalTokens)
             }
 
             // Notify SubscriptionManager of user update
