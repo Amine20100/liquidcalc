@@ -222,7 +222,7 @@ final class LiquidSignerTests: XCTestCase {
     func testSignerStudioTabAndModes() {
         let viewModel = LiquidSignerViewModel()
         
-        XCTAssertEqual(viewModel.selectedTab, .signer, "Default landing tab in vault must be the Signer Studio")
+        XCTAssertEqual(viewModel.selectedTab, .apps, "Default landing tab in vault must be the Apps library")
         XCTAssertEqual(viewModel.selectedEngineMode, .onDevice)
         
         // Test tab icon
@@ -372,6 +372,143 @@ final class LiquidSignerTests: XCTestCase {
         XCTAssertTrue(importedTweak?.isEnabled == true)
         XCTAssertTrue(vm.tweaks.contains(where: { $0.id == importedTweak?.id }))
     }
+    
+    // MARK: - Test 12: 4-Tab Navigation & Helper Dispatches
+    
+    func testFourTabNavigationAndHelpers() {
+        let vm = LiquidSignerViewModel()
+        
+        // Verify 4 tabs structure
+        XCTAssertEqual(SignerTab.allCases.count, 4, "Must have exactly 4 main tabs: Apps, Signer, Certificates, Tools")
+        XCTAssertEqual(SignerTab.apps.rawValue, "Apps")
+        XCTAssertEqual(SignerTab.signer.rawValue, "Signer")
+        XCTAssertEqual(SignerTab.certificates.rawValue, "Certificates")
+        XCTAssertEqual(SignerTab.tools.rawValue, "Tools")
+        
+        XCTAssertEqual(SignerTab.apps.iconName, "app.badge.checkmark")
+        XCTAssertEqual(SignerTab.signer.iconName, "bolt.shield.fill")
+        XCTAssertEqual(SignerTab.certificates.iconName, "lock.shield.fill")
+        XCTAssertEqual(SignerTab.tools.iconName, "wrench.and.screwdriver.fill")
+        
+        // Verify selectAppForSigning helper switches tab to .signer
+        vm.selectedTab = .apps
+        let testApp = SignedApp(name: "Demo", bundleIdentifier: "com.demo", version: "1.0")
+        vm.selectAppForSigning(testApp)
+        XCTAssertEqual(vm.selectedTab, .signer)
+        XCTAssertEqual(vm.activeSigningApp?.name, "Demo")
+    }
+    
+    // MARK: - Test 13: SignedApp Expiration & Date Formatting
+    
+    func testSignedAppExpirationAndDateFormatting() {
+        var app = SignedApp(
+            name: "ExpiryTest",
+            bundleIdentifier: "com.expiry.test",
+            version: "1.0",
+            status: .readyToSign
+        )
+        
+        // Unsigned state
+        XCTAssertEqual(app.formattedExpiration, "Ready to Sign")
+        XCTAssertEqual(app.formattedSigningDate, "Not signed")
+        XCTAssertNil(app.expirationDaysRemaining)
+        
+        // Signed today state (7 day window)
+        app.status = .signed
+        app.dateSigned = Date()
+        XCTAssertNotNil(app.expirationDaysRemaining)
+        XCTAssertTrue(app.expirationDaysRemaining! >= 6 && app.expirationDaysRemaining! <= 7)
+        XCTAssertTrue(app.formattedExpiration.contains("d") || app.formattedExpiration.contains("h left"))
+        XCTAssertFalse(app.formattedSigningDate.isEmpty)
+        
+        // Expired state (signed 10 days ago)
+        app.dateSigned = Calendar.current.date(byAdding: .day, value: -10, to: Date())
+        XCTAssertEqual(app.formattedExpiration, "Expired")
+        XCTAssertEqual(app.expirationDaysRemaining, 0)
+    }
+    
+    // MARK: - Test 14: Wizard Step Progression & New Signing Initiation
+    
+    func testWizardStepProgressionAndNewSigning() {
+        let vm = LiquidSignerViewModel()
+        
+        // Initial state
+        XCTAssertEqual(vm.wizardStep, 0)
+        XCTAssertEqual(vm.selectedTab, .apps)
+        
+        // Move to step 1 and step 2
+        vm.wizardStep = 1
+        XCTAssertEqual(vm.wizardStep, 1)
+        vm.wizardStep = 2
+        XCTAssertEqual(vm.wizardStep, 2)
+        
+        // Start new signing: resets step to 0, clears activeSigningApp, switches to .signer tab
+        let sampleApp = SignedApp(name: "Sample", bundleIdentifier: "com.sample", version: "1.0")
+        vm.activeSigningApp = sampleApp
+        vm.startNewSigning()
+        
+        XCTAssertNil(vm.activeSigningApp, "startNewSigning must clear activeSigningApp")
+        XCTAssertEqual(vm.wizardStep, 0, "startNewSigning must reset wizardStep to 0")
+        XCTAssertEqual(vm.selectedTab, .signer, "startNewSigning must switch tab to .signer")
+    }
+    
+    // MARK: - Test 15: Biometric Face ID / Touch ID Toggle
+    
+    func testBiometricAuthenticationToggle() {
+        let calcVM = CalculatorViewModel()
+        let initialSetting = calcVM.isBiometricAuthEnabled
+        
+        // Toggle to opposite state
+        calcVM.isBiometricAuthEnabled = !initialSetting
+        XCTAssertEqual(calcVM.isBiometricAuthEnabled, !initialSetting)
+        
+        // Toggle back
+        calcVM.isBiometricAuthEnabled = initialSetting
+        XCTAssertEqual(calcVM.isBiometricAuthEnabled, initialSetting)
+    }
+    
+    // MARK: - Test 16: Share App State & URL
+    
+    func testShareAppActivatesShareSheet() {
+        let vm = LiquidSignerViewModel()
+        let tempUrl = URL(fileURLWithPath: "/tmp/DemoSigned.ipa")
+        let app = SignedApp(
+            name: "ShareableApp",
+            bundleIdentifier: "com.shareable.app",
+            version: "1.0",
+            signedIpaUrl: tempUrl,
+            status: .signed
+        )
+        
+        XCTAssertFalse(vm.showShareSheet)
+        XCTAssertNil(vm.shareUrl)
+        
+        vm.shareApp(app)
+        
+        XCTAssertTrue(vm.showShareSheet, "shareApp must present share sheet")
+        XCTAssertEqual(vm.shareUrl, tempUrl, "shareApp must point to the signed IPA URL")
+    }
+    
+    // MARK: - Test 17: Log Stream Clipboard & Reset
+    
+    func testLogStreamClipboardAndReset() {
+        let vm = LiquidSignerViewModel()
+        vm.appendLog("Test Log Line 1", .info)
+        vm.appendLog("Test Log Line 2", .success)
+        
+        vm.copyAllLogsToClipboard()
+        
+        // Verify logs can be cleared
+        vm.clearLogs()
+        // Wait briefly for main queue dispatch
+        let exp = expectation(description: "Clear logs")
+        DispatchQueue.main.async {
+            XCTAssertTrue(vm.logs.contains(where: { $0.text.contains("reset") }))
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1.0)
+    }
 }
+
 
 

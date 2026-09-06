@@ -13,23 +13,19 @@ import UIKit
 #endif
 
 public enum SignerTab: String, CaseIterable, Identifiable {
-    case signer = "Signer"
     case apps = "Apps"
+    case signer = "Signer"
     case certificates = "Certificates"
-    case tweaks = "Tweaks"
-    case terminal = "Terminal"
-    case settings = "Settings"
+    case tools = "Tools"
     
     public var id: String { rawValue }
     
     public var iconName: String {
         switch self {
-        case .signer: return "bolt.shield.fill"
         case .apps: return "app.badge.checkmark"
+        case .signer: return "bolt.shield.fill"
         case .certificates: return "lock.shield.fill"
-        case .tweaks: return "puzzlepiece.extension.fill"
-        case .terminal: return "terminal.fill"
-        case .settings: return "gearshape.fill"
+        case .tools: return "wrench.and.screwdriver.fill"
         }
     }
 }
@@ -48,8 +44,9 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
     public var apps: [SignedApp] = []
     public var tweaks: [DylibTweak] = []
     public var logs: [SignerLogMessage] = []
-    public var selectedTab: SignerTab = .signer
+    public var selectedTab: SignerTab = .apps
     public var selectedEngineMode: SigningEngineMode = .onDevice
+    public var wizardStep: Int = 0
     
     public var isSigning: Bool = false
     public var signingProgress: Double = 0.0
@@ -94,6 +91,31 @@ public final class LiquidSignerViewModel: @unchecked Sendable {
             self.logs.removeAll()
             self.appendLog("✓ Terminal session reset", .terminal)
         }
+    }
+    
+    public func copyAllLogsToClipboard() {
+        #if canImport(UIKit)
+        let df = DateFormatter()
+        df.dateFormat = "HH:mm:ss"
+        let logText = logs.map { "[\(df.string(from: $0.timestamp))] \($0.text)" }.joined(separator: "\n")
+        UIPasteboard.general.string = logText
+        #endif
+        SoundAndHapticManager.shared.triggerHaptic(.light)
+        appendLog("✓ Copied all terminal logs to clipboard", .info)
+    }
+    
+    public func selectAppForSigning(_ app: SignedApp) {
+        self.activeSigningApp = app
+        self.wizardStep = 0
+        self.selectedTab = .signer
+        SoundAndHapticManager.shared.triggerHaptic(.selection)
+    }
+    
+    public func startNewSigning() {
+        self.activeSigningApp = nil
+        self.wizardStep = 0
+        self.selectedTab = .signer
+        SoundAndHapticManager.shared.triggerHaptic(.medium)
     }
     
     // MARK: - App Import & Management

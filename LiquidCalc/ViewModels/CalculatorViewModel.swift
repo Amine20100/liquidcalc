@@ -7,6 +7,9 @@
 
 import Foundation
 import SwiftUI
+#if canImport(LocalAuthentication)
+import LocalAuthentication
+#endif
 
 @Observable
 public final class CalculatorViewModel {
@@ -43,6 +46,34 @@ public final class CalculatorViewModel {
         set {
             UserDefaults.standard.set(newValue, forKey: "LiquidCalc_SignerSecretPIN")
         }
+    }
+    
+    // Biometric Face ID / Touch ID Vault Security
+    public var isBiometricAuthEnabled: Bool {
+        get {
+            UserDefaults.standard.bool(forKey: "LiquidCalc_BiometricSignerAuth")
+        }
+        set {
+            UserDefaults.standard.set(newValue, forKey: "LiquidCalc_BiometricSignerAuth")
+        }
+    }
+    
+    public func authenticateBiometrics(completion: @escaping (Bool) -> Void) {
+        #if canImport(LocalAuthentication)
+        let context = LAContext()
+        var error: NSError?
+        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &error) {
+            context.evaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, localizedReason: "Authenticate with Face ID / Touch ID to access Liquid Signer Vault") { success, _ in
+                DispatchQueue.main.async {
+                    completion(success)
+                }
+            }
+        } else {
+            completion(true)
+        }
+        #else
+        completion(true)
+        #endif
     }
     
     private let evaluator = MathEvaluator(angleUnit: .degrees)
@@ -230,6 +261,24 @@ public final class CalculatorViewModel {
             let isTesting = NSClassFromString("XCTestCase") != nil || ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil
             if isTesting {
                 showLiquidSigner = true
+                return
+            }
+            
+            if isBiometricAuthEnabled {
+                authenticateBiometrics { [weak self] success in
+                    guard let self = self, success else { return }
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+                        self.isUnlockingSigner = true
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.85) {
+                        withAnimation(.spring(response: 0.42, dampingFraction: 0.78)) {
+                            self.showLiquidSigner = true
+                            self.isUnlockingSigner = false
+                        }
+                        SoundAndHapticManager.shared.triggerHaptic(.success)
+                        SoundAndHapticManager.shared.playSuccessSound()
+                    }
+                }
                 return
             }
             

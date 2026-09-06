@@ -53,6 +53,43 @@ public struct SignedApp: Identifiable, Codable, Sendable, Equatable {
     public var formattedSize: String {
         ByteCountFormatter.string(fromByteCount: sizeBytes, countStyle: .file)
     }
+    
+    public var formattedSigningDate: String {
+        guard let dateSigned = dateSigned else { return "Not signed" }
+        let formatter = DateFormatter()
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: dateSigned)
+    }
+    
+    public var expirationDaysRemaining: Int? {
+        guard status == .signed, let dateSigned = dateSigned else { return nil }
+        let expiry = Calendar.current.date(byAdding: .day, value: 7, to: dateSigned) ?? dateSigned
+        let diff = Calendar.current.dateComponents([.day], from: Date(), to: expiry).day ?? 0
+        return max(0, diff)
+    }
+    
+    public var formattedExpiration: String {
+        guard status == .signed, let dateSigned = dateSigned else {
+            return status.rawValue
+        }
+        let expiry = Calendar.current.date(byAdding: .day, value: 7, to: dateSigned) ?? dateSigned
+        let now = Date()
+        if now >= expiry {
+            return "Expired"
+        }
+        let diffHours = Calendar.current.dateComponents([.hour], from: now, to: expiry).hour ?? 0
+        let days = diffHours / 24
+        let hours = diffHours % 24
+        if days > 0 {
+            return "\(days)d \(hours)h left"
+        } else if hours > 0 {
+            return "\(hours)h left"
+        } else {
+            let diffMinutes = max(1, Calendar.current.dateComponents([.minute], from: now, to: expiry).minute ?? 0)
+            return "\(diffMinutes)m left"
+        }
+    }
 }
 
 public enum AppSigningStatus: String, Codable, Sendable {
