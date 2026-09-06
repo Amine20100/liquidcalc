@@ -81,8 +81,11 @@ jobs:
           echo "Screen Sharing successfully activated on port 5900."
 
       - name: Setup Web-Based noVNC Client (In-Browser Desktop)
+        env:
+          VNC_PASSWORD: ${{ inputs.vnc_password }}
         run: |
           echo "Setting up noVNC web interface..."
+          PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
           rm -rf /tmp/noVNC
           git clone --depth 1 https://github.com/novnc/noVNC.git /tmp/noVNC
           git clone --depth 1 https://github.com/novnc/websockify /tmp/noVNC/utils/websockify
@@ -90,7 +93,8 @@ jobs:
           # Keep display awake and prevent sleeping
           caffeinate -u -d -i -m -s -t 86400 &
           
-          # Grant Screen Recording permission in TCC database
+          # Reset and grant Screen Recording permission in TCC database
+          sudo tccutil reset ScreenCapture || true
           sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
             "INSERT OR REPLACE INTO access VALUES('kTCCServiceScreenCapture','com.apple.screensharing',0,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1700000000);" || true
           sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
@@ -99,13 +103,56 @@ jobs:
           # Simulate keypress to wake WindowServer
           osascript -e 'tell application "System Events" to key code 123' || true
           
-          # Bake autoconnect=true and resize=remote directly into ui.js
-          sed -i '' 's/UI.initSetting(.autoconnect., false);/UI.initSetting("autoconnect", true);/g' /tmp/noVNC/app/ui.js || true
-          sed -i '' 's/UI.initSetting(.resize., .off.);/UI.initSetting("resize", "remote");/g' /tmp/noVNC/app/ui.js || true
-          
-          # Set vnc.html as index.html so root URL immediately loads the remote desktop
-          cp /tmp/noVNC/vnc.html /tmp/noVNC/index.html
-          
+          # Check / configure display resolution via displayplacer
+          brew install displayplacer || true
+          displayplacer list || true
+
+          # Inject bulletproof auto-connect & credentials into vnc.html
+          cat << 'SCRIPT_EOF' > /tmp/inject_autoconnect.js
+          <script>
+          (function() {
+            var params = new URLSearchParams(window.location.search);
+            var updated = false;
+            if (!params.has('autoconnect')) { params.set('autoconnect', 'true'); updated = true; }
+            if (!params.has('resize')) { params.set('resize', 'remote'); updated = true; }
+            if (!params.has('reconnect')) { params.set('reconnect', 'true'); updated = true; }
+            if (!params.has('password')) { params.set('password', 'PASS_PLACEHOLDER'); updated = true; }
+            if (updated) {
+              window.location.search = params.toString();
+            }
+          })();
+          </script>
+          SCRIPT_EOF
+          sed -i '' "s/PASS_PLACEHOLDER/$PASS/g" /tmp/inject_autoconnect.js
+          sed -i '' '/<head>/r /tmp/inject_autoconnect.js' /tmp/noVNC/vnc.html || true
+
+          # Create robust root index.html that auto-redirects to vnc.html with all parameters
+          cat << EOF > /tmp/noVNC/index.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <title>Redirecting to macOS Xcode Remote Desktop...</title>
+            <meta http-equiv="refresh" content="0;url=vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}">
+            <style>
+              body { background: #0b0f19; color: #e2e8f0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+              .card { background: rgba(30,41,59,0.7); border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 32px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+              a { color: #38bdf8; text-decoration: none; font-weight: 600; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <h2>🍎 Connecting to Xcode Remote Desktop...</h2>
+              <p>Redirecting automatically in 1 second.</p>
+              <p><a href="vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}">Click here if not redirected</a></p>
+            </div>
+            <script>
+              window.location.replace("vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}");
+            </script>
+          </body>
+          </html>
+          EOF
+
           # Start websockify proxying port 6080 -> 127.0.0.1:5900
           /tmp/noVNC/utils/novnc_proxy --vnc 127.0.0.1:5900 --listen 6080 > /tmp/novnc.log 2>&1 &
           sleep 2
@@ -203,6 +250,12 @@ jobs:
             echo "No ngrok token provided. Skipping ngrok tunnel."
           fi
 
+      - name: Setup tmate Interactive Web Terminal
+        if: ${{ inputs.enable_tmate }}
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
+
       - name: Launch Xcode Project & Boot iOS Simulator (Background)
         run: |
           if [ "${{ inputs.boot_simulator }}" = "true" ]; then
@@ -222,14 +275,21 @@ jobs:
         run: |
           PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
           
-          # Primary Web URL (Cloudflare with autoconnect)
-          CF_DIRECT="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
-          LT_DIRECT="${LOCALTUNNEL_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
-          PG_DIRECT="${PINGGY_WEB_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
+          # Extract tmate session URLs if available
+          TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null || true)
+          TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' 2>/dev/null || true)
+
+          # Primary Web URL (with autoconnect & reconnect)
+          CF_DIRECT="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}"
+          LT_DIRECT="${LOCALTUNNEL_URL}/vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}"
+          PG_DIRECT="${PINGGY_WEB_URL}/vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}"
 
           echo "==============================================================="
           echo "               🍎 XCODE REMOTE DESKTOP READY                   "
           echo "==============================================================="
+          if [ -n "$TMATE_WEB" ]; then
+            echo "🌐  Web Terminal (In-Browser): $TMATE_WEB"
+          fi
           if [ -n "$CLOUDFLARE_WEB_URL" ]; then
             echo "🖥️  Web Desktop (Cloudflare): $CF_DIRECT"
           fi
@@ -256,12 +316,11 @@ jobs:
           cat <<EOF >> $GITHUB_STEP_SUMMARY
           # 🍎 Xcode Remote Desktop Connected & Active
 
-          ### 🚀 1-Click Instant In-Browser Remote Desktop (No Installation Required!)
-          Choose any of the live mirror links below to access the macOS desktop in Chrome / Edge:
-
-          $(if [ -n "$CLOUDFLARE_WEB_URL" ]; then echo "1. 👉 **[Open Cloudflare Web Desktop](${CF_DIRECT})** *(Fastest)*"; fi)
-          $(if [ -n "$LOCALTUNNEL_URL" ]; then echo "2. 👉 **[Open LocalTunnel Web Desktop](${LT_DIRECT})** *(Alternative)*"; fi)
-          $(if [ -n "$PINGGY_WEB_URL" ]; then echo "3. 👉 **[Open Pinggy Web Desktop](${PG_DIRECT})** *(Alternative)*"; fi)
+          ### 🚀 1-Click Instant In-Browser Remote Access
+          $(if [ -n "$TMATE_WEB" ]; then echo "- 🌐 **[Open macOS Web Terminal in Browser](${TMATE_WEB})** *(Zero-latency terminal & CLI)*"; fi)
+          $(if [ -n "$PINGGY_WEB_URL" ]; then echo "- 🖥️ **[Open Pinggy Web Desktop](${PG_DIRECT})** *(Recommended In-Browser Desktop)*"; fi)
+          $(if [ -n "$CLOUDFLARE_WEB_URL" ]; then echo "- 🖥️ **[Open Cloudflare Web Desktop](${CF_DIRECT})**"; fi)
+          $(if [ -n "$LOCALTUNNEL_URL" ]; then echo "- 🖥️ **[Open LocalTunnel Web Desktop](${LT_DIRECT})**"; fi)
 
           ---
 
