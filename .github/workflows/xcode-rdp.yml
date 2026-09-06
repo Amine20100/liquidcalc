@@ -70,7 +70,7 @@ jobs:
           # Set password for runner user
           sudo dscl . -passwd /Users/runner "$PASS" || echo "runner:$PASS" | sudo chpasswd || true
           
-          # Enable Apple Remote Desktop / Screen Sharing service
+          # Enable Apple Remote Desktop / Screen Sharing service on port 5900
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate \
             -configure -access -on \
@@ -87,19 +87,22 @@ jobs:
           git clone --depth 1 https://github.com/novnc/noVNC.git /tmp/noVNC
           git clone --depth 1 https://github.com/novnc/websockify /tmp/noVNC/utils/websockify
           
-          # Start websockify proxying port 6080 -> 5900
-          /tmp/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 6080 > /tmp/novnc.log 2>&1 &
+          # Set vnc.html as index.html so root URL immediately loads the remote desktop
+          cp /tmp/noVNC/vnc.html /tmp/noVNC/index.html
+          
+          # Start websockify proxying port 6080 -> 127.0.0.1:5900
+          /tmp/noVNC/utils/novnc_proxy --vnc 127.0.0.1:5900 --listen 6080 > /tmp/novnc.log 2>&1 &
           sleep 2
-          echo "noVNC web proxy listening on http://localhost:6080"
+          echo "noVNC web proxy listening on http://127.0.0.1:6080"
 
-      - name: Start Cloudflare Quick Tunnel (Zero-Setup Public HTTPS Link)
+      - name: Start Cloudflare Quick Tunnel (HTTP/2 Protocol)
         run: |
           echo "Installing Cloudflare Tunnel CLI..."
-          brew install cloudflared || curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared || true
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install cloudflared || curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared || true
           
-          # Launch Quick Tunnel for noVNC web interface
-          echo "Starting Cloudflare Quick Tunnel on port 6080..."
-          cloudflared tunnel --url http://localhost:6080 > /tmp/cloudflared_web.log 2>&1 &
+          # Launch Quick Tunnel with --protocol http2 (prevents Error 1033 UDP QUIC disconnects)
+          echo "Starting Cloudflare Quick Tunnel on port 6080 with HTTP/2..."
+          cloudflared tunnel --protocol http2 --url http://127.0.0.1:6080 > /tmp/cloudflared_web.log 2>&1 &
           
           # Wait for tunnel URL generation
           for i in {1..30}; do
@@ -112,6 +115,56 @@ jobs:
             sleep 1
           done
 
+      - name: Setup LocalTunnel (Secondary Instant Web Remote Desktop)
+        run: |
+          echo "Setting up LocalTunnel fallback on port 6080..."
+          npx --yes localtunnel --port 6080 > /tmp/localtunnel.log 2>&1 &
+          for i in {1..15}; do
+            LT_URL=$(grep -o 'https://[-a-zA-Z0-9@:%._\+~#=]*\.loca\.lt' /tmp/localtunnel.log | head -n 1 || true)
+            if [ -n "$LT_URL" ]; then
+              echo "LOCALTUNNEL_URL=$LT_URL" >> $GITHUB_ENV
+              echo "LocalTunnel URL: $LT_URL"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Setup Pinggy Web & VNC Tunnels
+        run: |
+          echo "Starting Pinggy tunnels for Web (6080) and VNC (5900)..."
+          # Web desktop forward (HTTP/HTTPS)
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:6080 a.pinggy.io > /tmp/pinggy_web.log 2>&1 &
+          # Native VNC TCP forward
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:5900 tcp@a.pinggy.io > /tmp/pinggy_tcp.log 2>&1 &
+          sleep 4
+          
+          PINGGY_WEB=$(grep -o 'https://[-a-zA-Z0-9@:%._\+~#=]*\.a\.pinggy\.link' /tmp/pinggy_web.log | head -n 1 || true)
+          PINGGY_TCP=$(grep -o 'tcp://[-a-zA-Z0-9@:%._\+~#=]*:[0-9]*' /tmp/pinggy_tcp.log | head -n 1 || true)
+          
+          if [ -n "$PINGGY_WEB" ]; then
+            echo "PINGGY_WEB_URL=$PINGGY_WEB" >> $GITHUB_ENV
+            echo "Pinggy Web URL: $PINGGY_WEB"
+          fi
+          if [ -n "$PINGGY_TCP" ]; then
+            echo "PINGGY_TCP_URL=$PINGGY_TCP" >> $GITHUB_ENV
+            echo "Pinggy TCP VNC URL: $PINGGY_TCP"
+          fi
+
+      - name: Setup Bore TCP Tunnel (Direct Native VNC Client Access)
+        run: |
+          echo "Setting up Bore TCP tunnel for VNC port 5900..."
+          curl -sL https://github.com/ekzhang/bore/releases/download/v0.5.1/bore-v0.5.1-aarch64-apple-darwin.tar.gz | tar -xz -C /tmp/ || true
+          if [ -f /tmp/bore ]; then
+            chmod +x /tmp/bore
+            /tmp/bore local 5900 --to bore.pub > /tmp/bore.log 2>&1 &
+            sleep 3
+            BORE_PORT=$(grep -o 'listening at bore.pub:[0-9]*' /tmp/bore.log | grep -o '[0-9]*$' | head -n 1 || true)
+            if [ -n "$BORE_PORT" ]; then
+              echo "BORE_VNC_ADDR=bore.pub:$BORE_PORT" >> $GITHUB_ENV
+              echo "Bore VNC Address: bore.pub:$BORE_PORT"
+            fi
+          fi
+
       - name: Setup ngrok TCP Tunnel (Optional Direct VNC Port Forward)
         env:
           NGROK_INPUT_TOKEN: ${{ inputs.ngrok_token }}
@@ -120,7 +173,7 @@ jobs:
           TOKEN="${NGROK_INPUT_TOKEN:-$NGROK_SECRET_TOKEN}"
           if [ -n "$TOKEN" ]; then
             echo "Installing ngrok..."
-            brew install ngrok/ngrok/ngrok || curl -sL https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip -o /tmp/ngrok.zip && unzip /tmp/ngrok.zip -d /usr/local/bin/ || true
+            HOMEBREW_NO_AUTO_UPDATE=1 brew install ngrok/ngrok/ngrok || curl -sL https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip -o /tmp/ngrok.zip && unzip /tmp/ngrok.zip -d /usr/local/bin/ || true
             ngrok config add-authtoken "$TOKEN"
             echo "Starting ngrok TCP tunnel for port 5900..."
             ngrok tcp 5900 --log=stdout > /tmp/ngrok.log 2>&1 &
@@ -133,38 +186,6 @@ jobs:
           else
             echo "No ngrok token provided. Skipping ngrok tunnel."
           fi
-
-      - name: Setup Pinggy TCP Tunnel (Alternative Native VNC Forwarding)
-        run: |
-          echo "Starting Pinggy TCP tunnel for port 5900..."
-          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:5900 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
-          sleep 4
-          PINGGY_URL=$(grep -o 'tcp://[-a-zA-Z0-9@:%._\+~#=]*:[0-9]*' /tmp/pinggy.log | head -n 1 || true)
-          if [ -n "$PINGGY_URL" ]; then
-            echo "PINGGY_TCP_URL=$PINGGY_URL" >> $GITHUB_ENV
-            echo "Pinggy TCP VNC URL: $PINGGY_URL"
-          fi
-
-      - name: Setup tmate Interactive Web Terminal & SSH
-        if: ${{ inputs.enable_tmate }}
-        run: |
-          echo "Setting up tmate..."
-          mkdir -p ~/.ssh
-          [ -f ~/.ssh/id_rsa ] || ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q || true
-          HOMEBREW_NO_AUTO_UPDATE=1 brew install tmate || true
-          tmate -S /tmp/tmate.sock new-session -d || true
-          for i in {1..15}; do
-            TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' 2>/dev/null || true)
-            TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null || true)
-            if [ -n "$TMATE_WEB" ]; then
-              echo "TMATE_SSH_CMD=$TMATE_SSH" >> $GITHUB_ENV
-              echo "TMATE_WEB_URL=$TMATE_WEB" >> $GITHUB_ENV
-              echo "tmate SSH: $TMATE_SSH"
-              echo "tmate Web: $TMATE_WEB"
-              break
-            fi
-            sleep 1
-          done
 
       - name: Launch Xcode Project & Boot iOS Simulator (Background)
         run: |
@@ -184,21 +205,32 @@ jobs:
           SESSION_HOURS: ${{ inputs.session_hours }}
         run: |
           PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
-          WEB_LINK="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
           
+          # Primary Web URL (Cloudflare with autoconnect)
+          CF_DIRECT="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
+          LT_DIRECT="${LOCALTUNNEL_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
+          PG_DIRECT="${PINGGY_WEB_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
+
           echo "==============================================================="
           echo "               🍎 XCODE REMOTE DESKTOP READY                   "
           echo "==============================================================="
-          echo "🖥️  Web Desktop (In-Browser):  $WEB_LINK"
-          if [ -n "$NGROK_TCP_URL" ]; then
-            echo "🔌  ngrok VNC Address:         $NGROK_TCP_URL"
+          if [ -n "$CLOUDFLARE_WEB_URL" ]; then
+            echo "🖥️  Web Desktop (Cloudflare): $CF_DIRECT"
+          fi
+          if [ -n "$LOCALTUNNEL_URL" ]; then
+            echo "🖥️  Web Desktop (LocalTunnel): $LT_DIRECT"
+          fi
+          if [ -n "$PINGGY_WEB_URL" ]; then
+            echo "🖥️  Web Desktop (Pinggy):     $PG_DIRECT"
+          fi
+          if [ -n "$BORE_VNC_ADDR" ]; then
+            echo "🔌  Bore Native VNC:           $BORE_VNC_ADDR"
           fi
           if [ -n "$PINGGY_TCP_URL" ]; then
-            echo "🔌  Pinggy VNC Address:        $PINGGY_TCP_URL"
+            echo "🔌  Pinggy Native VNC:         $PINGGY_TCP_URL"
           fi
-          if [ -n "$TMATE_WEB_URL" ]; then
-            echo "🌐  tmate Web Terminal:        $TMATE_WEB_URL"
-            echo "💻  tmate SSH Command:         $TMATE_SSH_CMD"
+          if [ -n "$NGROK_TCP_URL" ]; then
+            echo "🔌  ngrok Native VNC:          $NGROK_TCP_URL"
           fi
           echo "👤  Username:                  runner"
           echo "🔑  Password:                  $PASS"
@@ -209,8 +241,11 @@ jobs:
           # 🍎 Xcode Remote Desktop Connected & Active
 
           ### 🚀 1-Click Instant In-Browser Remote Desktop (No Installation Required!)
-          Click the link below to open the macOS desktop directly in your web browser (Chrome / Edge / Firefox):
-          👉 **[Open macOS Xcode Desktop in Browser](${WEB_LINK})**
+          Choose any of the live mirror links below to access the macOS desktop in Chrome / Edge:
+
+          $(if [ -n "$CLOUDFLARE_WEB_URL" ]; then echo "1. 👉 **[Open Cloudflare Web Desktop](${CF_DIRECT})** *(Fastest)*"; fi)
+          $(if [ -n "$LOCALTUNNEL_URL" ]; then echo "2. 👉 **[Open LocalTunnel Web Desktop](${LT_DIRECT})** *(Alternative)*"; fi)
+          $(if [ -n "$PINGGY_WEB_URL" ]; then echo "3. 👉 **[Open Pinggy Web Desktop](${PG_DIRECT})** *(Alternative)*"; fi)
 
           ---
 
@@ -226,43 +261,51 @@ jobs:
 
           ---
 
-          ### 🔌 Native VNC Client Connection (RealVNC / TigerVNC / UltraVNC / Screen Sharing)
-          $(if [ -n "$NGROK_TCP_URL" ]; then echo "- **ngrok VNC**: \`$NGROK_TCP_URL\`"; fi)
-          $(if [ -n "$PINGGY_TCP_URL" ]; then echo "- **Pinggy VNC**: \`$PINGGY_TCP_URL\`"; fi)
-          - **Local Port Forward**: If connecting via SSH tunnel, forward local port \`5900\` to remote \`localhost:5900\`.
-
-          ---
-
-          ### 💻 Interactive Terminal (tmate SSH & Web Terminal)
-          $(if [ -n "$TMATE_WEB_URL" ]; then echo "- **Web Terminal**: [Open Web Shell]($TMATE_WEB_URL)"; fi)
-          $(if [ -n "$TMATE_SSH_CMD" ]; then echo "- **SSH Command**: \`$TMATE_SSH_CMD\`"; fi)
+          ### 🔌 Native VNC Client Connection (RealVNC / TigerVNC / UltraVNC)
+          You can connect directly with any VNC client using the host address below:
+          $(if [ -n "$BORE_VNC_ADDR" ]; then echo "- **Bore VNC Server**: \`$BORE_VNC_ADDR\`"; fi)
+          $(if [ -n "$PINGGY_TCP_URL" ]; then echo "- **Pinggy VNC Server**: \`$PINGGY_TCP_URL\`"; fi)
+          $(if [ -n "$NGROK_TCP_URL" ]; then echo "- **ngrok VNC Server**: \`$NGROK_TCP_URL\`"; fi)
+          - **VNC Password**: \`${PASS}\`
 
           ---
 
           > [!TIP]
-          > **How to control the session:**
-          > - Xcode is pre-opened with \`LiquidCalc.xcodeproj\`.
+          > **How to control your session:**
+          > - Xcode and iOS Simulator are launched automatically in the background.
           > - To terminate the remote desktop early, cancel this GitHub Actions workflow run in the Actions tab.
           EOF
 
-      - name: Keep-Alive Session Loop
+      - name: Keep-Alive & Watchdog Session Loop
         env:
           SESSION_HOURS: ${{ inputs.session_hours }}
         run: |
           HOURS="${SESSION_HOURS:-3}"
           SECONDS_TOTAL=$(( HOURS * 3600 ))
           echo "Session started for $HOURS hours ($SECONDS_TOTAL seconds)."
-          echo "The runner will stay active until the timer expires or the workflow is cancelled."
+          echo "Watchdog monitoring active: maintaining Cloudflare, noVNC, and tunnels."
 
           ELAPSED=0
           while [ $ELAPSED -lt $SECONDS_TOTAL ]; do
+            # Watchdog: ensure noVNC is running
+            if ! pgrep -f "novnc_proxy" > /dev/null; then
+              echo "[Watchdog] Restarting noVNC proxy..."
+              /tmp/noVNC/utils/novnc_proxy --vnc 127.0.0.1:5900 --listen 6080 > /tmp/novnc.log 2>&1 &
+            fi
+
+            # Watchdog: ensure cloudflared is running
+            if ! pgrep -f "cloudflared" > /dev/null; then
+              echo "[Watchdog] Restarting cloudflared tunnel..."
+              cloudflared tunnel --protocol http2 --url http://127.0.0.1:6080 > /tmp/cloudflared_web.log 2>&1 &
+            fi
+
             REMAINING=$(( SECONDS_TOTAL - ELAPSED ))
             REMAINING_MINS=$(( REMAINING / 60 ))
             if (( ELAPSED % 300 == 0 )); then
-              echo "[$(date '+%H:%M:%S')] Session active. Remaining time: ${REMAINING_MINS} minutes."
+              echo "[$(date '+%H:%M:%S')] Remote Desktop active. Remaining time: ${REMAINING_MINS} minutes."
             fi
-            sleep 60
-            ELAPSED=$(( ELAPSED + 60 ))
+            sleep 30
+            ELAPSED=$(( ELAPSED + 30 ))
           done
 
           echo "Session duration elapsed. Exiting cleanly."
