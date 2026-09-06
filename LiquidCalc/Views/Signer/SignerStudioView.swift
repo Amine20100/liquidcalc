@@ -1058,7 +1058,6 @@ public struct SignerStudioView: View {
             .buttonStyle(.plain)
         }
     }
-    }
     
     // MARK: - Step 3: Review & Sign
     
