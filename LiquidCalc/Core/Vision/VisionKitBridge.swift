@@ -35,18 +35,34 @@ public final class VisionKitBridge: @unchecked Sendable {
     public init() {}
     
     /// Queries the device for VisionKit hardware and OS support.
-    @MainActor
     public func queryCapabilities() -> VisionKitCapabilities {
         #if canImport(VisionKit) && canImport(UIKit)
         if #available(iOS 16.0, *) {
-            let dataScannerSupported = DataScannerViewController.isSupported
-            let dataScannerAvailable = DataScannerViewController.isAvailable
-            let imageAnalysisSupported = ImageAnalyzer.isSupported
-            return VisionKitCapabilities(
-                isDataScannerSupported: dataScannerSupported,
-                isDataScannerAvailable: dataScannerAvailable,
-                isImageAnalysisSupported: imageAnalysisSupported
-            )
+            if Thread.isMainThread {
+                return MainActor.assumeIsolated {
+                    let dataScannerSupported = DataScannerViewController.isSupported
+                    let dataScannerAvailable = DataScannerViewController.isAvailable
+                    let imageAnalysisSupported = ImageAnalyzer.isSupported
+                    return VisionKitCapabilities(
+                        isDataScannerSupported: dataScannerSupported,
+                        isDataScannerAvailable: dataScannerAvailable,
+                        isImageAnalysisSupported: imageAnalysisSupported
+                    )
+                }
+            } else {
+                return DispatchQueue.main.sync {
+                    MainActor.assumeIsolated {
+                        let dataScannerSupported = DataScannerViewController.isSupported
+                        let dataScannerAvailable = DataScannerViewController.isAvailable
+                        let imageAnalysisSupported = ImageAnalyzer.isSupported
+                        return VisionKitCapabilities(
+                            isDataScannerSupported: dataScannerSupported,
+                            isDataScannerAvailable: dataScannerAvailable,
+                            isImageAnalysisSupported: imageAnalysisSupported
+                        )
+                    }
+                }
+            }
         }
         #endif
         return VisionKitCapabilities(
