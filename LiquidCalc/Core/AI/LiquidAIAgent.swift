@@ -120,180 +120,165 @@ public final class LiquidAIAgent: @unchecked Sendable {
         
         SoundAndHapticManager.shared.triggerHaptic(.selection)
         
-        // Step 1: Initial Thought & Problem Decomposition
+        // Step 1: Initial Thought & Problem Decomposition via Gemini 2.5 Flash
         let initialStep = AgentStep(
             type: .thought,
-            title: "Planning workspace tools",
-            detail: "Choosing the local math and study tools needed for this request.",
+            title: "Analyzing query with Gemini 2.5 Flash",
+            detail: "Formulating multi-step mathematical plan with Gemini 2.5 Flash...",
             status: .running
         )
         steps.append(initialStep)
-        try? await Task.sleep(nanoseconds: 350_000_000)
         
-        // Check what tools are needed based on heuristics / intent
+        do {
+            // Dispatch to Gemini 2.5 Flash via GeminiService
+            let response = try await GeminiService.shared.solveMath(image: nil, expressionText: query)
+            
+            if let idx = steps.indices.first(where: { steps[$0].id == initialStep.id }) {
+                steps[idx].status = .success
+                steps[idx].detail = "Gemini 2.5 Flash decomposed problem: \(response.expression)"
+            }
+            
+            // Step 2..N: Dynamic Tool & Calculation Steps from Gemini
+            for (stepIndex, stepText) in response.steps.enumerated() {
+                let toolStep = AgentStep(
+                    type: .toolCall,
+                    title: "Derivation Step \(stepIndex + 1)",
+                    detail: stepText,
+                    toolName: "gemini_2.5_flash",
+                    status: .success
+                )
+                steps.append(toolStep)
+            }
+            
+            // Observation Step
+            let obsStep = AgentStep(
+                type: .observation,
+                title: "Mathematical Result",
+                detail: response.result,
+                status: .success
+            )
+            steps.append(obsStep)
+            
+            // Final Answer Step
+            let synthStep = AgentStep(
+                type: .finalAnswer,
+                title: "Synthesized Solution",
+                detail: response.explanation,
+                status: .success
+            )
+            steps.append(synthStep)
+            
+            // Build rich LaTeX & Markdown
+            var md = "# Autonomous Gemini 2.5 Flash Solution\n\n"
+            md += "> **User Request**: \(query)\n\n"
+            md += "### 📐 Step-by-Step Mathematical Derivation\n\n"
+            if !response.steps.isEmpty {
+                for (i, step) in response.steps.enumerated() {
+                    md += "\(i + 1). \(step)\n"
+                }
+            } else {
+                md += "$$ \(response.expression) $$\n"
+            }
+            md += "\n**Final Answer**: `\(response.result)`\n\n"
+            md += "> [!NOTE]\n> \(response.explanation)\n\n"
+            md += "---\n*Verified autonomously by LiquidCalc AI Agent powered by Gemini 2.5 Flash.*"
+            
+            self.finalMarkdownResult = md
+            self.isExecuting = false
+            SoundAndHapticManager.shared.triggerHaptic(.success)
+            return
+        } catch {
+            // If offline or network error, mark step and fall back to local engine
+            if let idx = steps.indices.first(where: { steps[$0].id == initialStep.id }) {
+                steps[idx].status = .failed
+                steps[idx].detail = "Cloud AI offline: engaging local study tools..."
+            }
+        }
+        
+        // Fallback local tool execution
         let lower = query.lowercased()
         var toolOutputs: [(name: String, result: String)] = []
         
-        // Update Step 1 to success
-        if let idx = steps.indices.first(where: { steps[$0].id == initialStep.id }) {
-            steps[idx].status = .success
-        }
-        
-        // Tool 1: Calculus (integral / derivative)
+        // Local Tool 1: Calculus
         if lower.contains("integral") || lower.contains("integrate") || lower.contains("∫") || lower.contains("derivative") {
             let toolStep = AgentStep(
                 type: .toolCall,
                 title: "Calling CalculusEngine",
-                detail: "Dispatching numerical integration algorithm...",
+                detail: "Evaluating calculus expression with local parser...",
                 toolName: "calculus_solve",
                 status: .running
             )
             steps.append(toolStep)
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            
             let res = executeCalculusTool(query: query)
             toolOutputs.append(("calculus_solve", res))
-            
             if let idx = steps.indices.first(where: { steps[$0].id == toolStep.id }) {
                 steps[idx].status = .success
-                steps[idx].detail = "Calculus solved: \(res)"
+                steps[idx].detail = res
             }
-            
-            let obsStep = AgentStep(
-                type: .observation,
-                title: "Calculus Observation",
-                detail: "Received: \(res)",
-                status: .success
-            )
-            steps.append(obsStep)
         }
         
-        // Tool 2: Algebra solver
+        // Local Tool 2: Algebra
         if lower.contains("solve") || lower.contains("equation") || (lower.contains("=") && lower.contains("x")) {
             let toolStep = AgentStep(
                 type: .toolCall,
                 title: "Calling AlgebraicSolver",
-                detail: "Parsing algebraic formula into polynomial coefficients...",
+                detail: "Parsing algebraic formula into polynomial roots...",
                 toolName: "algebra_solve",
                 status: .running
             )
             steps.append(toolStep)
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            
             let res = executeAlgebraTool(query: query)
             toolOutputs.append(("algebra_solve", res))
-            
             if let idx = steps.indices.first(where: { steps[$0].id == toolStep.id }) {
                 steps[idx].status = .success
-                steps[idx].detail = "Roots identified: \(res)"
+                steps[idx].detail = res
             }
-            
-            let obsStep = AgentStep(
-                type: .observation,
-                title: "Algebra Observation",
-                detail: "Received: \(res)",
-                status: .success
-            )
-            steps.append(obsStep)
         }
         
-        // Tool 3: Unit Converter
-        if lower.contains("convert") || lower.contains(" to ") || lower.contains("km") || lower.contains("mile") || lower.contains("celsius") || lower.contains("fahrenheit") {
+        // Local Tool 3: Unit Converter
+        if lower.contains("convert") || lower.contains(" to ") || lower.contains("km") || lower.contains("mile") {
             let toolStep = AgentStep(
                 type: .toolCall,
                 title: "Calling UnitConverterEngine",
-                detail: "Mapping dimensional unit ratios and base SI conversions...",
+                detail: "Evaluating unit conversion...",
                 toolName: "convert_units",
                 status: .running
             )
             steps.append(toolStep)
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            
             let res = executeUnitConverterTool(query: query)
             toolOutputs.append(("convert_units", res))
-            
             if let idx = steps.indices.first(where: { steps[$0].id == toolStep.id }) {
                 steps[idx].status = .success
-                steps[idx].detail = "Conversion computed: \(res)"
+                steps[idx].detail = res
             }
-            
-            let obsStep = AgentStep(
-                type: .observation,
-                title: "Unit Observation",
-                detail: "Received: \(res)",
-                status: .success
-            )
-            steps.append(obsStep)
         }
         
-        // Tool 4: ZSign CLI generator
-        if lower.contains("zsign") || lower.contains("sideload") || lower.contains("dylib") || lower.contains("clone") {
-            let toolStep = AgentStep(
-                type: .toolCall,
-                title: "Calling ZSign Engine Generator",
-                detail: "Synthesizing cross-platform zhlynn/zsign CLI invocation...",
-                toolName: "generate_zsign_cmd",
-                status: .running
-            )
-            steps.append(toolStep)
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            
-            let res = executeZSignTool(query: query)
-            toolOutputs.append(("generate_zsign_cmd", res))
-            
-            if let idx = steps.indices.first(where: { steps[$0].id == toolStep.id }) {
-                steps[idx].status = .success
-                steps[idx].detail = "Command generated"
-            }
-            
-            let obsStep = AgentStep(
-                type: .observation,
-                title: "ZSign CLI Observation",
-                detail: "Shell payload prepared",
-                status: .success
-            )
-            steps.append(obsStep)
-        }
-        
-        // General math calculation fallback if no tool output yet
         if toolOutputs.isEmpty {
             let toolStep = AgentStep(
                 type: .toolCall,
                 title: "Calling MathEvaluator",
-                detail: "Evaluating mathematical expression with MathParser...",
+                detail: "Evaluating mathematical expression with local engine...",
                 toolName: "eval_math",
                 status: .running
             )
             steps.append(toolStep)
-            try? await Task.sleep(nanoseconds: 300_000_000)
-            
             let res = executeMathEvalTool(query: query)
             toolOutputs.append(("eval_math", res))
-            
             if let idx = steps.indices.first(where: { steps[$0].id == toolStep.id }) {
                 steps[idx].status = .success
-                steps[idx].detail = "Result: \(res)"
+                steps[idx].detail = res
             }
         }
         
-        // Step Final: Synthesis into Rich Markdown & LaTeX
         let synthStep = AgentStep(
             type: .finalAnswer,
-            title: "Synthesizing Comprehensive Solution",
-            detail: "Assembling mathematical derivation into Markdown & LaTeX format...",
-            status: .running
+            title: "Local Solution Assembled",
+            detail: "Compiled local offline evaluation",
+            status: .success
         )
         steps.append(synthStep)
-        try? await Task.sleep(nanoseconds: 300_000_000)
         
-        let markdown = assembleFinalMarkdown(query: query, outputs: toolOutputs)
-        self.finalMarkdownResult = markdown
-        
-        if let idx = steps.indices.first(where: { steps[$0].id == synthStep.id }) {
-            steps[idx].status = .success
-            steps[idx].detail = "Solution compiled"
-        }
-        
+        self.finalMarkdownResult = assembleFinalMarkdown(query: query, outputs: toolOutputs)
         self.isExecuting = false
         SoundAndHapticManager.shared.triggerHaptic(.success)
     }

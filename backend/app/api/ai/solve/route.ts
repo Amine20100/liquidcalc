@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { jsonResponse, handleOptions } from "@/lib/cors";
-import { resolveGeminiApiKey, solveStructured } from "@/lib/gemini";
+import { resolveGeminiApiKeyAsync, solveStructured } from "@/lib/gemini";
 import {
   decryptAndVerifyRequest,
   createEncryptedResponse,
@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const apiKey = resolveGeminiApiKey(req);
+  const apiKey = await resolveGeminiApiKeyAsync(req);
   const mode = (body.mode === "receipt" ? "receipt" : "math") as
     | "math"
     | "receipt";

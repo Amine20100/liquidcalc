@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { handleOptions, jsonResponse, CORS_HEADERS } from "@/lib/cors";
 import {
-  resolveGeminiApiKey,
+  resolveGeminiApiKeyAsync,
   buildGeminiPayload,
   StreamRequestPayload,
 } from "@/lib/gemini";
@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   const prompt = (typeof body.prompt === "string" ? body.prompt.trim() : "") || (hasImage ? "Analyze this image" : "");
   const model = typeof body.model === "string" ? body.model : "gemini-2.5-flash";
-  const apiKey = resolveGeminiApiKey(req);
+  const apiKey = await resolveGeminiApiKeyAsync(req);
 
   const payload = buildGeminiPayload({
     prompt,

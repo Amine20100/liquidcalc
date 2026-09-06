@@ -40,22 +40,29 @@ export interface SolveReceiptResponse {
   total: number;
 }
 
-const DEFAULT_FALLBACK_KEY = Buffer.from(
-  "QVEuQWI4Uk42S1BYOUlQbDAxZVNkYjZsZjJwRW9PdmVKS1JTQm9CRnk4Q2hFdHdSOVM2WkE=",
-  "base64"
-).toString("utf-8");
-const DEFAULT_MODEL = "gemini-2.5-flash";
+import {
+  getRuntimeGeminiApiKey,
+  getPersistedGeminiApiKey,
+} from "./gemini-key-store";
+
+export const DEFAULT_MODEL = "gemini-2.5-flash";
 
 /**
- * Resolves the active Gemini API key from environment or request headers.
+ * Resolves the active Gemini API key from runtime memory, environment, or request headers.
  */
 export function resolveGeminiApiKey(req?: Request): string {
-  // 1. Process environment
+  // 1. Dynamic in-memory key configured via Admin Panel
+  const runtimeKey = getRuntimeGeminiApiKey();
+  if (runtimeKey && runtimeKey.trim().length > 0) {
+    return runtimeKey.trim();
+  }
+
+  // 2. Process environment variable
   if (process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim().length > 0) {
     return process.env.GEMINI_API_KEY.trim();
   }
 
-  // 2. Request Headers & URL query
+  // 3. Request Headers & URL query
   if (req) {
     let queryKey: string | null = null;
     try {
@@ -74,17 +81,29 @@ export function resolveGeminiApiKey(req?: Request): string {
       return customHeader.trim();
     }
 
-    // 3. Request Headers (Authorization: Bearer <key>)
     const authHeader = req.headers.get("authorization");
-    if (authHeader) {
+    if (authHeader && !authHeader.toLowerCase().startsWith("bearer lqc_")) {
       const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-      if (token.length > 0) {
+      if (token.length > 0 && token.startsWith("AIzaSy")) {
         return token;
       }
     }
   }
 
-  return DEFAULT_FALLBACK_KEY;
+  return "";
+}
+
+/**
+ * Resolves the active Gemini API key asynchronously with SQLite fallback.
+ */
+export async function resolveGeminiApiKeyAsync(req?: Request): Promise<string> {
+  const syncKey = resolveGeminiApiKey(req);
+  if (syncKey) return syncKey;
+
+  const dbKey = await getPersistedGeminiApiKey();
+  if (dbKey) return dbKey;
+
+  return "";
 }
 
 /**

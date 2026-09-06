@@ -277,6 +277,13 @@ export default function AdminControlCenter() {
   const [simulatingCrash, setSimulatingCrash] = useState(false);
   const [expandedCrashId, setExpandedCrashId] = useState<string | null>(null);
 
+  // AI API Key Management State
+  const [apiKeyInfo, setApiKeyInfo] = useState<{ hasKey: boolean; maskedKey: string; source: string; defaultModel: string } | null>(null);
+  const [newApiKeyInput, setNewApiKeyInput] = useState("");
+  const [savingApiKey, setSavingApiKey] = useState(false);
+  const [testingApiKey, setTestingApiKey] = useState(false);
+  const [apiKeyTestResult, setApiKeyTestResult] = useState<{ success: boolean; message?: string; error?: string; latencyMs?: number; output?: string; model?: string } | null>(null);
+
   // Toast System
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -543,7 +550,87 @@ export default function AdminControlCenter() {
     addToast("success", "Master Admin Key Updated", "Validating credentials with backend gateway...");
     setTimeout(() => {
       fetchHealth();
+      fetchApiKeyInfo();
     }, 150);
+  };
+
+  // Fetch AI API Key Info
+  const fetchApiKeyInfo = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/apikey", { headers: getAuthHeaders() });
+      if (res.ok) {
+        const data = await res.json();
+        setApiKeyInfo(data);
+      }
+    } catch {}
+  }, [getAuthHeaders]);
+
+  // Handle Save Gemini API Key
+  const handleSaveApiKey = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newApiKeyInput.trim()) return;
+    setSavingApiKey(true);
+    try {
+      const res = await fetch("/api/admin/apikey", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ apiKey: newApiKeyInput.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        addToast("success", "Gemini API Key Saved", `Configured: ${data.maskedKey}`);
+        setNewApiKeyInput("");
+        fetchApiKeyInfo();
+      } else {
+        addToast("error", "Failed to Save Key", data.error);
+      }
+    } catch (err: any) {
+      addToast("error", "Network Error", err.message);
+    } finally {
+      setSavingApiKey(false);
+    }
+  };
+
+  // Handle Test Gemini API Key
+  const handleTestApiKey = async () => {
+    setTestingApiKey(true);
+    setApiKeyTestResult(null);
+    try {
+      const res = await fetch("/api/admin/apikey/test", {
+        method: "POST",
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ apiKey: newApiKeyInput.trim() || undefined }),
+      });
+      const data = await res.json();
+      setApiKeyTestResult(data);
+      if (data.success) {
+        addToast("success", "Gemini 2.5 Flash Verified", `Active response in ${data.latencyMs}ms`);
+      } else {
+        addToast("error", "Key Validation Failed", data.error);
+      }
+    } catch (err: any) {
+      addToast("error", "Network Error", err.message);
+    } finally {
+      setTestingApiKey(false);
+    }
+  };
+
+  // Handle Delete Gemini API Key
+  const handleDeleteApiKey = async () => {
+    if (!confirm("Are you sure you want to clear the configured Gemini API key?")) return;
+    try {
+      const res = await fetch("/api/admin/apikey", {
+        method: "DELETE",
+        headers: getAuthHeaders(),
+      });
+      if (res.ok) {
+        addToast("success", "API Key Cleared", "Gemini API key removed from runtime memory and database.");
+        fetchApiKeyInfo();
+        setApiKeyTestResult(null);
+      }
+    } catch (err: any) {
+      addToast("error", "Failed to clear key", err.message);
+    }
   };
 
   // 1-Tap Tier Upgrade Handler
@@ -1927,6 +2014,116 @@ export default function AdminControlCenter() {
                   <p className="text-[11px] text-gray-400 mt-1">Flash ReAct + Tool Loop</p>
                 </div>
               </div>
+            </div>
+
+            {/* AI API KEY & MODEL CONFIGURATION CARD */}
+            <div className="glass-panel rounded-2xl border border-white/10 bg-black/40 p-6 space-y-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-4">
+                <div className="space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <Key className="w-4 h-4 text-[#00F0FF]" />
+                    <h3 className="font-bold text-white text-base font-mono">
+                      AI Model &amp; Gemini API Key Configuration
+                    </h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                      apiKeyInfo?.hasKey
+                        ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                        : "bg-amber-500/15 text-amber-400 border-amber-500/30"
+                    }`}>
+                      {apiKeyInfo?.hasKey ? "ACTIVE & CONFIGURED" : "KEY NOT SET"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-400 font-mono">
+                    Configure your Google Gemini API key securely. Keys are stored in the database and never committed to GitHub, preventing secret scanner revocation.
+                  </p>
+                </div>
+
+                <div className="flex items-center space-x-3">
+                  <div className="px-3 py-1.5 rounded-xl bg-purple-500/10 border border-purple-500/30 text-xs font-mono text-purple-300">
+                    Model: <span className="text-white font-bold">{apiKeyInfo?.defaultModel || "gemini-2.5-flash"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Status Display & Key Input */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <div className="bg-black/60 rounded-xl p-4 border border-white/10 space-y-2">
+                  <span className="text-[10px] font-mono text-gray-400 uppercase tracking-wider">
+                    Current Active Key
+                  </span>
+                  <p className="text-sm font-mono font-bold text-cyan-300">
+                    {apiKeyInfo?.maskedKey || "Not Configured"}
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    Source: <span className="text-gray-300 font-mono">{apiKeyInfo?.source === "database" ? "Admin Database" : apiKeyInfo?.source === "env" ? "Environment Variable" : "None"}</span>
+                  </p>
+                </div>
+
+                <form onSubmit={handleSaveApiKey} className="lg:col-span-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      type="password"
+                      placeholder="Paste Gemini API Key (AIzaSy...)"
+                      value={newApiKeyInput}
+                      onChange={(e) => setNewApiKeyInput(e.target.value)}
+                      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white font-mono text-xs focus:outline-none focus:border-[#00F0FF] transition-all"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={savingApiKey || !newApiKeyInput.trim()}
+                    className="px-4 py-2.5 rounded-xl bg-[#00F0FF] hover:bg-[#00F0FF]/90 text-black font-mono font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>{savingApiKey ? "Saving..." : "Save Key"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleTestApiKey}
+                    disabled={testingApiKey}
+                    className="px-4 py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 font-mono font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center space-x-1.5"
+                  >
+                    <Zap className="w-3.5 h-3.5" />
+                    <span>{testingApiKey ? "Testing..." : "Test Key"}</span>
+                  </button>
+
+                  {apiKeyInfo?.hasKey && (
+                    <button
+                      type="button"
+                      onClick={handleDeleteApiKey}
+                      className="px-3 py-2.5 rounded-xl bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 font-mono text-xs transition-all flex items-center justify-center"
+                      title="Clear Key"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </form>
+              </div>
+
+              {/* Test Result Banner */}
+              {apiKeyTestResult && (
+                <div className={`p-4 rounded-xl border text-xs font-mono ${
+                  apiKeyTestResult.success
+                    ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                    : "bg-red-500/10 border-red-500/30 text-red-300"
+                }`}>
+                  <div className="flex items-center space-x-2 font-bold">
+                    {apiKeyTestResult.success ? (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    ) : (
+                      <AlertCircle className="w-4 h-4 text-red-400" />
+                    )}
+                    <span>{apiKeyTestResult.success ? `SUCCESS: ${apiKeyTestResult.model || "Gemini 2.5 Flash"} Verified (${apiKeyTestResult.latencyMs}ms)` : `TEST FAILED: ${apiKeyTestResult.error}`}</span>
+                  </div>
+                  {apiKeyTestResult.output && (
+                    <p className="mt-1 text-gray-400 text-[11px]">
+                      Model Response: <span className="text-white font-mono">&quot;{apiKeyTestResult.output}&quot;</span>
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Grid of System Agent Cards */}
