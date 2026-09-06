@@ -18,6 +18,14 @@ public final class CertificateManager: @unchecked Sendable {
     public var activeCertificate: SigningCertificate?
     public var activeProfile: ProvisioningProfile?
     
+    public func setActiveCertificate(_ cert: SigningCertificate?) {
+        self.activeCertificate = cert
+    }
+    
+    public func setActiveProfile(_ profile: ProvisioningProfile?) {
+        self.activeProfile = profile
+    }
+    
     private let fileManager = FileManager.default
     private let certsDir: URL
     private let profilesDir: URL

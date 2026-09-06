@@ -62,8 +62,10 @@ export async function savePersistedGeminiApiKey(key: string): Promise<void> {
     });
 
     if (trimmed) {
-      await prisma.apiKey.create({
-        data: {
+      await prisma.apiKey.upsert({
+        where: { key: trimmed },
+        update: { name: "gemini_api_key", active: true },
+        create: {
           name: "gemini_api_key",
           key: trimmed,
           active: true,

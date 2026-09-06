@@ -742,312 +742,322 @@ public struct SignerStudioView: View {
     
     private var stepTwoIdentityAndTweaks: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Milestone Subheader
+            stepTwoHeader
+            stepTwoSigningIdentityCard
+            stepTwoDylibTweakCard
+            stepTwoNavigationButtons
+        }
+    }
+    
+    private var stepTwoHeader: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("STEP 2: SIGNING IDENTITY & DYLIBS")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(.cyan)
+                Text("Select Apple certificate profile and queue tweaks to inject")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.55))
+            }
+            Spacer()
+        }
+    }
+    
+    private var stepTwoSigningIdentityCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("STEP 2: SIGNING IDENTITY & DYLIBS")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.cyan)
-                    Text("Select Apple certificate profile and queue tweaks to inject")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.55))
-                }
+                Text("SIGNING IDENTITY")
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(.cyan)
                 Spacer()
+                
+                Toggle("Ad-Hoc Mode", isOn: $adhocMode)
+                    .font(.system(size: 11, weight: .semibold))
+                    .tint(.cyan)
             }
             
-            // Active Signing Identity Card
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("SIGNING IDENTITY")
-                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+            if adhocMode {
+                HStack(spacing: 12) {
+                    Image(systemName: "bolt.badge.shield.half.filled.fill")
+                        .font(.system(size: 24))
                         .foregroundColor(.cyan)
-                    Spacer()
                     
-                    Toggle("Ad-Hoc Mode", isOn: $adhocMode)
-                        .font(.system(size: 11, weight: .semibold))
-                        .tint(.cyan)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Ad-Hoc Signature Active")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                        Text("No certificate or mobileprovision required. Ideal for TrollStore or jailbreak.")
+                            .font(.system(size: 11))
+                            .foregroundColor(.white.opacity(0.5))
+                    }
+                    Spacer()
                 }
-                
-                if adhocMode {
-                    HStack(spacing: 12) {
-                        Image(systemName: "bolt.badge.shield.half.filled.fill")
-                            .font(.system(size: 24))
-                            .foregroundColor(.cyan)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.cyan.opacity(0.12)))
+            } else if let cert = certManager.activeCertificate {
+                HStack(spacing: 12) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 26))
+                        .foregroundColor(cert.isValid ? Color(red: 0.0, green: 1.0, blue: 0.64) : .red)
+                    
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(cert.name)
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundColor(.white)
+                            .lineLimit(1)
                         
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Ad-Hoc Signature Active")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                            Text("No certificate or mobileprovision required. Ideal for TrollStore or jailbreak.")
-                                .font(.system(size: 11))
-                                .foregroundColor(.white.opacity(0.5))
-                        }
-                        Spacer()
-                    }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.cyan.opacity(0.12)))
-                } else if let cert = certManager.activeCertificate {
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.seal.fill")
-                            .font(.system(size: 26))
-                            .foregroundColor(cert.isValid ? Color(red: 0.0, green: 1.0, blue: 0.64) : .red)
+                        Text("Team: \(cert.teamIdentifier) • Expiry: \(cert.expirationDate.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.system(size: 10))
+                            .foregroundColor(.white.opacity(0.5))
                         
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(cert.name)
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(.white)
-                                .lineLimit(1)
+                        HStack(spacing: 6) {
+                            Text("\(cert.daysRemaining) days left")
+                                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                                .foregroundColor(cert.daysRemaining > 30 ? Color(red: 0.0, green: 1.0, blue: 0.64) : .orange)
                             
-                            Text("Team: \(cert.teamIdentifier) • Expiry: \(cert.expirationDate.formatted(date: .abbreviated, time: .omitted))")
-                                .font(.system(size: 10))
-                                .foregroundColor(.white.opacity(0.5))
-                            
-                            HStack(spacing: 6) {
-                                Text("\(cert.daysRemaining) days left")
-                                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                                    .foregroundColor(cert.daysRemaining > 30 ? Color(red: 0.0, green: 1.0, blue: 0.64) : .orange)
-                                
-                                if let profile = certManager.activeProfile {
-                                    Text("•")
-                                        .foregroundColor(.white.opacity(0.3))
-                                    Text(profile.name)
-                                        .font(.system(size: 10))
-                                        .foregroundColor(.purple)
-                                        .lineLimit(1)
-                                }
-                            }
-                        }
-                        Spacer()
-                    }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.04)))
-                } else {
-                    HStack(spacing: 10) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundColor(.orange)
-                        Text("No Certificate Loaded. Import a .p12 below or toggle Ad-Hoc.")
-                            .font(.system(size: 12))
-                            .foregroundColor(.white.opacity(0.7))
-                    }
-                    .padding(10)
-                    .background(RoundedRectangle(cornerRadius: 12).fill(Color.orange.opacity(0.10)))
-                }
-                
-                // Action Buttons for Identity
-                HStack(spacing: 8) {
-                    Menu {
-                        ForEach(certManager.certificates) { cert in
-                            Button(cert.name) {
-                                certManager.setActiveCertificate(cert)
-                                SoundAndHapticManager.shared.triggerHaptic(.selection)
-                            }
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Text("Switch Cert")
-                            Image(systemName: "chevron.up.chevron.down")
-                                .font(.system(size: 9))
-                        }
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.cyan)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.cyan.opacity(0.12))
-                        .clipShape(Capsule())
-                    }
-                    
-                    Button(action: { showP12Picker = true }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus")
-                            Text("P12")
-                        }
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Capsule())
-                    }
-                    
-                    Button(action: { showProfilePicker = true }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus")
-                            Text("Profile")
-                        }
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Capsule())
-                    }
-                    
-                    Spacer()
-                    
-                    Button(action: { showCertStore = true }) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "creditcard.fill")
-                            Text("Cert Store")
-                        }
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 6)
-                        .background(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.15))
-                        .clipShape(Capsule())
-                    }
-                }
-            }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.white.opacity(0.08), lineWidth: 0.8)
-                    )
-            )
-            
-            // Dylib Tweak Injection Card
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    HStack(spacing: 6) {
-                        Image(systemName: "puzzlepiece.extension.fill")
-                            .font(.system(size: 12))
-                            .foregroundColor(.purple)
-                        Text("DYLIB TWEAK INJECTION (\(signerViewModel.tweaks.filter { $0.isEnabled }.count) ACTIVE)")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .foregroundColor(.purple)
-                    }
-                    Spacer()
-                    
-                    Button(action: { showTweakCatalog = true }) {
-                        HStack(spacing: 3) {
-                            Image(systemName: "cart.fill")
-                            Text("Tweak Store")
-                        }
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.purple)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.purple.opacity(0.18))
-                        .clipShape(Capsule())
-                    }
-                    
-                    Button(action: { showDylibPicker = true }) {
-                        HStack(spacing: 3) {
-                            Image(systemName: "plus")
-                            Text("Dylib")
-                        }
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.cyan)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.cyan.opacity(0.12))
-                        .clipShape(Capsule())
-                    }
-                }
-                
-                if signerViewModel.tweaks.isEmpty {
-                    Text("No dylibs loaded. Tap '+ Dylib' or 'Tweak Store' to inject dynamic frameworks.")
-                        .font(.system(size: 11))
-                        .foregroundColor(.white.opacity(0.45))
-                        .padding(.vertical, 4)
-                } else {
-                    VStack(spacing: 6) {
-                        ForEach(signerViewModel.tweaks) { tweak in
-                            HStack {
-                                Image(systemName: "puzzlepiece.fill")
-                                    .font(.system(size: 12))
+                            if let profile = certManager.activeProfile {
+                                Text("•")
+                                    .foregroundColor(.white.opacity(0.3))
+                                Text(profile.name)
+                                    .font(.system(size: 10))
                                     .foregroundColor(.purple)
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(tweak.filename)
-                                        .font(.system(size: 12, weight: .medium, design: .monospaced))
-                                        .foregroundColor(.white)
-                                        .lineLimit(1)
-                                    Text(tweak.formattedSize)
-                                        .font(.system(size: 9))
-                                        .foregroundColor(.white.opacity(0.4))
-                                }
-                                Spacer()
-                                Toggle("", isOn: Binding(
-                                    get: { tweak.isEnabled },
-                                    set: { _ in signerViewModel.toggleTweak(tweak) }
-                                ))
-                                .labelsHidden()
-                                .tint(.purple)
-                                
-                                Button(action: { signerViewModel.deleteTweak(tweak) }) {
-                                    Image(systemName: "trash")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(.red.opacity(0.8))
-                                        .padding(4)
-                                }
-                                .buttonStyle(.plain)
+                                    .lineLimit(1)
                             }
-                            .padding(8)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
                         }
                     }
+                    Spacer()
                 }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.white.opacity(0.04)))
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundColor(.orange)
+                    Text("No Certificate Loaded. Import a .p12 below or toggle Ad-Hoc.")
+                        .font(.system(size: 12))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 12).fill(Color.orange.opacity(0.10)))
             }
-            .padding(14)
-            .background(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .fill(.ultraThinMaterial)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 18, style: .continuous)
-                            .stroke(Color.purple.opacity(0.3), lineWidth: 0.8)
-                    )
-            )
             
-            // Step 2 Navigation Buttons
-            HStack(spacing: 10) {
-                Button(action: {
-                    stepDirection = .backward
-                    SoundAndHapticManager.shared.triggerHaptic(.light)
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                        currentStep = 0
+            // Action Buttons for Identity
+            HStack(spacing: 8) {
+                Menu {
+                    ForEach(certManager.certificates) { cert in
+                        Button(cert.name) {
+                            certManager.activeCertificate = cert
+                            SoundAndHapticManager.shared.triggerHaptic(.selection)
+                        }
                     }
-                    signerViewModel.wizardStep = 0
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "arrow.left")
-                        Text("Back: IPA")
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Switch Cert")
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.system(size: 9))
                     }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.white.opacity(0.8))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(Color.white.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.cyan.opacity(0.12))
+                    .clipShape(Capsule())
                 }
-                .buttonStyle(.plain)
                 
-                Button(action: {
-                    stepDirection = .forward
-                    SoundAndHapticManager.shared.triggerHaptic(.medium)
-                    withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
-                        currentStep = 2
+                Button(action: { showP12Picker = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                        Text("P12")
                     }
-                    signerViewModel.wizardStep = 2
-                }) {
-                    HStack(spacing: 6) {
-                        Text("Next: Review & Sign")
-                        Image(systemName: "arrow.right")
-                    }
-                    .font(.system(size: 13, weight: .bold, design: .rounded))
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(
-                        LinearGradient(colors: [Color.cyan, Color(red: 0.0, green: 1.0, blue: 0.64)], startPoint: .leading, endPoint: .trailing)
-                    )
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Capsule())
                 }
-                .buttonStyle(.plain)
+                
+                Button(action: { showProfilePicker = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "plus")
+                        Text("Profile")
+                    }
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.08))
+                    .clipShape(Capsule())
+                }
+                
+                Spacer()
+                
+                Button(action: { showCertStore = true }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "creditcard.fill")
+                        Text("Cert Store")
+                    }
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(Color(red: 0.0, green: 1.0, blue: 0.64))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color(red: 0.0, green: 1.0, blue: 0.64).opacity(0.15))
+                    .clipShape(Capsule())
+                }
             }
         }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.white.opacity(0.08), lineWidth: 0.8)
+                )
+        )
+    }
+    
+    private var stepTwoDylibTweakCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                HStack(spacing: 6) {
+                    Image(systemName: "puzzlepiece.extension.fill")
+                        .font(.system(size: 12))
+                        .foregroundColor(.purple)
+                    Text("DYLIB TWEAK INJECTION (\(signerViewModel.tweaks.filter { $0.isEnabled }.count) ACTIVE)")
+                        .font(.system(size: 10, weight: .bold, design: .monospaced))
+                        .foregroundColor(.purple)
+                }
+                Spacer()
+                
+                Button(action: { showTweakCatalog = true }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "cart.fill")
+                        Text("Tweak Store")
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.purple)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.purple.opacity(0.18))
+                    .clipShape(Capsule())
+                }
+                
+                Button(action: { showDylibPicker = true }) {
+                    HStack(spacing: 3) {
+                        Image(systemName: "plus")
+                        Text("Dylib")
+                    }
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.cyan)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color.cyan.opacity(0.12))
+                    .clipShape(Capsule())
+                }
+            }
+            
+            if signerViewModel.tweaks.isEmpty {
+                Text("No dylibs loaded. Tap '+ Dylib' or 'Tweak Store' to inject dynamic frameworks.")
+                    .font(.system(size: 11))
+                    .foregroundColor(.white.opacity(0.45))
+                    .padding(.vertical, 4)
+            } else {
+                VStack(spacing: 6) {
+                    ForEach(signerViewModel.tweaks) { tweak in
+                        HStack {
+                            Image(systemName: "puzzlepiece.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(.purple)
+                            VStack(alignment: .leading, spacing: 1) {
+                                Text(tweak.filename)
+                                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                                    .foregroundColor(.white)
+                                    .lineLimit(1)
+                                Text(tweak.formattedSize)
+                                    .font(.system(size: 9))
+                                    .foregroundColor(.white.opacity(0.4))
+                            }
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { tweak.isEnabled },
+                                set: { _ in signerViewModel.toggleTweak(tweak) }
+                            ))
+                            .labelsHidden()
+                            .tint(.purple)
+                            
+                            Button(action: { signerViewModel.deleteTweak(tweak) }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(.red.opacity(0.8))
+                                    .padding(4)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(8)
+                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white.opacity(0.04)))
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        .stroke(Color.purple.opacity(0.3), lineWidth: 0.8)
+                )
+        )
+    }
+    
+    private var stepTwoNavigationButtons: some View {
+        HStack(spacing: 10) {
+            Button(action: {
+                stepDirection = .backward
+                SoundAndHapticManager.shared.triggerHaptic(.light)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+                    currentStep = 0
+                }
+                signerViewModel.wizardStep = 0
+            }) {
+                HStack(spacing: 6) {
+                    Image(systemName: "arrow.left")
+                    Text("Back: IPA")
+                }
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.white.opacity(0.8))
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(Color.white.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+            
+            Button(action: {
+                stepDirection = .forward
+                SoundAndHapticManager.shared.triggerHaptic(.medium)
+                withAnimation(.spring(response: 0.38, dampingFraction: 0.78)) {
+                    currentStep = 2
+                }
+                signerViewModel.wizardStep = 2
+            }) {
+                HStack(spacing: 6) {
+                    Text("Next: Review & Sign")
+                    Image(systemName: "arrow.right")
+                }
+                .font(.system(size: 13, weight: .bold, design: .rounded))
+                .foregroundColor(.black)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(
+                    LinearGradient(colors: [Color.cyan, Color(red: 0.0, green: 1.0, blue: 0.64)], startPoint: .leading, endPoint: .trailing)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            }
+            .buttonStyle(.plain)
+        }
+    }
     }
     
     // MARK: - Step 3: Review & Sign

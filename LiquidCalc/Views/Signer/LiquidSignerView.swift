@@ -932,7 +932,7 @@ public struct LiquidSignerView: View {
                 // Set Active Action (if not already active)
                 if !isActive {
                     Button(action: {
-                        certManager.setActiveCertificate(cert)
+                        CertificateManager.shared.activeCertificate = cert
                         SoundAndHapticManager.shared.triggerHaptic(.selection)
                     }) {
                         Text("Use")

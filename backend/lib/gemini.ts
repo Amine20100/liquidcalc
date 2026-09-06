@@ -84,7 +84,7 @@ export function resolveGeminiApiKey(req?: Request): string {
     const authHeader = req.headers.get("authorization");
     if (authHeader && !authHeader.toLowerCase().startsWith("bearer lqc_")) {
       const token = authHeader.replace(/^Bearer\s+/i, "").trim();
-      if (token.length > 0 && token.startsWith("AIzaSy")) {
+      if (token.length > 0 && !token.startsWith("ey")) {
         return token;
       }
     }
