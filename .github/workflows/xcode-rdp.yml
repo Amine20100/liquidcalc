@@ -15,9 +15,9 @@ on:
           - '4'
           - '6'
       vnc_password:
-        description: 'VNC / Remote Desktop Password'
+        description: 'VNC / Remote Desktop Password (max 8 chars for RFC 6143 standard VNC compatibility)'
         required: false
-        default: 'LiquidCalc2026!'
+        default: 'Liquid26'
       ngrok_token:
         description: 'Optional ngrok Auth Token (for direct TCP VNC tunnel)'
         required: false
@@ -65,27 +65,39 @@ jobs:
           VNC_PASSWORD: ${{ inputs.vnc_password }}
         run: |
           echo "Configuring macOS Screen Sharing / VNC..."
-          PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
+          RAW_PASS="${VNC_PASSWORD:-Liquid26}"
+          PASS="${RAW_PASS:0:8}"
           
-          # Set password for runner user
+          # Set password for runner user (both full and 8-char)
           sudo dscl . -passwd /Users/runner "$PASS" || echo "runner:$PASS" | sudo chpasswd || true
           
-          # Enable Apple Remote Desktop / Screen Sharing service on port 5900
+          # Write VNC legacy password file with standard Apple XOR key
+          echo "$PASS" | perl -we 'BEGIN { @k = unpack "C*", pack "H*", "1734516E8BA8C5E2FF1C39567390ADCA"}; $_ = <>; chomp; s/^(.{8}).*/$1/; @p = unpack "C*", $_; foreach (@k) { printf "%02X", $_ ^ (shift @p || 0) }; print "\n"' | sudo tee /Library/Preferences/com.apple.VNCSettings.txt
+          sudo chmod 600 /Library/Preferences/com.apple.VNCSettings.txt
+
+          # Allow standard unencrypted RFB authentication from noVNC and third-party VNC viewers
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist VNCSettingsEncryptionNotRequired -bool true
+          sudo defaults write /Library/Preferences/com.apple.ScreenSharing.plist encryptRFBDataStream -bool false
+          sudo defaults write /var/db/launchd.db/com.apple.launchd/overrides.plist com.apple.screensharing -dict Disabled -bool false
+
+          # Enable Apple Remote Desktop / Screen Sharing service on port 5900 with proper separate flags
           sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
             -activate \
             -configure -access -on \
             -configure -allowAccessFor -allUsers -privs -all \
-            -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$PASS" \
+            -clientopts -setvnclegacy -vnclegacy yes \
+            -clientopts -setvncpw -vncpw "$PASS" \
             -restart -agent || true
             
-          echo "Screen Sharing successfully activated on port 5900."
+          echo "Screen Sharing successfully activated on port 5900 with VNC password $PASS."
 
       - name: Setup Web-Based noVNC Client (In-Browser Desktop)
         env:
           VNC_PASSWORD: ${{ inputs.vnc_password }}
         run: |
           echo "Setting up noVNC web interface..."
-          PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
+          RAW_PASS="${VNC_PASSWORD:-Liquid26}"
+          PASS="${RAW_PASS:0:8}"
           rm -rf /tmp/noVNC
           git clone --depth 1 https://github.com/novnc/noVNC.git /tmp/noVNC
           git clone --depth 1 https://github.com/novnc/websockify /tmp/noVNC/utils/websockify
@@ -268,7 +280,8 @@ jobs:
           VNC_PASSWORD: ${{ inputs.vnc_password }}
           SESSION_HOURS: ${{ inputs.session_hours }}
         run: |
-          PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
+          RAW_PASS="${VNC_PASSWORD:-Liquid26}"
+          PASS="${RAW_PASS:0:8}"
 
           # Primary Web URL (with autoconnect & reconnect)
           CF_DIRECT="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}"
