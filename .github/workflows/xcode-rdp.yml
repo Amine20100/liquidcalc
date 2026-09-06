@@ -87,6 +87,22 @@ jobs:
           git clone --depth 1 https://github.com/novnc/noVNC.git /tmp/noVNC
           git clone --depth 1 https://github.com/novnc/websockify /tmp/noVNC/utils/websockify
           
+          # Keep display awake and prevent sleeping
+          caffeinate -u -d -i -m -s -t 86400 &
+          
+          # Grant Screen Recording permission in TCC database
+          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+            "INSERT OR REPLACE INTO access VALUES('kTCCServiceScreenCapture','com.apple.screensharing',0,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1700000000);" || true
+          sudo sqlite3 "/Library/Application Support/com.apple.TCC/TCC.db" \
+            "INSERT OR REPLACE INTO access VALUES('kTCCServiceScreenCapture','com.apple.RemoteDesktop',0,2,4,1,NULL,NULL,0,'UNUSED',NULL,0,1700000000);" || true
+          
+          # Simulate keypress to wake WindowServer
+          osascript -e 'tell application "System Events" to key code 123' || true
+          
+          # Bake autoconnect=true and resize=remote directly into ui.js
+          sed -i '' 's/UI.initSetting(.autoconnect., false);/UI.initSetting("autoconnect", true);/g' /tmp/noVNC/app/ui.js || true
+          sed -i '' 's/UI.initSetting(.resize., .off.);/UI.initSetting("resize", "remote");/g' /tmp/noVNC/app/ui.js || true
+          
           # Set vnc.html as index.html so root URL immediately loads the remote desktop
           cp /tmp/noVNC/vnc.html /tmp/noVNC/index.html
           
