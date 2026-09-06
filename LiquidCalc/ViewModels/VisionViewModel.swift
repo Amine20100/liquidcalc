@@ -3,16 +3,22 @@
 //  LiquidCalc
 //
 //  Created for LiquidCalc iOS 18+.
-//  Resilient Smart Vision & Receipt Processing ViewModel
+//  Advanced Smart Vision & Receipt Processing ViewModel with CoreImage, VisionKit & Multimodal AI
 //
 
 import SwiftUI
 import PhotosUI
+
 #if canImport(Vision)
 import Vision
 #endif
+
 #if canImport(UIKit)
 import UIKit
+#endif
+
+#if canImport(CoreMedia)
+import CoreMedia
 #endif
 
 public enum VisionSubMode: String, CaseIterable, Identifiable {
@@ -32,6 +38,8 @@ public enum VisionSubMode: String, CaseIterable, Identifiable {
 public enum VisionScanMode: String, CaseIterable, Identifiable {
     case guided = "Guided"
     case live = "Live"
+    case visionKit = "VisionKit"
+    
     public var id: String { rawValue }
 }
 
@@ -39,7 +47,8 @@ public enum VisionScanMode: String, CaseIterable, Identifiable {
 public final class VisionViewModel {
     public let cameraService = CameraCaptureService()
     private let scanner = VisionMathScanner()
-    private let evaluator = MathEvaluator(angleUnit: .degrees)
+    private let analyzer = VisionFrameworkAnalyzer.shared
+    private let orchestrator = VisionMultimodalOrchestrator.shared
     private let historyManager = HistoryManager.shared
     
     public var selectedSubMode: VisionSubMode = .equation
@@ -53,12 +62,30 @@ public final class VisionViewModel {
     public var detectedExplanation: String? = nil
     public var scannedObservations: [ScannedTextObservation] = []
     
+    // Advanced Framework State
+    public let tracker = VisionObjectTracker()
+    public var trackedBoundingBox: CGRect? = nil
+    public var detectedQuad: QuadrilateralCorners? = nil
+    public var contourResult: ContourAnalysisResult? = nil
+    public var isDeskewEnabled: Bool = true
+    public var isEnhanceEnabled: Bool = true
+    public var zoomFactor: CGFloat = 1.0
+    public var tapFocusLocation: CGPoint? = nil
+    public var showTapFocusReticle: Bool = false
+    public var isExposureLocked: Bool = false
+    public var loadedPhotoForAnalysis: UIImage? = nil
+    public var showLiveTextAnalysisSheet: Bool = false
+    
     // Receipt Splitter State
     public var receiptItems: [ReceiptLineItem] = []
     public var detectedCurrency: SupportedCurrency = .usd
     public var tipPercentage: Double = 18.0
     public var splitCount: Int = 2
     public var taxRate: Double = 8.875
+    
+    public var isVisionKitSupported: Bool {
+        VisionKitBridge.shared.queryCapabilities().isFullyOperational
+    }
     
     public var hasDetectedTarget: Bool {
         if selectedSubMode == .equation {
@@ -69,7 +96,7 @@ public final class VisionViewModel {
     }
     
     public var targetBoundingBox: CGRect? {
-        scannedObservations.first?.boundingBox
+        trackedBoundingBox ?? scannedObservations.first?.boundingBox
     }
     
     public var selectedPhotoItem: PhotosPickerItem? = nil {
@@ -81,6 +108,7 @@ public final class VisionViewModel {
     public init() {}
     
     public func startCamera() {
+        cameraService.delegate = self
         cameraService.checkPermissions { [weak self] granted in
             if granted {
                 self?.cameraService.startSession()
@@ -91,10 +119,14 @@ public final class VisionViewModel {
     public func stopCamera() {
         SoundAndHapticManager.shared.stopContinuousScanningHum()
         cameraService.stopSession()
+        cameraService.delegate = nil
+        tracker.reset()
+        trackedBoundingBox = nil
     }
     
     public func clearResults() {
         SoundAndHapticManager.shared.stopContinuousScanningHum()
+        tracker.reset()
         withAnimation(.easeInOut(duration: 0.2)) {
             detectedExpression = ""
             solvedResult = nil
@@ -102,8 +134,41 @@ public final class VisionViewModel {
             detectedExplanation = nil
             scannedObservations = []
             receiptItems = []
+            detectedQuad = nil
+            contourResult = nil
+            loadedPhotoForAnalysis = nil
+            trackedBoundingBox = nil
         }
     }
+    
+    // MARK: - Advanced Camera Controls: Tap-to-Focus & Pinch-to-Zoom
+    
+    public func handleTapToFocus(pointInView: CGPoint, viewBounds: CGRect) {
+        tapFocusLocation = pointInView
+        showTapFocusReticle = true
+        cameraService.focusAtPointInView(pointInView, viewBounds: viewBounds)
+        SoundAndHapticManager.shared.triggerHaptic(.light)
+        
+        // Reticle fades after 1.5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            withAnimation(.easeOut(duration: 0.3)) {
+                self?.showTapFocusReticle = false
+            }
+        }
+    }
+    
+    public func handleZoomChange(_ factor: CGFloat) {
+        self.zoomFactor = factor
+        cameraService.setZoomFactor(factor)
+    }
+    
+    public func toggleExposureLock() {
+        isExposureLocked.toggle()
+        cameraService.setExposureLocked(isExposureLocked)
+        SoundAndHapticManager.shared.triggerHaptic(.selection)
+    }
+    
+    // MARK: - Scanning Pipeline with CoreImage Preprocessing & Deskewing
     
     public func scanCurrentFrame() {
         guard !isScanning else { return }
@@ -124,101 +189,157 @@ public final class VisionViewModel {
                 return
             }
             
-            #if canImport(UIKit)
-            let uiImage = UIImage(cgImage: cgImage)
-            Task {
-                await self.analyzeCurrentPhotoWithGemini(uiImage: uiImage)
-                
-                #if canImport(Vision)
-                self.scanner.scanImage(cgImage) { result in
+            #if canImport(Vision)
+            // Optional Contour Analysis for Equation Mode
+            if self.selectedSubMode == .equation {
+                self.analyzer.detectEquationContours(in: cgImage) { [weak self] contourRes in
+                    DispatchQueue.main.async {
+                        self?.contourResult = contourRes
+                    }
+                }
+            }
+            
+            // Perspective Deskewing and Pre-OCR Enhancement
+            if self.isDeskewEnabled {
+                self.analyzer.deskewAndScanDocument(cgImage: cgImage, autoEnhance: self.isEnhanceEnabled) { [weak self] result in
+                    guard let self = self else { return }
                     DispatchQueue.main.async {
                         SoundAndHapticManager.shared.stopContinuousScanningHum()
                         withAnimation(.easeInOut(duration: 0.2)) {
                             self.isScanning = false
                         }
-                        if case .success(let obs) = result {
-                            self.scannedObservations = obs
-                            if self.detectedExpression.isEmpty && self.receiptItems.isEmpty {
-                                self.processScannedResults(obs)
-                            }
+                        
+                        switch result {
+                        case .success(let (observations, quad)):
+                            self.detectedQuad = quad
+                            self.scannedObservations = observations
+                            self.processScannedResults(observations)
+                        case .failure:
+                            SoundAndHapticManager.shared.triggerHaptic(.error)
                         }
                     }
                 }
-                #else
-                DispatchQueue.main.async {
-                    SoundAndHapticManager.shared.stopContinuousScanningHum()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        self.isScanning = false
+            } else {
+                self.scanner.scanImage(cgImage) { [weak self] result in
+                    guard let self = self else { return }
+                    DispatchQueue.main.async {
+                        SoundAndHapticManager.shared.stopContinuousScanningHum()
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            self.isScanning = false
+                        }
+                        
+                        switch result {
+                        case .success(let observations):
+                            self.scannedObservations = observations
+                            self.processScannedResults(observations)
+                        case .failure:
+                            SoundAndHapticManager.shared.triggerHaptic(.error)
+                        }
                     }
                 }
-                #endif
             }
             #else
-            #if canImport(Vision)
-            self.scanner.scanImage(cgImage) { result in
-                DispatchQueue.main.async {
-                    SoundAndHapticManager.shared.stopContinuousScanningHum()
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        self.isScanning = false
-                    }
-                    switch result {
-                    case .success(let observations):
-                        self.scannedObservations = observations
-                        self.processScannedResults(observations)
-                    case .failure:
-                        SoundAndHapticManager.shared.triggerHaptic(.error)
-                    }
+            DispatchQueue.main.async {
+                SoundAndHapticManager.shared.stopContinuousScanningHum()
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.isScanning = false
                 }
             }
             #endif
+            
+            #if canImport(UIKit)
+            let uiImage = UIImage(cgImage: cgImage)
+            Task {
+                await self.analyzeCurrentPhotoWithGemini(uiImage: uiImage)
+            }
             #endif
         }
     }
     
+    // MARK: - VisionKit Bridge Callbacks
+    
+    public func handleVisionKitRecognized(texts: [String]) {
+        guard !texts.isEmpty else { return }
+        let joined = texts.joined(separator: " ")
+        if selectedSubMode == .equation {
+            let sanitized = scanner.sanitizeMathString(joined)
+            if !sanitized.isEmpty && sanitized != detectedExpression {
+                self.detectedExpression = sanitized
+                let solution = orchestrator.solveOnDevice(expression: sanitized)
+                self.solvedResult = solution.result
+                self.detectedSteps = solution.steps
+                self.detectedExplanation = solution.explanation
+            }
+        }
+    }
+    
+    public func handleVisionKitItemTapped(text: String) {
+        SoundAndHapticManager.shared.triggerHaptic(.selection)
+        let sanitized = scanner.sanitizeMathString(text)
+        self.detectedExpression = sanitized
+        let solution = orchestrator.solveOnDevice(expression: sanitized)
+        self.solvedResult = solution.result
+        self.detectedSteps = solution.steps
+        self.detectedExplanation = solution.explanation
+    }
+    
+    // MARK: - Process Scanned Results
+    
     public func processScannedResults(_ observations: [ScannedTextObservation]) {
         recognitionConfidence = observations.isEmpty ? 0 : min(0.98, 0.45 + Double(observations.count) * 0.12)
         if selectedSubMode == .equation {
-            // Find best evaluating mathematical candidate
             var bestExpression: String = ""
             var bestResult: String? = nil
             
             for obs in observations {
                 let candidate = obs.sanitizedExpression
-                if let solved = trySolveExpression(candidate) {
+                let sol = orchestrator.solveOnDevice(expression: candidate)
+                if sol.result != "Unresolved" && sol.result != "Empty Expression" {
                     bestExpression = candidate
-                    bestResult = solved
+                    bestResult = sol.result
+                    self.detectedSteps = sol.steps
+                    self.detectedExplanation = sol.explanation
                     break
                 }
             }
             
-            // Fallback to first sanitized expression if solver didn't match
             if bestExpression.isEmpty, let first = observations.first {
                 bestExpression = first.sanitizedExpression
-                bestResult = trySolveExpression(bestExpression)
+                let sol = orchestrator.solveOnDevice(expression: bestExpression)
+                bestResult = sol.result
+                self.detectedSteps = sol.steps
+                self.detectedExplanation = sol.explanation
             }
             
             if !bestExpression.isEmpty {
+                if let firstBox = observations.first?.boundingBox {
+                    tracker.startTracking(boundingBox: firstBox)
+                    self.trackedBoundingBox = firstBox
+                }
                 SoundAndHapticManager.shared.playDigitClick()
                 withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
                     self.detectedExpression = bestExpression
                     self.solvedResult = bestResult
                 }
                 
-                if let res = bestResult, res != "Error" {
+                if let res = bestResult, res != "Unresolved" && res != "Error" {
                     historyManager.addItem(expression: bestExpression, result: res, mode: "Vision")
                     SoundAndHapticManager.shared.triggerHaptic(.success)
                     SoundAndHapticManager.shared.playSuccessSound()
                 }
             }
         } else {
-            // Parse receipt items
-            let parseResult = scanner.parseReceipt(from: observations)
-            self.detectedCurrency = parseResult.detectedCurrency
+            let breakdown = orchestrator.processReceiptOnDevice(
+                observations: observations,
+                tipPercent: tipPercentage,
+                splitCount: splitCount
+            )
+            self.detectedCurrency = breakdown.currency
             
-            if !parseResult.items.isEmpty {
+            if !breakdown.items.isEmpty {
                 SoundAndHapticManager.shared.playDigitClick()
                 withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                    self.receiptItems = parseResult.items
+                    self.receiptItems = breakdown.items
                 }
                 SoundAndHapticManager.shared.triggerHaptic(.success)
             } else {
@@ -234,11 +355,14 @@ public final class VisionViewModel {
     
     public func solveDetectedExpression() {
         guard !detectedExpression.isEmpty else { return }
-        if let res = trySolveExpression(detectedExpression) {
+        let sol = orchestrator.solveOnDevice(expression: detectedExpression)
+        if sol.result != "Unresolved" {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
-                self.solvedResult = res
+                self.solvedResult = sol.result
+                self.detectedSteps = sol.steps
+                self.detectedExplanation = sol.explanation
             }
-            historyManager.addItem(expression: detectedExpression, result: res, mode: "Vision")
+            historyManager.addItem(expression: detectedExpression, result: sol.result, mode: "Vision")
             SoundAndHapticManager.shared.triggerHaptic(.success)
         } else {
             withAnimation(.spring(response: 0.42, dampingFraction: 0.70)) {
@@ -246,59 +370,6 @@ public final class VisionViewModel {
             }
             SoundAndHapticManager.shared.triggerHaptic(.error)
         }
-    }
-    
-    // MARK: - Smart Multi-Strategy Math Solver
-    
-    private func trySolveExpression(_ expr: String) -> String? {
-        let clean = expr.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !clean.isEmpty else { return nil }
-        
-        // 1. Try standard evaluation
-        if let val = try? evaluator.evaluate(expression: clean) {
-            return MathEvaluator.formatResult(val)
-        }
-        
-        // 2. Try solving as Linear Equation: "ax + b = c" or "2x + 5 = 15"
-        if clean.contains("=") && (clean.contains("x") || clean.contains("X")) {
-            if let linearRes = trySolveLinearEquation(clean) {
-                return linearRes
-            }
-        }
-        
-        // 3. Try solving expression without trailing noise
-        let cleanedMath = clean.replacingOccurrences(of: "=", with: "").trimmingCharacters(in: .whitespaces)
-        if let val = try? evaluator.evaluate(expression: cleanedMath) {
-            return MathEvaluator.formatResult(val)
-        }
-        
-        return nil
-    }
-    
-    private func trySolveLinearEquation(_ equation: String) -> String? {
-        // Simple linear equation parsing e.g. "2*x + 4 = 10" or "2x + 4 = 10"
-        let parts = equation.split(separator: "=")
-        guard parts.count == 2 else { return nil }
-        
-        let left = String(parts[0]).trimmingCharacters(in: .whitespaces)
-        let right = String(parts[1]).trimmingCharacters(in: .whitespaces)
-        
-        guard let rightVal = try? evaluator.evaluate(expression: right) else { return nil }
-        
-        // Evaluate at x = 0 and x = 1 to find slope and intercept: f(x) = ax + b
-        let evalAt0 = left.replacingOccurrences(of: "x", with: "(0)").replacingOccurrences(of: "X", with: "(0)")
-        let evalAt1 = left.replacingOccurrences(of: "x", with: "(1)").replacingOccurrences(of: "X", with: "(1)")
-        
-        guard let b = try? evaluator.evaluate(expression: evalAt0),
-              let f1 = try? evaluator.evaluate(expression: evalAt1) else {
-            return nil
-        }
-        
-        let a = f1 - b
-        guard abs(a) > 1e-12 else { return nil }
-        
-        let x = (rightVal - b) / a
-        return "x = " + MathEvaluator.formatResult(x)
     }
     
     // MARK: - Receipt Calculations
@@ -339,19 +410,24 @@ public final class VisionViewModel {
             case .success(let data):
                 #if canImport(UIKit)
                 if let data = data, let uiImage = UIImage(data: data) {
+                    DispatchQueue.main.async {
+                        self.loadedPhotoForAnalysis = uiImage
+                    }
+                    
                     Task {
                         await self.analyzeCurrentPhotoWithGemini(uiImage: uiImage)
                         
                         if let cgImage = uiImage.cgImage {
                             #if canImport(Vision)
-                            self.scanner.scanImage(cgImage) { scanRes in
+                            self.analyzer.deskewAndScanDocument(cgImage: cgImage, autoEnhance: self.isEnhanceEnabled) { scanRes in
                                 DispatchQueue.main.async {
                                     SoundAndHapticManager.shared.stopContinuousScanningHum()
                                     withAnimation(.easeInOut(duration: 0.2)) {
                                         self.isScanning = false
                                     }
-                                    if case .success(let obs) = scanRes {
+                                    if case .success(let (obs, quad)) = scanRes {
                                         self.scannedObservations = obs
+                                        self.detectedQuad = quad
                                         if self.detectedExpression.isEmpty && self.receiptItems.isEmpty {
                                             self.processScannedResults(obs)
                                         }
@@ -366,13 +442,6 @@ public final class VisionViewModel {
                                 }
                             }
                             #endif
-                        } else {
-                            DispatchQueue.main.async {
-                                SoundAndHapticManager.shared.stopContinuousScanningHum()
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    self.isScanning = false
-                                }
-                            }
                         }
                     }
                 } else {
@@ -395,53 +464,68 @@ public final class VisionViewModel {
             }
         }
     }
-
     
-    // MARK: - Gemini 2.5 Flash Multimodal AI Solver
+    // MARK: - Gemini 2.5 Flash Multimodal AI Solver & Receipt Engine
     
     #if canImport(UIKit)
     public func analyzeCurrentPhotoWithGemini(uiImage: UIImage) async {
         SoundAndHapticManager.shared.triggerHaptic(.medium)
         if selectedSubMode == .receipt {
-            do {
-                let receiptRes = try await GeminiService.shared.analyzeReceipt(image: uiImage)
-                await MainActor.run {
-                    var parsedItems: [ReceiptLineItem] = []
-                    for item in receiptRes.items {
-                        parsedItems.append(ReceiptLineItem(title: item.name, amount: item.price))
-                    }
-                    if !parsedItems.isEmpty {
-                        self.receiptItems = parsedItems
-                    }
-                    if let curStr = receiptRes.currency, let cur = SupportedCurrency(rawValue: curStr.uppercased()) {
-                        self.detectedCurrency = cur
-                    }
-                    SoundAndHapticManager.shared.triggerHaptic(.success)
-                    SoundAndHapticManager.shared.playSuccessSound()
+            let breakdown = await orchestrator.processReceipt(
+                observations: scannedObservations,
+                image: uiImage,
+                preferAI: true,
+                tipPercent: tipPercentage,
+                splitCount: splitCount
+            )
+            await MainActor.run {
+                if !breakdown.items.isEmpty {
+                    self.receiptItems = breakdown.items
                 }
-            } catch {
-                await MainActor.run {
-                    SoundAndHapticManager.shared.triggerHaptic(.error)
-                }
+                self.detectedCurrency = breakdown.currency
+                SoundAndHapticManager.shared.triggerHaptic(.success)
+                SoundAndHapticManager.shared.playSuccessSound()
             }
         } else {
-            do {
-                let mathRes = try await GeminiService.shared.solveMath(image: uiImage)
-                await MainActor.run {
-                    self.detectedExpression = mathRes.expression
-                    self.solvedResult = mathRes.result
-                    self.detectedSteps = mathRes.steps
-                    self.detectedExplanation = mathRes.explanation
-                    self.historyManager.addItem(expression: mathRes.expression, result: mathRes.result, mode: "Vision AI")
+            let solution = await orchestrator.solveMathProblem(
+                expression: detectedExpression,
+                image: uiImage,
+                preferAI: true
+            )
+            await MainActor.run {
+                self.detectedExpression = solution.expression
+                self.solvedResult = solution.result
+                self.detectedSteps = solution.steps
+                self.detectedExplanation = solution.explanation
+                if solution.result != "Unresolved" {
+                    self.historyManager.addItem(expression: solution.expression, result: solution.result, mode: "Vision AI")
                     SoundAndHapticManager.shared.triggerHaptic(.success)
                     SoundAndHapticManager.shared.playSuccessSound()
-                }
-            } catch {
-                await MainActor.run {
-                    SoundAndHapticManager.shared.triggerHaptic(.error)
                 }
             }
         }
     }
     #endif
 }
+
+// MARK: - Real-Time 60fps Camera Frame Delegate & Object Tracking
+
+#if canImport(AVFoundation) && canImport(CoreMedia)
+extension VisionViewModel: CameraCaptureDelegate {
+    public func cameraDidCaptureFrame(_ sampleBuffer: CMSampleBuffer) {
+        #if canImport(Vision)
+        guard tracker.isTracking else { return }
+        if let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) {
+            if let newBox = tracker.trackNextFrame(pixelBuffer: pixelBuffer) {
+                DispatchQueue.main.async { [weak self] in
+                    self?.trackedBoundingBox = newBox
+                }
+            }
+        }
+        #endif
+    }
+}
+#else
+extension VisionViewModel: CameraCaptureDelegate {}
+#endif
+

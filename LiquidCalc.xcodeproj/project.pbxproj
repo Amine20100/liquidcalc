@@ -113,6 +113,13 @@
 		AA1000B72C85000100000001 /* PaidPlansPaywallView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000B82C85000100000001 /* PaidPlansPaywallView.swift */; };
 		AA1000B92C85000100000001 /* CloudSyncSheetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000BA2C85000100000001 /* CloudSyncSheetView.swift */; };
 		AA2000312C85000100000001 /* AuthAndSubscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000322C85000100000001 /* AuthAndSubscriptionTests.swift */; };
+		AA1000C12C85000100000001 /* VisionImageEnhancer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000C22C85000100000001 /* VisionImageEnhancer.swift */; };
+		AA1000C32C85000100000001 /* VisionFrameworkAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000C42C85000100000001 /* VisionFrameworkAnalyzer.swift */; };
+		AA1000C52C85000100000001 /* VisionKitBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000C62C85000100000001 /* VisionKitBridge.swift */; };
+		AA1000C72C85000100000001 /* VisionMultimodalOrchestrator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000C82C85000100000001 /* VisionMultimodalOrchestrator.swift */; };
+		AA1000C92C85000100000001 /* VisionKitDataScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000CA2C85000100000001 /* VisionKitDataScannerView.swift */; };
+		AA1000CB2C85000100000001 /* LiveTextImageAnalysisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000CC2C85000100000001 /* LiveTextImageAnalysisView.swift */; };
+		AA2000412C85000100000001 /* AdvancedVisionFrameworkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA2000422C85000100000001 /* AdvancedVisionFrameworkTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -225,6 +232,13 @@
 		AA1000B82C85000100000001 /* PaidPlansPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Account/PaidPlansPaywallView.swift"; sourceTree = "<group>"; };
 		AA1000BA2C85000100000001 /* CloudSyncSheetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Account/CloudSyncSheetView.swift"; sourceTree = "<group>"; };
 		AA2000322C85000100000001 /* AuthAndSubscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthAndSubscriptionTests.swift; sourceTree = "<group>"; };
+		AA1000C22C85000100000001 /* VisionImageEnhancer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/VisionImageEnhancer.swift"; sourceTree = "<group>"; };
+		AA1000C42C85000100000001 /* VisionFrameworkAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/VisionFrameworkAnalyzer.swift"; sourceTree = "<group>"; };
+		AA1000C62C85000100000001 /* VisionKitBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/VisionKitBridge.swift"; sourceTree = "<group>"; };
+		AA1000C82C85000100000001 /* VisionMultimodalOrchestrator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/VisionMultimodalOrchestrator.swift"; sourceTree = "<group>"; };
+		AA1000CA2C85000100000001 /* VisionKitDataScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/VisionKitDataScannerView.swift"; sourceTree = "<group>"; };
+		AA1000CC2C85000100000001 /* LiveTextImageAnalysisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Vision/LiveTextImageAnalysisView.swift"; sourceTree = "<group>"; };
+		AA2000422C85000100000001 /* AdvancedVisionFrameworkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdvancedVisionFrameworkTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -328,6 +342,10 @@
 				AA1000A62C85000100000001 /* TelemetryManager.swift */,
 				AA1000B22C85000100000001 /* AuthManager.swift */,
 				AA1000B42C85000100000001 /* SubscriptionManager.swift */,
+				AA1000C22C85000100000001 /* VisionImageEnhancer.swift */,
+				AA1000C42C85000100000001 /* VisionFrameworkAnalyzer.swift */,
+				AA1000C62C85000100000001 /* VisionKitBridge.swift */,
+				AA1000C82C85000100000001 /* VisionMultimodalOrchestrator.swift */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -390,6 +408,8 @@
 				AA1000B62C85000100000001 /* AccountSettingsView.swift */,
 				AA1000B82C85000100000001 /* PaidPlansPaywallView.swift */,
 				AA1000BA2C85000100000001 /* CloudSyncSheetView.swift */,
+				AA1000CA2C85000100000001 /* VisionKitDataScannerView.swift */,
+				AA1000CC2C85000100000001 /* LiveTextImageAnalysisView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -419,6 +439,7 @@
 				AA30004A2C85000100000001 /* MarkdownAndAgentTests.swift */,
 				AA2000222C85000100000001 /* CryptoTransportTests.swift */,
 				AA2000322C85000100000001 /* AuthAndSubscriptionTests.swift */,
+				AA2000422C85000100000001 /* AdvancedVisionFrameworkTests.swift */,
 			);
 			path = LiquidCalcTests;
 			sourceTree = "<group>";
@@ -615,6 +636,12 @@
 				AA1000B52C85000100000001 /* AccountSettingsView.swift in Sources */,
 				AA1000B72C85000100000001 /* PaidPlansPaywallView.swift in Sources */,
 				AA1000B92C85000100000001 /* CloudSyncSheetView.swift in Sources */,
+				AA1000C12C85000100000001 /* VisionImageEnhancer.swift in Sources */,
+				AA1000C32C85000100000001 /* VisionFrameworkAnalyzer.swift in Sources */,
+				AA1000C52C85000100000001 /* VisionKitBridge.swift in Sources */,
+				AA1000C72C85000100000001 /* VisionMultimodalOrchestrator.swift in Sources */,
+				AA1000C92C85000100000001 /* VisionKitDataScannerView.swift in Sources */,
+				AA1000CB2C85000100000001 /* LiveTextImageAnalysisView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -635,6 +662,7 @@
 				AA3000492C85000100000001 /* MarkdownAndAgentTests.swift in Sources */,
 				AA2000212C85000100000001 /* CryptoTransportTests.swift in Sources */,
 				AA2000312C85000100000001 /* AuthAndSubscriptionTests.swift in Sources */,
+				AA2000412C85000100000001 /* AdvancedVisionFrameworkTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
