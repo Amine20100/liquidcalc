@@ -35,6 +35,7 @@ public final class VisionKitBridge: @unchecked Sendable {
     public init() {}
     
     /// Queries the device for VisionKit hardware and OS support.
+    @MainActor
     public func queryCapabilities() -> VisionKitCapabilities {
         #if canImport(VisionKit) && canImport(UIKit)
         if #available(iOS 16.0, *) {
@@ -61,7 +62,7 @@ public final class VisionKitBridge: @unchecked Sendable {
     public func analyzeLiveTextImage(_ image: UIImage) async throws -> ImageAnalysis {
         let analyzer = ImageAnalyzer()
         let configuration = ImageAnalyzer.Configuration([.text, .machineReadableCode])
-        return try await analyzer.image(from: image, configuration: configuration)
+        return try await analyzer.analyze(image, configuration: configuration)
     }
     #endif
 }

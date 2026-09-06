@@ -292,9 +292,10 @@ public final class VisionMultimodalOrchestrator: Sendable {
             }
             
             guard !formula.isEmpty else { return nil }
+            let targetFormula = formula
             
             let deriv = calculusEngine.derivative(at: xVal) { [self] x in
-                evaluateWithX(formula, x: x)
+                evaluateWithX(targetFormula, x: x)
             }
             
             guard deriv.isFinite else { return nil }
@@ -337,9 +338,10 @@ public final class VisionMultimodalOrchestrator: Sendable {
             }
             
             guard !formula.isEmpty else { return nil }
+            let targetFormula = formula
             
             let intVal = calculusEngine.integrate(from: a, to: b, intervals: 1000) { [self] x in
-                evaluateWithX(formula, x: x)
+                evaluateWithX(targetFormula, x: x)
             }
             
             guard intVal.isFinite else { return nil }
