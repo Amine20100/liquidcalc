@@ -80,19 +80,6 @@ jobs:
             
           echo "Screen Sharing successfully activated on port 5900."
 
-      - name: Launch Xcode Project & Boot iOS Simulator
-        run: |
-          if [ "${{ inputs.boot_simulator }}" = "true" ]; then
-            echo "Booting iOS Simulator..."
-            open -a Simulator || true
-            xcrun simctl boot "iPhone 15 Pro" || xcrun simctl boot "iPhone 15" || true
-          fi
-
-          if [ "${{ inputs.open_xcode }}" = "true" ]; then
-            echo "Opening LiquidCalc.xcodeproj in Xcode..."
-            open LiquidCalc.xcodeproj || true
-          fi
-
       - name: Setup Web-Based noVNC Client (In-Browser Desktop)
         run: |
           echo "Setting up noVNC web interface..."
@@ -174,6 +161,18 @@ jobs:
           
           echo "tmate SSH: $TMATE_SSH"
           echo "tmate Web: $TMATE_WEB"
+
+      - name: Launch Xcode Project & Boot iOS Simulator (Background)
+        run: |
+          if [ "${{ inputs.boot_simulator }}" = "true" ]; then
+            echo "Booting iOS Simulator in background..."
+            (open -a Simulator; sleep 2; xcrun simctl boot "iPhone 15 Pro" || xcrun simctl boot "iPhone 15" || true) > /tmp/sim.log 2>&1 &
+          fi
+
+          if [ "${{ inputs.open_xcode }}" = "true" ]; then
+            echo "Opening LiquidCalc.xcodeproj in Xcode in background..."
+            open LiquidCalc.xcodeproj > /tmp/xcode.log 2>&1 &
+          fi
 
       - name: Display Connection Dashboard & Credentials
         env:
