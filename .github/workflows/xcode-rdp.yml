@@ -75,19 +75,21 @@ jobs:
           echo "$PASS" | perl -we 'BEGIN { @k = unpack "C*", pack "H*", "1734516E8BA8C5E2FF1C39567390ADCA"}; $_ = <>; chomp; s/^(.{8}).*/$1/; @p = unpack "C*", $_; foreach (@k) { printf "%02X", $_ ^ (shift @p || 0) }; print "\n"' | sudo tee /Library/Preferences/com.apple.VNCSettings.txt
           sudo chmod 600 /Library/Preferences/com.apple.VNCSettings.txt
 
-          # Allow standard unencrypted RFB authentication from noVNC and third-party VNC viewers
+          # Configure system defaults for ARD and VNC
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist ARD_AllLocalUsers -bool true
+          sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist ARD_AllLocalUsersPrivs -int -1
           sudo defaults write /Library/Preferences/com.apple.RemoteManagement.plist VNCSettingsEncryptionNotRequired -bool true
           sudo defaults write /Library/Preferences/com.apple.ScreenSharing.plist encryptRFBDataStream -bool false
           sudo defaults write /var/db/launchd.db/com.apple.launchd/overrides.plist com.apple.screensharing -dict Disabled -bool false
 
-          # Enable Apple Remote Desktop / Screen Sharing service on port 5900 with proper separate flags
-          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
-            -activate \
-            -configure -access -on \
-            -configure -allowAccessFor -allUsers -privs -all \
-            -clientopts -setvnclegacy -vnclegacy yes \
-            -clientopts -setvncpw -vncpw "$PASS" \
-            -restart -agent || true
+          # Run kickstart in isolated sequential steps (combining them drops flags in macOS)
+          echo "Activating Remote Management and configuring privileges..."
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -activate -configure -access -on || true
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -allowAccessFor -allUsers -privs -all || true
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -users runner -access -on -privs -all || true
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvnclegacy -vnclegacy yes || true
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -configure -clientopts -setvncpw -vncpw "$PASS" || true
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart -restart -agent -menu || true
             
           echo "Screen Sharing successfully activated on port 5900 with VNC password $PASS."
 
