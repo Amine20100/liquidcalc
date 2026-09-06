@@ -56,7 +56,7 @@ public struct LiveTextImageAnalysisView: UIViewRepresentable {
             Task {
                 let analyzer = ImageAnalyzer()
                 let configuration = ImageAnalyzer.Configuration([.text])
-                if let analysis = try? await analyzer.analysis(for: image, configuration: configuration) {
+                if let analysis = try? await analyzer.analyze(image, configuration: configuration) {
                     await MainActor.run {
                         interaction.analysis = analysis
                     }
