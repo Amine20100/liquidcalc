@@ -1,0 +1,265 @@
+name: Xcode Remote Desktop (RDP / Web VNC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      session_hours:
+        description: 'Session Duration in Hours (1-6)'
+        required: true
+        default: '3'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+          - '6'
+      vnc_password:
+        description: 'VNC / Remote Desktop Password'
+        required: false
+        default: 'LiquidCalc2026!'
+      ngrok_token:
+        description: 'Optional ngrok Auth Token (for direct TCP VNC tunnel)'
+        required: false
+        default: ''
+      open_xcode:
+        description: 'Automatically open LiquidCalc.xcodeproj in Xcode'
+        required: false
+        default: true
+        type: boolean
+      boot_simulator:
+        description: 'Automatically boot iOS Simulator'
+        required: false
+        default: true
+        type: boolean
+      enable_tmate:
+        description: 'Enable tmate SSH & Web Terminal'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  xcode-remote-desktop:
+    name: macOS Xcode Remote Desktop
+    runs-on: macos-14
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Verify macOS & Xcode Environment
+        run: |
+          echo "=== macOS Runner Specifications ==="
+          sw_vers
+          xcodebuild -version
+          xcrun --show-sdk-path --sdk iphoneos
+          echo "Runner User: $(whoami)"
+          echo "Host Architecture: $(uname -m)"
+
+      - name: Configure User Password & Screen Sharing (VNC)
+        env:
+          VNC_PASSWORD: ${{ inputs.vnc_password }}
+        run: |
+          echo "Configuring macOS Screen Sharing / VNC..."
+          PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
+          
+          # Set password for runner user
+          sudo dscl . -passwd /Users/runner "$PASS" || echo "runner:$PASS" | sudo chpasswd || true
+          
+          # Enable Apple Remote Desktop / Screen Sharing service
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate \
+            -configure -access -on \
+            -configure -allowAccessFor -allUsers -privs -all \
+            -configure -clientopts -setvnclegacy -vnclegacy yes -setvncpw -vncpw "$PASS" \
+            -restart -agent || true
+            
+          echo "Screen Sharing successfully activated on port 5900."
+
+      - name: Launch Xcode Project & Boot iOS Simulator
+        run: |
+          if [ "${{ inputs.boot_simulator }}" = "true" ]; then
+            echo "Booting iOS Simulator..."
+            open -a Simulator || true
+            xcrun simctl boot "iPhone 15 Pro" || xcrun simctl boot "iPhone 15" || true
+          fi
+
+          if [ "${{ inputs.open_xcode }}" = "true" ]; then
+            echo "Opening LiquidCalc.xcodeproj in Xcode..."
+            open LiquidCalc.xcodeproj || true
+          fi
+
+      - name: Setup Web-Based noVNC Client (In-Browser Desktop)
+        run: |
+          echo "Setting up noVNC web interface..."
+          rm -rf /tmp/noVNC
+          git clone --depth 1 https://github.com/novnc/noVNC.git /tmp/noVNC
+          git clone --depth 1 https://github.com/novnc/websockify /tmp/noVNC/utils/websockify
+          
+          # Start websockify proxying port 6080 -> 5900
+          /tmp/noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 6080 > /tmp/novnc.log 2>&1 &
+          sleep 2
+          echo "noVNC web proxy listening on http://localhost:6080"
+
+      - name: Start Cloudflare Quick Tunnel (Zero-Setup Public HTTPS Link)
+        run: |
+          echo "Installing Cloudflare Tunnel CLI..."
+          brew install cloudflared || curl -sL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-darwin-arm64 -o /usr/local/bin/cloudflared && chmod +x /usr/local/bin/cloudflared || true
+          
+          # Launch Quick Tunnel for noVNC web interface
+          echo "Starting Cloudflare Quick Tunnel on port 6080..."
+          cloudflared tunnel --url http://localhost:6080 > /tmp/cloudflared_web.log 2>&1 &
+          
+          # Wait for tunnel URL generation
+          for i in {1..30}; do
+            WEB_URL=$(grep -o 'https://[-a-zA-Z0-9@:%._\+~#=]*\.trycloudflare\.com' /tmp/cloudflared_web.log | head -n 1)
+            if [ -n "$WEB_URL" ]; then
+              echo "CLOUDFLARE_WEB_URL=$WEB_URL" >> $GITHUB_ENV
+              echo "Found Cloudflare Tunnel: $WEB_URL"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Setup ngrok TCP Tunnel (Optional Direct VNC Port Forward)
+        env:
+          NGROK_INPUT_TOKEN: ${{ inputs.ngrok_token }}
+          NGROK_SECRET_TOKEN: ${{ secrets.NGROK_AUTH_TOKEN }}
+        run: |
+          TOKEN="${NGROK_INPUT_TOKEN:-$NGROK_SECRET_TOKEN}"
+          if [ -n "$TOKEN" ]; then
+            echo "Installing ngrok..."
+            brew install ngrok/ngrok/ngrok || curl -sL https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-darwin-arm64.zip -o /tmp/ngrok.zip && unzip /tmp/ngrok.zip -d /usr/local/bin/ || true
+            ngrok config add-authtoken "$TOKEN"
+            echo "Starting ngrok TCP tunnel for port 5900..."
+            ngrok tcp 5900 --log=stdout > /tmp/ngrok.log 2>&1 &
+            sleep 3
+            NGROK_URL=$(curl -s http://localhost:4040/api/tunnels | grep -o 'tcp://[-a-zA-Z0-9@:%._\+~#=]*:[0-9]*' | head -n 1)
+            if [ -n "$NGROK_URL" ]; then
+              echo "NGROK_TCP_URL=$NGROK_URL" >> $GITHUB_ENV
+              echo "ngrok TCP VNC URL: $NGROK_URL"
+            fi
+          else
+            echo "No ngrok token provided. Skipping ngrok tunnel."
+          fi
+
+      - name: Setup Pinggy TCP Tunnel (Alternative Native VNC Forwarding)
+        run: |
+          echo "Starting Pinggy TCP tunnel for port 5900..."
+          ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=30 -R0:localhost:5900 tcp@a.pinggy.io > /tmp/pinggy.log 2>&1 &
+          sleep 4
+          PINGGY_URL=$(grep -o 'tcp://[-a-zA-Z0-9@:%._\+~#=]*:[0-9]*' /tmp/pinggy.log | head -n 1 || true)
+          if [ -n "$PINGGY_URL" ]; then
+            echo "PINGGY_TCP_URL=$PINGGY_URL" >> $GITHUB_ENV
+            echo "Pinggy TCP VNC URL: $PINGGY_URL"
+          fi
+
+      - name: Setup tmate Interactive Web Terminal & SSH
+        if: ${{ inputs.enable_tmate }}
+        run: |
+          echo "Setting up tmate..."
+          brew install tmate || true
+          tmate -S /tmp/tmate.sock new-session -d
+          tmate -S /tmp/tmate.sock wait tmate-ready
+          
+          TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
+          TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')
+          
+          echo "TMATE_SSH_CMD=$TMATE_SSH" >> $GITHUB_ENV
+          echo "TMATE_WEB_URL=$TMATE_WEB" >> $GITHUB_ENV
+          
+          echo "tmate SSH: $TMATE_SSH"
+          echo "tmate Web: $TMATE_WEB"
+
+      - name: Display Connection Dashboard & Credentials
+        env:
+          VNC_PASSWORD: ${{ inputs.vnc_password }}
+          SESSION_HOURS: ${{ inputs.session_hours }}
+        run: |
+          PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
+          WEB_LINK="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&password=${PASS}"
+          
+          echo "==============================================================="
+          echo "               🍎 XCODE REMOTE DESKTOP READY                   "
+          echo "==============================================================="
+          echo "🖥️  Web Desktop (In-Browser):  $WEB_LINK"
+          if [ -n "$NGROK_TCP_URL" ]; then
+            echo "🔌  ngrok VNC Address:         $NGROK_TCP_URL"
+          fi
+          if [ -n "$PINGGY_TCP_URL" ]; then
+            echo "🔌  Pinggy VNC Address:        $PINGGY_TCP_URL"
+          fi
+          if [ -n "$TMATE_WEB_URL" ]; then
+            echo "🌐  tmate Web Terminal:        $TMATE_WEB_URL"
+            echo "💻  tmate SSH Command:         $TMATE_SSH_CMD"
+          fi
+          echo "👤  Username:                  runner"
+          echo "🔑  Password:                  $PASS"
+          echo "⏱️  Session Duration:          ${SESSION_HOURS} hours"
+          echo "==============================================================="
+
+          cat <<EOF >> $GITHUB_STEP_SUMMARY
+          # 🍎 Xcode Remote Desktop Connected & Active
+
+          ### 🚀 1-Click Instant In-Browser Remote Desktop (No Installation Required!)
+          Click the link below to open the macOS desktop directly in your web browser (Chrome / Edge / Firefox):
+          👉 **[Open macOS Xcode Desktop in Browser](${WEB_LINK})**
+
+          ---
+
+          ### 🔑 Connection Credentials
+          | Parameter | Value |
+          | :--- | :--- |
+          | **Host OS** | macOS Sonoma 14 (Apple Silicon) |
+          | **Username** | \`runner\` |
+          | **Password** | \`${PASS}\` |
+          | **VNC Port** | \`5900\` |
+          | **Pre-loaded App** | Xcode 15.4 / 16 (\`LiquidCalc.xcodeproj\`) & iOS Simulator |
+          | **Session Duration** | **${SESSION_HOURS} Hours** |
+
+          ---
+
+          ### 🔌 Native VNC Client Connection (RealVNC / TigerVNC / UltraVNC / Screen Sharing)
+          $(if [ -n "$NGROK_TCP_URL" ]; then echo "- **ngrok VNC**: \`$NGROK_TCP_URL\`"; fi)
+          $(if [ -n "$PINGGY_TCP_URL" ]; then echo "- **Pinggy VNC**: \`$PINGGY_TCP_URL\`"; fi)
+          - **Local Port Forward**: If connecting via SSH tunnel, forward local port \`5900\` to remote \`localhost:5900\`.
+
+          ---
+
+          ### 💻 Interactive Terminal (tmate SSH & Web Terminal)
+          $(if [ -n "$TMATE_WEB_URL" ]; then echo "- **Web Terminal**: [Open Web Shell]($TMATE_WEB_URL)"; fi)
+          $(if [ -n "$TMATE_SSH_CMD" ]; then echo "- **SSH Command**: \`$TMATE_SSH_CMD\`"; fi)
+
+          ---
+
+          > [!TIP]
+          > **How to control the session:**
+          > - Xcode is pre-opened with \`LiquidCalc.xcodeproj\`.
+          > - To terminate the remote desktop early, cancel this GitHub Actions workflow run in the Actions tab.
+          EOF
+
+      - name: Keep-Alive Session Loop
+        env:
+          SESSION_HOURS: ${{ inputs.session_hours }}
+        run: |
+          HOURS="${SESSION_HOURS:-3}"
+          SECONDS_TOTAL=$(( HOURS * 3600 ))
+          echo "Session started for $HOURS hours ($SECONDS_TOTAL seconds)."
+          echo "The runner will stay active until the timer expires or the workflow is cancelled."
+
+          ELAPSED=0
+          while [ $ELAPSED -lt $SECONDS_TOTAL ]; do
+            REMAINING=$(( SECONDS_TOTAL - ELAPSED ))
+            REMAINING_MINS=$(( REMAINING / 60 ))
+            if (( ELAPSED % 300 == 0 )); then
+              echo "[$(date '+%H:%M:%S')] Session active. Remaining time: ${REMAINING_MINS} minutes."
+            fi
+            sleep 60
+            ELAPSED=$(( ELAPSED + 60 ))
+          done
+
+          echo "Session duration elapsed. Exiting cleanly."
