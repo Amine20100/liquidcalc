@@ -250,18 +250,6 @@ jobs:
             echo "No ngrok token provided. Skipping ngrok tunnel."
           fi
 
-      - name: Setup Background tmate Web Terminal
-        if: ${{ inputs.enable_tmate }}
-        run: |
-          echo "Setting up non-blocking background tmate web terminal..."
-          brew install tmate || true
-          tmate -S /tmp/tmate.sock new-session -d || true
-          tmate -S /tmp/tmate.sock wait tmate-ready || true
-          TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null || true)
-          if [ -n "$TMATE_WEB" ]; then
-            echo "TMATE_WEB_URL=$TMATE_WEB" >> $GITHUB_ENV
-            echo "tmate Web Terminal URL: $TMATE_WEB"
-          fi
 
       - name: Launch Xcode Project & Boot iOS Simulator (Background)
         run: |
@@ -281,10 +269,6 @@ jobs:
           SESSION_HOURS: ${{ inputs.session_hours }}
         run: |
           PASS="${VNC_PASSWORD:-LiquidCalc2026!}"
-          
-          # Extract tmate session URLs if available
-          TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null || true)
-          TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' 2>/dev/null || true)
 
           # Primary Web URL (with autoconnect & reconnect)
           CF_DIRECT="${CLOUDFLARE_WEB_URL}/vnc.html?autoconnect=true&resize=remote&reconnect=true&password=${PASS}"
@@ -294,9 +278,6 @@ jobs:
           echo "==============================================================="
           echo "               🍎 XCODE REMOTE DESKTOP READY                   "
           echo "==============================================================="
-          if [ -n "$TMATE_WEB" ]; then
-            echo "🌐  Web Terminal (In-Browser): $TMATE_WEB"
-          fi
           if [ -n "$CLOUDFLARE_WEB_URL" ]; then
             echo "🖥️  Web Desktop (Cloudflare): $CF_DIRECT"
           fi
@@ -324,7 +305,6 @@ jobs:
           # 🍎 Xcode Remote Desktop Connected & Active
 
           ### 🚀 1-Click Instant In-Browser Remote Access
-          $(if [ -n "$TMATE_WEB" ]; then echo "- 🌐 **[Open macOS Web Terminal in Browser](${TMATE_WEB})** *(Zero-latency terminal & CLI)*"; fi)
           $(if [ -n "$PINGGY_WEB_URL" ]; then echo "- 🖥️ **[Open Pinggy Web Desktop](${PG_DIRECT})** *(Recommended In-Browser Desktop)*"; fi)
           $(if [ -n "$CLOUDFLARE_WEB_URL" ]; then echo "- 🖥️ **[Open Cloudflare Web Desktop](${CF_DIRECT})**"; fi)
           $(if [ -n "$LOCALTUNNEL_URL" ]; then echo "- 🖥️ **[Open LocalTunnel Web Desktop](${LT_DIRECT})**"; fi)
