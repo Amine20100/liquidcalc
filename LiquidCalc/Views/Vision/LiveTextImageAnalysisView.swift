@@ -48,7 +48,7 @@ public struct LiveTextImageAnalysisView: UIViewRepresentable {
             ])
             
             let interaction = ImageAnalysisInteraction()
-            interaction.preferredInteractionTypes = [.text, .automatic]
+            interaction.preferredInteractionTypes = [.textSelection, .automatic]
             interaction.isSupplementaryInterfaceHidden = false
             imageView.addInteraction(interaction)
             context.coordinator.interaction = interaction
@@ -56,7 +56,7 @@ public struct LiveTextImageAnalysisView: UIViewRepresentable {
             Task {
                 let analyzer = ImageAnalyzer()
                 let configuration = ImageAnalyzer.Configuration([.text])
-                if let analysis = try? await analyzer.image(from: image, configuration: configuration) {
+                if let analysis = try? await analyzer.analysis(for: image, configuration: configuration) {
                     await MainActor.run {
                         interaction.analysis = analysis
                     }
