@@ -250,11 +250,18 @@ jobs:
             echo "No ngrok token provided. Skipping ngrok tunnel."
           fi
 
-      - name: Setup tmate Interactive Web Terminal
+      - name: Setup Background tmate Web Terminal
         if: ${{ inputs.enable_tmate }}
-        uses: mxschmitt/action-tmate@v3
-        with:
-          detached: true
+        run: |
+          echo "Setting up non-blocking background tmate web terminal..."
+          brew install tmate || true
+          tmate -S /tmp/tmate.sock new-session -d || true
+          tmate -S /tmp/tmate.sock wait tmate-ready || true
+          TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null || true)
+          if [ -n "$TMATE_WEB" ]; then
+            echo "TMATE_WEB_URL=$TMATE_WEB" >> $GITHUB_ENV
+            echo "tmate Web Terminal URL: $TMATE_WEB"
+          fi
 
       - name: Launch Xcode Project & Boot iOS Simulator (Background)
         run: |
