@@ -149,18 +149,22 @@ jobs:
         if: ${{ inputs.enable_tmate }}
         run: |
           echo "Setting up tmate..."
-          brew install tmate || true
-          tmate -S /tmp/tmate.sock new-session -d
-          tmate -S /tmp/tmate.sock wait tmate-ready
-          
-          TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
-          TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}')
-          
-          echo "TMATE_SSH_CMD=$TMATE_SSH" >> $GITHUB_ENV
-          echo "TMATE_WEB_URL=$TMATE_WEB" >> $GITHUB_ENV
-          
-          echo "tmate SSH: $TMATE_SSH"
-          echo "tmate Web: $TMATE_WEB"
+          mkdir -p ~/.ssh
+          [ -f ~/.ssh/id_rsa ] || ssh-keygen -t rsa -f ~/.ssh/id_rsa -N "" -q || true
+          HOMEBREW_NO_AUTO_UPDATE=1 brew install tmate || true
+          tmate -S /tmp/tmate.sock new-session -d || true
+          for i in {1..15}; do
+            TMATE_SSH=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}' 2>/dev/null || true)
+            TMATE_WEB=$(tmate -S /tmp/tmate.sock display -p '#{tmate_web}' 2>/dev/null || true)
+            if [ -n "$TMATE_WEB" ]; then
+              echo "TMATE_SSH_CMD=$TMATE_SSH" >> $GITHUB_ENV
+              echo "TMATE_WEB_URL=$TMATE_WEB" >> $GITHUB_ENV
+              echo "tmate SSH: $TMATE_SSH"
+              echo "tmate Web: $TMATE_WEB"
+              break
+            fi
+            sleep 1
+          done
 
       - name: Launch Xcode Project & Boot iOS Simulator (Background)
         run: |
